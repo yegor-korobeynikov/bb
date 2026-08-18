@@ -6380,7 +6380,10 @@ type DeltaItemKey = z.infer<typeof deltaItemKeySchema>;
 /**
  * The parsed item shapes a bridge classifies its provider's tool traffic
  * into. Everything richer (diffs, pending statuses, echoed fields on close)
- * is assembler-owned construction.
+ * is assembler-owned construction. Output-ish optional fields (aggregated
+ * output, exit code, results) exist for providers whose native item payloads
+ * carry them wholesale (codex); the generic close fields win when both are
+ * present.
  */
 declare const deltaFileChangeSchema: z.ZodObject<{
     path: z.ZodString;
@@ -6389,6 +6392,8 @@ declare const deltaFileChangeSchema: z.ZodObject<{
         delete: "delete";
         update: "update";
     }>;
+    movePath: z.ZodOptional<z.ZodString>;
+    diff: z.ZodOptional<z.ZodString>;
     oldText: z.ZodOptional<z.ZodString>;
     newText: z.ZodOptional<z.ZodString>;
 }, z.core.$strip>;
@@ -6397,6 +6402,9 @@ declare const deltaItemShapeSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
     type: z.ZodLiteral<"command">;
     command: z.ZodString;
     cwd: z.ZodString;
+    aggregatedOutput: z.ZodOptional<z.ZodString>;
+    exitCode: z.ZodOptional<z.ZodNumber>;
+    durationMs: z.ZodOptional<z.ZodNumber>;
 }, z.core.$strip>, z.ZodObject<{
     type: z.ZodLiteral<"fileChange">;
     changes: z.ZodArray<z.ZodObject<{
@@ -6406,15 +6414,41 @@ declare const deltaItemShapeSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
             delete: "delete";
             update: "update";
         }>;
+        movePath: z.ZodOptional<z.ZodString>;
+        diff: z.ZodOptional<z.ZodString>;
         oldText: z.ZodOptional<z.ZodString>;
         newText: z.ZodOptional<z.ZodString>;
     }, z.core.$strip>>;
 }, z.core.$strip>, z.ZodObject<{
     type: z.ZodLiteral<"tool">;
     tool: z.ZodString;
+    server: z.ZodOptional<z.ZodString>;
     args: z.ZodOptional<z.ZodUnknown>;
+    result: z.ZodOptional<z.ZodUnknown>;
+    error: z.ZodOptional<z.ZodString>;
+    durationMs: z.ZodOptional<z.ZodNumber>;
 }, z.core.$strip>, z.ZodObject<{
     type: z.ZodLiteral<"compaction">;
+}, z.core.$strip>, z.ZodObject<{
+    type: z.ZodLiteral<"agentMessage">;
+    text: z.ZodString;
+}, z.core.$strip>, z.ZodObject<{
+    type: z.ZodLiteral<"reasoning">;
+    summary: z.ZodArray<z.ZodString>;
+    content: z.ZodArray<z.ZodString>;
+}, z.core.$strip>, z.ZodObject<{
+    type: z.ZodLiteral<"plan">;
+    text: z.ZodString;
+}, z.core.$strip>, z.ZodObject<{
+    type: z.ZodLiteral<"webSearch">;
+    queries: z.ZodArray<z.ZodString>;
+}, z.core.$strip>, z.ZodObject<{
+    type: z.ZodLiteral<"webFetch">;
+    url: z.ZodString;
+    pattern: z.ZodNullable<z.ZodString>;
+}, z.core.$strip>, z.ZodObject<{
+    type: z.ZodLiteral<"imageView">;
+    path: z.ZodString;
 }, z.core.$strip>], "type">;
 type DeltaItemShape = z.infer<typeof deltaItemShapeSchema>;
 declare const deltaMessageChannelSchema: z.ZodEnum<{
@@ -6423,12 +6457,35 @@ declare const deltaMessageChannelSchema: z.ZodEnum<{
 }>;
 type DeltaMessageChannel = z.infer<typeof deltaMessageChannelSchema>;
 /**
+ * Item-keyed text channels (codex): channels that synthesize a delta-first
+ * `item/started` for an unknown item id.
+ */
+declare const deltaTextChannelSchema: z.ZodEnum<{
+    agentMessage: "agentMessage";
+    plan: "plan";
+    reasoningSummary: "reasoningSummary";
+    reasoningText: "reasoningText";
+}>;
+type DeltaTextChannel = z.infer<typeof deltaTextChannelSchema>;
+/**
+ * Item-keyed output channels (codex): channels that NEVER synthesize an open
+ * — fabricating a commandExecution without its command would be worse than
+ * the anomaly. The structural split between `item.textDelta` and
+ * `item.outputDelta` is what encodes that rule.
+ */
+declare const deltaOutputChannelSchema: z.ZodEnum<{
+    command: "command";
+    fileChange: "fileChange";
+}>;
+type DeltaOutputChannel = z.infer<typeof deltaOutputChannelSchema>;
+/**
  * Turnless fallback: item/stream deltas never open turns — only `turn.open`,
  * a claiming `turn.boundary`, and accepted-input lifecycle settlement do.
  * When a turn-scoped delta arrives with no turn to attach to, the assembler
  * surfaces this raw payload as a thread-scoped `provider/unhandled` (the
  * bridges' old "no active turn" guard, applied centrally). Absent, the
- * turnless delta is dropped silently.
+ * turnless delta is dropped silently. Irrelevant for deltas carrying a
+ * `providerTurnId` (a vouched turn always resolves).
  */
 declare const deltaNoTurnFallbackSchema: z.ZodObject<{
     raw: z.ZodObject<{
@@ -6443,8 +6500,11 @@ type DeltaNoTurnFallback = z.infer<typeof deltaNoTurnFallbackSchema>;
 declare const threadDeltaSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
     kind: z.ZodLiteral<"input.accepted">;
     clientRequestId: z.ZodString;
+    providerTurnId: z.ZodOptional<z.ZodString>;
 }, z.core.$strip>, z.ZodObject<{
     kind: z.ZodLiteral<"turn.open">;
+    providerTurnId: z.ZodOptional<z.ZodString>;
+    parentRef: z.ZodOptional<z.ZodString>;
 }, z.core.$strip>, z.ZodObject<{
     kind: z.ZodLiteral<"turn.boundary">;
     status: z.ZodEnum<{
@@ -6457,6 +6517,7 @@ declare const threadDeltaSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
     }, z.core.$strip>>;
     providerCheckpointId: z.ZodOptional<z.ZodString>;
     claimIfIdle: z.ZodOptional<z.ZodBoolean>;
+    providerTurnId: z.ZodOptional<z.ZodString>;
 }, z.core.$strip>, z.ZodObject<{
     kind: z.ZodLiteral<"item.open">;
     key: z.ZodObject<{
@@ -6468,6 +6529,9 @@ declare const threadDeltaSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
         type: z.ZodLiteral<"command">;
         command: z.ZodString;
         cwd: z.ZodString;
+        aggregatedOutput: z.ZodOptional<z.ZodString>;
+        exitCode: z.ZodOptional<z.ZodNumber>;
+        durationMs: z.ZodOptional<z.ZodNumber>;
     }, z.core.$strip>, z.ZodObject<{
         type: z.ZodLiteral<"fileChange">;
         changes: z.ZodArray<z.ZodObject<{
@@ -6477,20 +6541,47 @@ declare const threadDeltaSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
                 delete: "delete";
                 update: "update";
             }>;
+            movePath: z.ZodOptional<z.ZodString>;
+            diff: z.ZodOptional<z.ZodString>;
             oldText: z.ZodOptional<z.ZodString>;
             newText: z.ZodOptional<z.ZodString>;
         }, z.core.$strip>>;
     }, z.core.$strip>, z.ZodObject<{
         type: z.ZodLiteral<"tool">;
         tool: z.ZodString;
+        server: z.ZodOptional<z.ZodString>;
         args: z.ZodOptional<z.ZodUnknown>;
+        result: z.ZodOptional<z.ZodUnknown>;
+        error: z.ZodOptional<z.ZodString>;
+        durationMs: z.ZodOptional<z.ZodNumber>;
     }, z.core.$strip>, z.ZodObject<{
         type: z.ZodLiteral<"compaction">;
+    }, z.core.$strip>, z.ZodObject<{
+        type: z.ZodLiteral<"agentMessage">;
+        text: z.ZodString;
+    }, z.core.$strip>, z.ZodObject<{
+        type: z.ZodLiteral<"reasoning">;
+        summary: z.ZodArray<z.ZodString>;
+        content: z.ZodArray<z.ZodString>;
+    }, z.core.$strip>, z.ZodObject<{
+        type: z.ZodLiteral<"plan">;
+        text: z.ZodString;
+    }, z.core.$strip>, z.ZodObject<{
+        type: z.ZodLiteral<"webSearch">;
+        queries: z.ZodArray<z.ZodString>;
+    }, z.core.$strip>, z.ZodObject<{
+        type: z.ZodLiteral<"webFetch">;
+        url: z.ZodString;
+        pattern: z.ZodNullable<z.ZodString>;
+    }, z.core.$strip>, z.ZodObject<{
+        type: z.ZodLiteral<"imageView">;
+        path: z.ZodString;
     }, z.core.$strip>], "type">;
     attach: z.ZodOptional<z.ZodEnum<{
         open: "open";
         currentOrLast: "currentOrLast";
     }>>;
+    providerTurnId: z.ZodOptional<z.ZodString>;
     noTurnFallback: z.ZodOptional<z.ZodObject<{
         raw: z.ZodObject<{
             jsonrpc: z.ZodLiteral<"2.0">;
@@ -6516,10 +6607,14 @@ declare const threadDeltaSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
     resultText: z.ZodOptional<z.ZodString>;
     exitCode: z.ZodOptional<z.ZodNumber>;
     aggregatedOutput: z.ZodOptional<z.ZodString>;
+    approvalStatus: z.ZodOptional<z.ZodLiteral<"denied">>;
     item: z.ZodDiscriminatedUnion<[z.ZodObject<{
         type: z.ZodLiteral<"command">;
         command: z.ZodString;
         cwd: z.ZodString;
+        aggregatedOutput: z.ZodOptional<z.ZodString>;
+        exitCode: z.ZodOptional<z.ZodNumber>;
+        durationMs: z.ZodOptional<z.ZodNumber>;
     }, z.core.$strip>, z.ZodObject<{
         type: z.ZodLiteral<"fileChange">;
         changes: z.ZodArray<z.ZodObject<{
@@ -6529,16 +6624,43 @@ declare const threadDeltaSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
                 delete: "delete";
                 update: "update";
             }>;
+            movePath: z.ZodOptional<z.ZodString>;
+            diff: z.ZodOptional<z.ZodString>;
             oldText: z.ZodOptional<z.ZodString>;
             newText: z.ZodOptional<z.ZodString>;
         }, z.core.$strip>>;
     }, z.core.$strip>, z.ZodObject<{
         type: z.ZodLiteral<"tool">;
         tool: z.ZodString;
+        server: z.ZodOptional<z.ZodString>;
         args: z.ZodOptional<z.ZodUnknown>;
+        result: z.ZodOptional<z.ZodUnknown>;
+        error: z.ZodOptional<z.ZodString>;
+        durationMs: z.ZodOptional<z.ZodNumber>;
     }, z.core.$strip>, z.ZodObject<{
         type: z.ZodLiteral<"compaction">;
+    }, z.core.$strip>, z.ZodObject<{
+        type: z.ZodLiteral<"agentMessage">;
+        text: z.ZodString;
+    }, z.core.$strip>, z.ZodObject<{
+        type: z.ZodLiteral<"reasoning">;
+        summary: z.ZodArray<z.ZodString>;
+        content: z.ZodArray<z.ZodString>;
+    }, z.core.$strip>, z.ZodObject<{
+        type: z.ZodLiteral<"plan">;
+        text: z.ZodString;
+    }, z.core.$strip>, z.ZodObject<{
+        type: z.ZodLiteral<"webSearch">;
+        queries: z.ZodArray<z.ZodString>;
+    }, z.core.$strip>, z.ZodObject<{
+        type: z.ZodLiteral<"webFetch">;
+        url: z.ZodString;
+        pattern: z.ZodNullable<z.ZodString>;
+    }, z.core.$strip>, z.ZodObject<{
+        type: z.ZodLiteral<"imageView">;
+        path: z.ZodString;
     }, z.core.$strip>], "type">;
+    providerTurnId: z.ZodOptional<z.ZodString>;
     noTurnFallback: z.ZodOptional<z.ZodObject<{
         raw: z.ZodObject<{
             jsonrpc: z.ZodLiteral<"2.0">;
@@ -6559,6 +6681,8 @@ declare const threadDeltaSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
             pending: "pending";
         }>>;
     }, z.core.$strip>>;
+    explanation: z.ZodOptional<z.ZodString>;
+    providerTurnId: z.ZodOptional<z.ZodString>;
     noTurnFallback: z.ZodOptional<z.ZodObject<{
         raw: z.ZodObject<{
             jsonrpc: z.ZodLiteral<"2.0">;
@@ -6575,7 +6699,8 @@ declare const threadDeltaSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
         channel: z.ZodOptional<z.ZodString>;
         parentRef: z.ZodOptional<z.ZodString>;
     }, z.core.$strip>;
-    message: z.ZodString;
+    message: z.ZodOptional<z.ZodString>;
+    providerTurnId: z.ZodOptional<z.ZodString>;
     noTurnFallback: z.ZodOptional<z.ZodObject<{
         raw: z.ZodObject<{
             jsonrpc: z.ZodLiteral<"2.0">;
@@ -6623,6 +6748,52 @@ declare const threadDeltaSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
         rawType: z.ZodString;
     }, z.core.$strip>>;
 }, z.core.$strip>, z.ZodObject<{
+    kind: z.ZodLiteral<"item.textDelta">;
+    key: z.ZodObject<{
+        providerItemId: z.ZodOptional<z.ZodString>;
+        channel: z.ZodOptional<z.ZodString>;
+        parentRef: z.ZodOptional<z.ZodString>;
+    }, z.core.$strip>;
+    channel: z.ZodEnum<{
+        agentMessage: "agentMessage";
+        plan: "plan";
+        reasoningSummary: "reasoningSummary";
+        reasoningText: "reasoningText";
+    }>;
+    text: z.ZodString;
+    providerTurnId: z.ZodOptional<z.ZodString>;
+    noTurnFallback: z.ZodOptional<z.ZodObject<{
+        raw: z.ZodObject<{
+            jsonrpc: z.ZodLiteral<"2.0">;
+            id: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>>;
+            method: z.ZodString;
+            params: z.ZodOptional<z.ZodType<JsonValue, unknown, z.core.$ZodTypeInternals<JsonValue, unknown>>>;
+        }, z.core.$strip>;
+        rawType: z.ZodString;
+    }, z.core.$strip>>;
+}, z.core.$strip>, z.ZodObject<{
+    kind: z.ZodLiteral<"item.outputDelta">;
+    key: z.ZodObject<{
+        providerItemId: z.ZodOptional<z.ZodString>;
+        channel: z.ZodOptional<z.ZodString>;
+        parentRef: z.ZodOptional<z.ZodString>;
+    }, z.core.$strip>;
+    channel: z.ZodEnum<{
+        command: "command";
+        fileChange: "fileChange";
+    }>;
+    text: z.ZodString;
+    providerTurnId: z.ZodOptional<z.ZodString>;
+    noTurnFallback: z.ZodOptional<z.ZodObject<{
+        raw: z.ZodObject<{
+            jsonrpc: z.ZodLiteral<"2.0">;
+            id: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>>;
+            method: z.ZodString;
+            params: z.ZodOptional<z.ZodType<JsonValue, unknown, z.core.$ZodTypeInternals<JsonValue, unknown>>>;
+        }, z.core.$strip>;
+        rawType: z.ZodString;
+    }, z.core.$strip>>;
+}, z.core.$strip>, z.ZodObject<{
     kind: z.ZodLiteral<"command.outputSnapshot">;
     key: z.ZodObject<{
         providerItemId: z.ZodOptional<z.ZodString>;
@@ -6650,6 +6821,24 @@ declare const threadDeltaSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
     }, z.core.$strip>;
     modelContextWindow: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
 }, z.core.$strip>, z.ZodObject<{
+    kind: z.ZodLiteral<"usage.exact">;
+    total: z.ZodObject<{
+        totalTokens: z.ZodNumber;
+        inputTokens: z.ZodNumber;
+        cachedInputTokens: z.ZodNumber;
+        outputTokens: z.ZodNumber;
+        reasoningOutputTokens: z.ZodNumber;
+    }, z.core.$strip>;
+    last: z.ZodObject<{
+        totalTokens: z.ZodNumber;
+        inputTokens: z.ZodNumber;
+        cachedInputTokens: z.ZodNumber;
+        outputTokens: z.ZodNumber;
+        reasoningOutputTokens: z.ZodNumber;
+    }, z.core.$strip>;
+    modelContextWindow: z.ZodNullable<z.ZodNumber>;
+    providerTurnId: z.ZodOptional<z.ZodString>;
+}, z.core.$strip>, z.ZodObject<{
     kind: z.ZodLiteral<"contextWindow">;
     used: z.ZodNullable<z.ZodNumber>;
     size: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
@@ -6660,6 +6849,7 @@ declare const threadDeltaSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
     }>;
 }, z.core.$strip>, z.ZodObject<{
     kind: z.ZodLiteral<"context.compacted">;
+    providerTurnId: z.ZodOptional<z.ZodString>;
     noTurnFallback: z.ZodOptional<z.ZodObject<{
         raw: z.ZodObject<{
             jsonrpc: z.ZodLiteral<"2.0">;
@@ -6671,6 +6861,68 @@ declare const threadDeltaSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
     }, z.core.$strip>>;
 }, z.core.$strip>, z.ZodObject<{
     kind: z.ZodLiteral<"context.cleared">;
+}, z.core.$strip>, z.ZodObject<{
+    kind: z.ZodLiteral<"turn.diff">;
+    diff: z.ZodString;
+    providerTurnId: z.ZodOptional<z.ZodString>;
+}, z.core.$strip>, z.ZodObject<{
+    kind: z.ZodLiteral<"thread.started">;
+}, z.core.$strip>, z.ZodObject<{
+    kind: z.ZodLiteral<"thread.identity">;
+    providerThreadId: z.ZodString;
+}, z.core.$strip>, z.ZodObject<{
+    kind: z.ZodLiteral<"thread.name">;
+    name: z.ZodString;
+}, z.core.$strip>, z.ZodObject<{
+    kind: z.ZodLiteral<"thread.goal">;
+    objective: z.ZodString;
+    status: z.ZodEnum<{
+        active: "active";
+        paused: "paused";
+        budgetLimited: "budgetLimited";
+        complete: "complete";
+    }>;
+    tokenBudget: z.ZodNullable<z.ZodNumber>;
+    tokensUsed: z.ZodNumber;
+    timeUsedSeconds: z.ZodNumber;
+}, z.core.$strip>, z.ZodObject<{
+    kind: z.ZodLiteral<"thread.goalCleared">;
+}, z.core.$strip>, z.ZodObject<{
+    kind: z.ZodLiteral<"provider.rateLimits">;
+    rateLimits: z.ZodObject<{
+        providerId: z.ZodString;
+        status: z.ZodEnum<{
+            unknown: "unknown";
+            allowed: "allowed";
+            warning: "warning";
+            blocked: "blocked";
+        }>;
+        kind: z.ZodEnum<{
+            unknown: "unknown";
+            "subscription-window": "subscription-window";
+            credits: "credits";
+            "spend-control": "spend-control";
+        }>;
+        windows: z.ZodArray<z.ZodObject<{
+            providerKey: z.ZodNullable<z.ZodString>;
+            label: z.ZodNullable<z.ZodString>;
+            status: z.ZodEnum<{
+                unknown: "unknown";
+                allowed: "allowed";
+                warning: "warning";
+                blocked: "blocked";
+            }>;
+            resetsAtMs: z.ZodNullable<z.ZodNumber>;
+        }, z.core.$strip>>;
+        reachedReason: z.ZodNullable<z.ZodString>;
+        overageStatus: z.ZodNullable<z.ZodEnum<{
+            allowed: "allowed";
+            warning: "warning";
+            rejected: "rejected";
+            unavailable: "unavailable";
+        }>>;
+        overageReason: z.ZodNullable<z.ZodString>;
+    }, z.core.$strip>;
 }, z.core.$strip>, z.ZodObject<{
     kind: z.ZodLiteral<"provider.error">;
     message: z.ZodString;
@@ -6697,7 +6949,34 @@ declare const threadDeltaSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
         "too-many-failed-attempts": "too-many-failed-attempts";
         unauthorized: "unauthorized";
     }>>;
+    errorInfo: z.ZodOptional<z.ZodObject<{
+        category: z.ZodEnum<{
+            unknown: "unknown";
+            "active-turn-not-steerable": "active-turn-not-steerable";
+            "bad-request": "bad-request";
+            "connection-failed": "connection-failed";
+            "context-window-exceeded": "context-window-exceeded";
+            billing: "billing";
+            "budget-exceeded": "budget-exceeded";
+            internal: "internal";
+            "max-output-tokens": "max-output-tokens";
+            "max-turns": "max-turns";
+            overloaded: "overloaded";
+            policy: "policy";
+            "rate-limit": "rate-limit";
+            sandbox: "sandbox";
+            "stream-disconnected": "stream-disconnected";
+            "structured-output-retries": "structured-output-retries";
+            "thread-rollback-failed": "thread-rollback-failed";
+            "too-many-failed-attempts": "too-many-failed-attempts";
+            unauthorized: "unauthorized";
+        }>;
+        providerCode: z.ZodNullable<z.ZodString>;
+        httpStatusCode: z.ZodNullable<z.ZodNumber>;
+    }, z.core.$strip>>;
     settlesTurn: z.ZodOptional<z.ZodBoolean>;
+    providerTurnId: z.ZodOptional<z.ZodString>;
+    threadScoped: z.ZodOptional<z.ZodBoolean>;
 }, z.core.$strip>, z.ZodObject<{
     kind: z.ZodLiteral<"provider.warning">;
     summary: z.ZodOptional<z.ZodString>;
@@ -6720,6 +6999,7 @@ declare const threadDeltaSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
     vouchedTurn: z.ZodBoolean;
     onlyIfNoTurn: z.ZodOptional<z.ZodBoolean>;
     parentRef: z.ZodOptional<z.ZodString>;
+    providerTurnId: z.ZodOptional<z.ZodString>;
 }, z.core.$strip>, z.ZodObject<{
     kind: z.ZodLiteral<"session.ended">;
     reason: z.ZodEnum<{
@@ -6730,6 +7010,8 @@ declare const threadDeltaSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
     error: z.ZodOptional<z.ZodObject<{
         message: z.ZodString;
     }, z.core.$strip>>;
+}, z.core.$strip>, z.ZodObject<{
+    kind: z.ZodLiteral<"session.reset">;
 }, z.core.$strip>], "kind">;
 type ThreadDelta = z.infer<typeof threadDeltaSchema>;
 type ThreadDeltaKind = ThreadDelta["kind"];
@@ -6739,8 +7021,11 @@ declare const threadDeltaNotificationParamsSchema: z.ZodObject<{
     deltas: z.ZodArray<z.ZodDiscriminatedUnion<[z.ZodObject<{
         kind: z.ZodLiteral<"input.accepted">;
         clientRequestId: z.ZodString;
+        providerTurnId: z.ZodOptional<z.ZodString>;
     }, z.core.$strip>, z.ZodObject<{
         kind: z.ZodLiteral<"turn.open">;
+        providerTurnId: z.ZodOptional<z.ZodString>;
+        parentRef: z.ZodOptional<z.ZodString>;
     }, z.core.$strip>, z.ZodObject<{
         kind: z.ZodLiteral<"turn.boundary">;
         status: z.ZodEnum<{
@@ -6753,6 +7038,7 @@ declare const threadDeltaNotificationParamsSchema: z.ZodObject<{
         }, z.core.$strip>>;
         providerCheckpointId: z.ZodOptional<z.ZodString>;
         claimIfIdle: z.ZodOptional<z.ZodBoolean>;
+        providerTurnId: z.ZodOptional<z.ZodString>;
     }, z.core.$strip>, z.ZodObject<{
         kind: z.ZodLiteral<"item.open">;
         key: z.ZodObject<{
@@ -6764,6 +7050,9 @@ declare const threadDeltaNotificationParamsSchema: z.ZodObject<{
             type: z.ZodLiteral<"command">;
             command: z.ZodString;
             cwd: z.ZodString;
+            aggregatedOutput: z.ZodOptional<z.ZodString>;
+            exitCode: z.ZodOptional<z.ZodNumber>;
+            durationMs: z.ZodOptional<z.ZodNumber>;
         }, z.core.$strip>, z.ZodObject<{
             type: z.ZodLiteral<"fileChange">;
             changes: z.ZodArray<z.ZodObject<{
@@ -6773,20 +7062,47 @@ declare const threadDeltaNotificationParamsSchema: z.ZodObject<{
                     delete: "delete";
                     update: "update";
                 }>;
+                movePath: z.ZodOptional<z.ZodString>;
+                diff: z.ZodOptional<z.ZodString>;
                 oldText: z.ZodOptional<z.ZodString>;
                 newText: z.ZodOptional<z.ZodString>;
             }, z.core.$strip>>;
         }, z.core.$strip>, z.ZodObject<{
             type: z.ZodLiteral<"tool">;
             tool: z.ZodString;
+            server: z.ZodOptional<z.ZodString>;
             args: z.ZodOptional<z.ZodUnknown>;
+            result: z.ZodOptional<z.ZodUnknown>;
+            error: z.ZodOptional<z.ZodString>;
+            durationMs: z.ZodOptional<z.ZodNumber>;
         }, z.core.$strip>, z.ZodObject<{
             type: z.ZodLiteral<"compaction">;
+        }, z.core.$strip>, z.ZodObject<{
+            type: z.ZodLiteral<"agentMessage">;
+            text: z.ZodString;
+        }, z.core.$strip>, z.ZodObject<{
+            type: z.ZodLiteral<"reasoning">;
+            summary: z.ZodArray<z.ZodString>;
+            content: z.ZodArray<z.ZodString>;
+        }, z.core.$strip>, z.ZodObject<{
+            type: z.ZodLiteral<"plan">;
+            text: z.ZodString;
+        }, z.core.$strip>, z.ZodObject<{
+            type: z.ZodLiteral<"webSearch">;
+            queries: z.ZodArray<z.ZodString>;
+        }, z.core.$strip>, z.ZodObject<{
+            type: z.ZodLiteral<"webFetch">;
+            url: z.ZodString;
+            pattern: z.ZodNullable<z.ZodString>;
+        }, z.core.$strip>, z.ZodObject<{
+            type: z.ZodLiteral<"imageView">;
+            path: z.ZodString;
         }, z.core.$strip>], "type">;
         attach: z.ZodOptional<z.ZodEnum<{
             open: "open";
             currentOrLast: "currentOrLast";
         }>>;
+        providerTurnId: z.ZodOptional<z.ZodString>;
         noTurnFallback: z.ZodOptional<z.ZodObject<{
             raw: z.ZodObject<{
                 jsonrpc: z.ZodLiteral<"2.0">;
@@ -6812,10 +7128,14 @@ declare const threadDeltaNotificationParamsSchema: z.ZodObject<{
         resultText: z.ZodOptional<z.ZodString>;
         exitCode: z.ZodOptional<z.ZodNumber>;
         aggregatedOutput: z.ZodOptional<z.ZodString>;
+        approvalStatus: z.ZodOptional<z.ZodLiteral<"denied">>;
         item: z.ZodDiscriminatedUnion<[z.ZodObject<{
             type: z.ZodLiteral<"command">;
             command: z.ZodString;
             cwd: z.ZodString;
+            aggregatedOutput: z.ZodOptional<z.ZodString>;
+            exitCode: z.ZodOptional<z.ZodNumber>;
+            durationMs: z.ZodOptional<z.ZodNumber>;
         }, z.core.$strip>, z.ZodObject<{
             type: z.ZodLiteral<"fileChange">;
             changes: z.ZodArray<z.ZodObject<{
@@ -6825,16 +7145,43 @@ declare const threadDeltaNotificationParamsSchema: z.ZodObject<{
                     delete: "delete";
                     update: "update";
                 }>;
+                movePath: z.ZodOptional<z.ZodString>;
+                diff: z.ZodOptional<z.ZodString>;
                 oldText: z.ZodOptional<z.ZodString>;
                 newText: z.ZodOptional<z.ZodString>;
             }, z.core.$strip>>;
         }, z.core.$strip>, z.ZodObject<{
             type: z.ZodLiteral<"tool">;
             tool: z.ZodString;
+            server: z.ZodOptional<z.ZodString>;
             args: z.ZodOptional<z.ZodUnknown>;
+            result: z.ZodOptional<z.ZodUnknown>;
+            error: z.ZodOptional<z.ZodString>;
+            durationMs: z.ZodOptional<z.ZodNumber>;
         }, z.core.$strip>, z.ZodObject<{
             type: z.ZodLiteral<"compaction">;
+        }, z.core.$strip>, z.ZodObject<{
+            type: z.ZodLiteral<"agentMessage">;
+            text: z.ZodString;
+        }, z.core.$strip>, z.ZodObject<{
+            type: z.ZodLiteral<"reasoning">;
+            summary: z.ZodArray<z.ZodString>;
+            content: z.ZodArray<z.ZodString>;
+        }, z.core.$strip>, z.ZodObject<{
+            type: z.ZodLiteral<"plan">;
+            text: z.ZodString;
+        }, z.core.$strip>, z.ZodObject<{
+            type: z.ZodLiteral<"webSearch">;
+            queries: z.ZodArray<z.ZodString>;
+        }, z.core.$strip>, z.ZodObject<{
+            type: z.ZodLiteral<"webFetch">;
+            url: z.ZodString;
+            pattern: z.ZodNullable<z.ZodString>;
+        }, z.core.$strip>, z.ZodObject<{
+            type: z.ZodLiteral<"imageView">;
+            path: z.ZodString;
         }, z.core.$strip>], "type">;
+        providerTurnId: z.ZodOptional<z.ZodString>;
         noTurnFallback: z.ZodOptional<z.ZodObject<{
             raw: z.ZodObject<{
                 jsonrpc: z.ZodLiteral<"2.0">;
@@ -6855,6 +7202,8 @@ declare const threadDeltaNotificationParamsSchema: z.ZodObject<{
                 pending: "pending";
             }>>;
         }, z.core.$strip>>;
+        explanation: z.ZodOptional<z.ZodString>;
+        providerTurnId: z.ZodOptional<z.ZodString>;
         noTurnFallback: z.ZodOptional<z.ZodObject<{
             raw: z.ZodObject<{
                 jsonrpc: z.ZodLiteral<"2.0">;
@@ -6871,7 +7220,8 @@ declare const threadDeltaNotificationParamsSchema: z.ZodObject<{
             channel: z.ZodOptional<z.ZodString>;
             parentRef: z.ZodOptional<z.ZodString>;
         }, z.core.$strip>;
-        message: z.ZodString;
+        message: z.ZodOptional<z.ZodString>;
+        providerTurnId: z.ZodOptional<z.ZodString>;
         noTurnFallback: z.ZodOptional<z.ZodObject<{
             raw: z.ZodObject<{
                 jsonrpc: z.ZodLiteral<"2.0">;
@@ -6919,6 +7269,52 @@ declare const threadDeltaNotificationParamsSchema: z.ZodObject<{
             rawType: z.ZodString;
         }, z.core.$strip>>;
     }, z.core.$strip>, z.ZodObject<{
+        kind: z.ZodLiteral<"item.textDelta">;
+        key: z.ZodObject<{
+            providerItemId: z.ZodOptional<z.ZodString>;
+            channel: z.ZodOptional<z.ZodString>;
+            parentRef: z.ZodOptional<z.ZodString>;
+        }, z.core.$strip>;
+        channel: z.ZodEnum<{
+            agentMessage: "agentMessage";
+            plan: "plan";
+            reasoningSummary: "reasoningSummary";
+            reasoningText: "reasoningText";
+        }>;
+        text: z.ZodString;
+        providerTurnId: z.ZodOptional<z.ZodString>;
+        noTurnFallback: z.ZodOptional<z.ZodObject<{
+            raw: z.ZodObject<{
+                jsonrpc: z.ZodLiteral<"2.0">;
+                id: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>>;
+                method: z.ZodString;
+                params: z.ZodOptional<z.ZodType<JsonValue, unknown, z.core.$ZodTypeInternals<JsonValue, unknown>>>;
+            }, z.core.$strip>;
+            rawType: z.ZodString;
+        }, z.core.$strip>>;
+    }, z.core.$strip>, z.ZodObject<{
+        kind: z.ZodLiteral<"item.outputDelta">;
+        key: z.ZodObject<{
+            providerItemId: z.ZodOptional<z.ZodString>;
+            channel: z.ZodOptional<z.ZodString>;
+            parentRef: z.ZodOptional<z.ZodString>;
+        }, z.core.$strip>;
+        channel: z.ZodEnum<{
+            command: "command";
+            fileChange: "fileChange";
+        }>;
+        text: z.ZodString;
+        providerTurnId: z.ZodOptional<z.ZodString>;
+        noTurnFallback: z.ZodOptional<z.ZodObject<{
+            raw: z.ZodObject<{
+                jsonrpc: z.ZodLiteral<"2.0">;
+                id: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>>;
+                method: z.ZodString;
+                params: z.ZodOptional<z.ZodType<JsonValue, unknown, z.core.$ZodTypeInternals<JsonValue, unknown>>>;
+            }, z.core.$strip>;
+            rawType: z.ZodString;
+        }, z.core.$strip>>;
+    }, z.core.$strip>, z.ZodObject<{
         kind: z.ZodLiteral<"command.outputSnapshot">;
         key: z.ZodObject<{
             providerItemId: z.ZodOptional<z.ZodString>;
@@ -6946,6 +7342,24 @@ declare const threadDeltaNotificationParamsSchema: z.ZodObject<{
         }, z.core.$strip>;
         modelContextWindow: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
     }, z.core.$strip>, z.ZodObject<{
+        kind: z.ZodLiteral<"usage.exact">;
+        total: z.ZodObject<{
+            totalTokens: z.ZodNumber;
+            inputTokens: z.ZodNumber;
+            cachedInputTokens: z.ZodNumber;
+            outputTokens: z.ZodNumber;
+            reasoningOutputTokens: z.ZodNumber;
+        }, z.core.$strip>;
+        last: z.ZodObject<{
+            totalTokens: z.ZodNumber;
+            inputTokens: z.ZodNumber;
+            cachedInputTokens: z.ZodNumber;
+            outputTokens: z.ZodNumber;
+            reasoningOutputTokens: z.ZodNumber;
+        }, z.core.$strip>;
+        modelContextWindow: z.ZodNullable<z.ZodNumber>;
+        providerTurnId: z.ZodOptional<z.ZodString>;
+    }, z.core.$strip>, z.ZodObject<{
         kind: z.ZodLiteral<"contextWindow">;
         used: z.ZodNullable<z.ZodNumber>;
         size: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
@@ -6956,6 +7370,7 @@ declare const threadDeltaNotificationParamsSchema: z.ZodObject<{
         }>;
     }, z.core.$strip>, z.ZodObject<{
         kind: z.ZodLiteral<"context.compacted">;
+        providerTurnId: z.ZodOptional<z.ZodString>;
         noTurnFallback: z.ZodOptional<z.ZodObject<{
             raw: z.ZodObject<{
                 jsonrpc: z.ZodLiteral<"2.0">;
@@ -6967,6 +7382,68 @@ declare const threadDeltaNotificationParamsSchema: z.ZodObject<{
         }, z.core.$strip>>;
     }, z.core.$strip>, z.ZodObject<{
         kind: z.ZodLiteral<"context.cleared">;
+    }, z.core.$strip>, z.ZodObject<{
+        kind: z.ZodLiteral<"turn.diff">;
+        diff: z.ZodString;
+        providerTurnId: z.ZodOptional<z.ZodString>;
+    }, z.core.$strip>, z.ZodObject<{
+        kind: z.ZodLiteral<"thread.started">;
+    }, z.core.$strip>, z.ZodObject<{
+        kind: z.ZodLiteral<"thread.identity">;
+        providerThreadId: z.ZodString;
+    }, z.core.$strip>, z.ZodObject<{
+        kind: z.ZodLiteral<"thread.name">;
+        name: z.ZodString;
+    }, z.core.$strip>, z.ZodObject<{
+        kind: z.ZodLiteral<"thread.goal">;
+        objective: z.ZodString;
+        status: z.ZodEnum<{
+            active: "active";
+            paused: "paused";
+            budgetLimited: "budgetLimited";
+            complete: "complete";
+        }>;
+        tokenBudget: z.ZodNullable<z.ZodNumber>;
+        tokensUsed: z.ZodNumber;
+        timeUsedSeconds: z.ZodNumber;
+    }, z.core.$strip>, z.ZodObject<{
+        kind: z.ZodLiteral<"thread.goalCleared">;
+    }, z.core.$strip>, z.ZodObject<{
+        kind: z.ZodLiteral<"provider.rateLimits">;
+        rateLimits: z.ZodObject<{
+            providerId: z.ZodString;
+            status: z.ZodEnum<{
+                unknown: "unknown";
+                allowed: "allowed";
+                warning: "warning";
+                blocked: "blocked";
+            }>;
+            kind: z.ZodEnum<{
+                unknown: "unknown";
+                "subscription-window": "subscription-window";
+                credits: "credits";
+                "spend-control": "spend-control";
+            }>;
+            windows: z.ZodArray<z.ZodObject<{
+                providerKey: z.ZodNullable<z.ZodString>;
+                label: z.ZodNullable<z.ZodString>;
+                status: z.ZodEnum<{
+                    unknown: "unknown";
+                    allowed: "allowed";
+                    warning: "warning";
+                    blocked: "blocked";
+                }>;
+                resetsAtMs: z.ZodNullable<z.ZodNumber>;
+            }, z.core.$strip>>;
+            reachedReason: z.ZodNullable<z.ZodString>;
+            overageStatus: z.ZodNullable<z.ZodEnum<{
+                allowed: "allowed";
+                warning: "warning";
+                rejected: "rejected";
+                unavailable: "unavailable";
+            }>>;
+            overageReason: z.ZodNullable<z.ZodString>;
+        }, z.core.$strip>;
     }, z.core.$strip>, z.ZodObject<{
         kind: z.ZodLiteral<"provider.error">;
         message: z.ZodString;
@@ -6993,7 +7470,34 @@ declare const threadDeltaNotificationParamsSchema: z.ZodObject<{
             "too-many-failed-attempts": "too-many-failed-attempts";
             unauthorized: "unauthorized";
         }>>;
+        errorInfo: z.ZodOptional<z.ZodObject<{
+            category: z.ZodEnum<{
+                unknown: "unknown";
+                "active-turn-not-steerable": "active-turn-not-steerable";
+                "bad-request": "bad-request";
+                "connection-failed": "connection-failed";
+                "context-window-exceeded": "context-window-exceeded";
+                billing: "billing";
+                "budget-exceeded": "budget-exceeded";
+                internal: "internal";
+                "max-output-tokens": "max-output-tokens";
+                "max-turns": "max-turns";
+                overloaded: "overloaded";
+                policy: "policy";
+                "rate-limit": "rate-limit";
+                sandbox: "sandbox";
+                "stream-disconnected": "stream-disconnected";
+                "structured-output-retries": "structured-output-retries";
+                "thread-rollback-failed": "thread-rollback-failed";
+                "too-many-failed-attempts": "too-many-failed-attempts";
+                unauthorized: "unauthorized";
+            }>;
+            providerCode: z.ZodNullable<z.ZodString>;
+            httpStatusCode: z.ZodNullable<z.ZodNumber>;
+        }, z.core.$strip>>;
         settlesTurn: z.ZodOptional<z.ZodBoolean>;
+        providerTurnId: z.ZodOptional<z.ZodString>;
+        threadScoped: z.ZodOptional<z.ZodBoolean>;
     }, z.core.$strip>, z.ZodObject<{
         kind: z.ZodLiteral<"provider.warning">;
         summary: z.ZodOptional<z.ZodString>;
@@ -7016,6 +7520,7 @@ declare const threadDeltaNotificationParamsSchema: z.ZodObject<{
         vouchedTurn: z.ZodBoolean;
         onlyIfNoTurn: z.ZodOptional<z.ZodBoolean>;
         parentRef: z.ZodOptional<z.ZodString>;
+        providerTurnId: z.ZodOptional<z.ZodString>;
     }, z.core.$strip>, z.ZodObject<{
         kind: z.ZodLiteral<"session.ended">;
         reason: z.ZodEnum<{
@@ -7026,6 +7531,8 @@ declare const threadDeltaNotificationParamsSchema: z.ZodObject<{
         error: z.ZodOptional<z.ZodObject<{
             message: z.ZodString;
         }, z.core.$strip>>;
+    }, z.core.$strip>, z.ZodObject<{
+        kind: z.ZodLiteral<"session.reset">;
     }, z.core.$strip>], "kind">>;
 }, z.core.$loose>;
 type ThreadDeltaNotificationParams = z.infer<typeof threadDeltaNotificationParamsSchema>;
@@ -7149,5 +7656,5 @@ declare const hostDaemonAcpLaunchSpecSchema: z.ZodObject<{
 type HostDaemonAcpLaunchSpec = z.infer<typeof hostDaemonAcpLaunchSpecSchema>;
 declare function normalizeHostDaemonAcpLaunchSpec(spec: HostDaemonAcpLaunchSpec): HostDaemonAcpLaunchSpec;
 
-export { BRIDGE_INBOUND_REQUEST_METHODS, BRIDGE_JSON_RPC_ERRORS, BRIDGE_NOTIFICATION_METHODS, BRIDGE_REQUEST_METHODS, DEFAULT_CLAUDE_CODE_MOCK_CLI_TRAFFIC_CONFIG, DEFAULT_CLAUDE_CODE_MOCK_CLI_TRAFFIC_ENDPOINT, HIGH_REASONING_EFFORT, LOCAL_BASH_TASK_TYPE, LOCAL_WORKFLOW_TASK_TYPE, LOW_REASONING_EFFORT, MAX_REASONING_EFFORT, MEDIUM_REASONING_EFFORT, NONE_REASONING_EFFORT, PROVIDER_BRIDGE_EXPORT_NAME, PROVIDER_BRIDGE_PROTOCOL_VERSION, ProviderRequestDecodeError, ProviderResponseEncodeError, THREAD_DELTA_NOTIFICATION_METHOD, ULTRACODE_REASONING_EFFORT, UNSTAMPED_THREAD_ID, USER_QUESTION_MAX_OPTIONS, USER_QUESTION_MAX_QUESTIONS, XHIGH_REASONING_EFFORT, acpNativeReasoningSchema, acpPermissionCliSchema, acpReasoningCliSchema, backgroundTaskItemStatus, bashArgsSchema, bridgeRequestEnvelopeSchema, buildAcceptedUserMessageEvent, buildEditDiff, buildFileChangeItem, buildGenericToolCallItem, buildShellEnvOverrides, buildToolResultItem, buildUnhandledProviderEvents, claudeCodeMockCliTrafficConfigSchema, claudeTaskToolNameSchema, claudeTaskToolOutputSchema, completeStartedToolItem, createBridgeIo, createBridgeLineHandler, createPendingToolCallTracker, createProviderTurnStateRegistry, createProviderVisibilityMetadata, createScopedItemIdFactory, createStandaloneBuiltinCompactCommandInput, createUnhandledProviderEvent, decodeBridgeJsonRpcResponse, decodeToolCallResponsePayload, deltaFileChangeSchema, deltaItemKeySchema, deltaItemShapeSchema, deltaMessageChannelSchema, deltaNoTurnFallbackSchema, dynamicToolSchema, errorEnvelopeSchema, experimental_defineProviderBridge, extractResultText, getRawSdkMessage, getRecordProperty, getStringProperty, getThreadEventScopeTurnId, hostDaemonAcpLaunchSpecSchema, initializeParamsSchema, instructionModeValues, isApprovalPendingInteractionPayload, isApprovalPendingInteractionResolution, isBackgroundAgentTaskType, isClaudeCodeMockCliTrafficEndpoint, isRecord, isSettledBackgroundTaskStatus, isStandaloneBuiltinCompactCommand, isUserQuestionPendingInteractionPayload, isUserQuestionPendingInteractionResolution, jsonRpcEnvelopeSchema, jsonValueSchema, mimeTypeFromExtension, modelListParamsSchema, normalizeHostDaemonAcpLaunchSpec, normalizeProviderCommandOutput, pendingInteractionCommandActionSchema, pendingInteractionFileSystemPermissionsSchema, pendingInteractionMacOsPermissionsSchema, pendingInteractionNetworkPermissionsSchema, pendingInteractionRequestedPermissionProfileSchema, pendingInteractionResolutionSchema, permissionEscalationValues, providerRawEventSchema, queueAcceptedUserMessage, reasoningEffortsForLevels, reasoningLevelSchema, reasoningLevelValues, removeCommandMentionsFromPromptInput, requireThreadEventScopeTurnId, resolveProviderTerminalTurn, runBridgeRequest, runtimePermissionScopeValues, sanitizeInheritedChildProcessEnv, sdkMessageEnvelopeSchema, shouldAutoDenyInteractiveRequest, skillsConfigureParamsSchema, textBlockSchema, threadArchiveParamsSchema, threadContextWindowUsageEnvelopeSchema, threadDeltaNotificationParamsSchema, threadDeltaSchema, threadDiscardParamsSchema, threadEventNotificationSchema, threadForkParamsSchema, threadGoalClearParamsSchema, threadIdentityEnvelopeSchema, threadNameSetParamsSchema, threadResumeParamsSchema, threadScope, threadStartParamsSchema, threadStopParamsSchema, threadUnarchiveParamsSchema, toNonNegativeNumber, toOptionalRecord, toOptionalString, toPositiveNumber, turnScope, turnStartParamsSchema, turnSteerParamsSchema, withParentToolCallId, withoutBridgeRuntimeEnv };
-export type { AcceptedUserMessageState, ApprovalPendingInteractionPayload, AvailableModel, BackgroundTaskStatus, BackgroundTaskUsage, BridgeExecutionOptions, BridgeJsonRpcResponse, BridgeToolCallRequest, BuildInteractiveResponseArgs, ClaudeCodeMockCliTrafficConfig, ClaudeTaskToolOutput, ClientTurnRequestId, DecodedInteractiveRequest, DeltaFileChange, DeltaItemKey, DeltaItemShape, DeltaMessageChannel, DeltaNoTurnFallback, DynamicTool, EnsureProviderTurnStartedArgs, HostDaemonAcpLaunchSpec, InitializeResult, InstructionMode, JsonObject, JsonRpcMessage, JsonValue, ModelReasoningEffort, PendingInteractionApprovalDecision, PendingInteractionApprovalSubject, PendingInteractionCommandAction, PendingInteractionGrantablePermissionProfile, PendingInteractionGrantedPermissionProfile, PendingInteractionPayload, PendingInteractionRequestedPermissionProfile, PendingInteractionResolution, PendingInteractionUserQuestionQuestion, PermissionEscalation, PermissionMode, PreparedProviderCommandDispatch, PromptInput, ProviderBridgeContext, ProviderBridgeDefinition, ProviderBridgeEntry, ProviderErrorCategory, ProviderErrorInfo, ProviderInboundRequest, ProviderPostInitializeRequest, ProviderRateLimitState, ProviderRateLimitStatus, ProviderRateLimitWindow, ProviderRawEvent, ProviderRawEventCoverage, ProviderRawEventDescription, ProviderRuntimeEvent, ProviderTurnStateRegistry, ProviderVisibilityMetadata, ReasoningLevel, RuntimePermissionPolicy, RuntimePermissionScope, ServiceTier, ThreadDelta, ThreadDeltaKind, ThreadDeltaNotificationParams, ThreadEvent, ThreadEventBackgroundTaskItem, ThreadEventContextWindowUsage, ThreadEventItem, ThreadEventItemApprovalStatus, ThreadEventItemStatus, ThreadEventPlanStep, ThreadEventScope, ThreadEventTokenUsage, ThreadEventTokenUsageBreakdown, ThreadEventTurnStatus, ThreadEventUserContent, ThreadEventWebFetchItem, ThreadEventWebSearchItem, UserQuestionPendingInteractionPayload, UserQuestionPendingInteractionResolution, WorkflowAgentSnapshot, WorkflowAgentState, WorkflowPhaseSnapshot, WorkflowProgressSnapshot };
+export { BRIDGE_INBOUND_REQUEST_METHODS, BRIDGE_JSON_RPC_ERRORS, BRIDGE_NOTIFICATION_METHODS, BRIDGE_REQUEST_METHODS, DEFAULT_CLAUDE_CODE_MOCK_CLI_TRAFFIC_CONFIG, DEFAULT_CLAUDE_CODE_MOCK_CLI_TRAFFIC_ENDPOINT, HIGH_REASONING_EFFORT, LOCAL_BASH_TASK_TYPE, LOCAL_WORKFLOW_TASK_TYPE, LOW_REASONING_EFFORT, MAX_REASONING_EFFORT, MEDIUM_REASONING_EFFORT, NONE_REASONING_EFFORT, PROVIDER_BRIDGE_EXPORT_NAME, PROVIDER_BRIDGE_PROTOCOL_VERSION, ProviderRequestDecodeError, ProviderResponseEncodeError, THREAD_DELTA_NOTIFICATION_METHOD, ULTRACODE_REASONING_EFFORT, UNSTAMPED_THREAD_ID, USER_QUESTION_MAX_OPTIONS, USER_QUESTION_MAX_QUESTIONS, XHIGH_REASONING_EFFORT, acpNativeReasoningSchema, acpPermissionCliSchema, acpReasoningCliSchema, backgroundTaskItemStatus, bashArgsSchema, bridgeRequestEnvelopeSchema, buildAcceptedUserMessageEvent, buildEditDiff, buildFileChangeItem, buildGenericToolCallItem, buildShellEnvOverrides, buildToolResultItem, buildUnhandledProviderEvents, claudeCodeMockCliTrafficConfigSchema, claudeTaskToolNameSchema, claudeTaskToolOutputSchema, completeStartedToolItem, createBridgeIo, createBridgeLineHandler, createPendingToolCallTracker, createProviderTurnStateRegistry, createProviderVisibilityMetadata, createScopedItemIdFactory, createStandaloneBuiltinCompactCommandInput, createUnhandledProviderEvent, decodeBridgeJsonRpcResponse, decodeToolCallResponsePayload, deltaFileChangeSchema, deltaItemKeySchema, deltaItemShapeSchema, deltaMessageChannelSchema, deltaNoTurnFallbackSchema, deltaOutputChannelSchema, deltaTextChannelSchema, dynamicToolSchema, errorEnvelopeSchema, experimental_defineProviderBridge, extractResultText, getRawSdkMessage, getRecordProperty, getStringProperty, getThreadEventScopeTurnId, hostDaemonAcpLaunchSpecSchema, initializeParamsSchema, instructionModeValues, isApprovalPendingInteractionPayload, isApprovalPendingInteractionResolution, isBackgroundAgentTaskType, isClaudeCodeMockCliTrafficEndpoint, isRecord, isSettledBackgroundTaskStatus, isStandaloneBuiltinCompactCommand, isUserQuestionPendingInteractionPayload, isUserQuestionPendingInteractionResolution, jsonRpcEnvelopeSchema, jsonValueSchema, mimeTypeFromExtension, modelListParamsSchema, normalizeHostDaemonAcpLaunchSpec, normalizeProviderCommandOutput, pendingInteractionCommandActionSchema, pendingInteractionFileSystemPermissionsSchema, pendingInteractionMacOsPermissionsSchema, pendingInteractionNetworkPermissionsSchema, pendingInteractionRequestedPermissionProfileSchema, pendingInteractionResolutionSchema, permissionEscalationValues, providerRawEventSchema, queueAcceptedUserMessage, reasoningEffortsForLevels, reasoningLevelSchema, reasoningLevelValues, removeCommandMentionsFromPromptInput, requireThreadEventScopeTurnId, resolveProviderTerminalTurn, runBridgeRequest, runtimePermissionScopeValues, sanitizeInheritedChildProcessEnv, sdkMessageEnvelopeSchema, shouldAutoDenyInteractiveRequest, skillsConfigureParamsSchema, textBlockSchema, threadArchiveParamsSchema, threadContextWindowUsageEnvelopeSchema, threadDeltaNotificationParamsSchema, threadDeltaSchema, threadDiscardParamsSchema, threadEventNotificationSchema, threadForkParamsSchema, threadGoalClearParamsSchema, threadIdentityEnvelopeSchema, threadNameSetParamsSchema, threadResumeParamsSchema, threadScope, threadStartParamsSchema, threadStopParamsSchema, threadUnarchiveParamsSchema, toNonNegativeNumber, toOptionalRecord, toOptionalString, toPositiveNumber, turnScope, turnStartParamsSchema, turnSteerParamsSchema, withParentToolCallId, withoutBridgeRuntimeEnv };
+export type { AcceptedUserMessageState, ApprovalPendingInteractionPayload, AvailableModel, BackgroundTaskStatus, BackgroundTaskUsage, BridgeExecutionOptions, BridgeJsonRpcResponse, BridgeToolCallRequest, BuildInteractiveResponseArgs, ClaudeCodeMockCliTrafficConfig, ClaudeTaskToolOutput, ClientTurnRequestId, DecodedInteractiveRequest, DeltaFileChange, DeltaItemKey, DeltaItemShape, DeltaMessageChannel, DeltaNoTurnFallback, DeltaOutputChannel, DeltaTextChannel, DynamicTool, EnsureProviderTurnStartedArgs, HostDaemonAcpLaunchSpec, InitializeResult, InstructionMode, JsonObject, JsonRpcMessage, JsonValue, ModelReasoningEffort, PendingInteractionApprovalDecision, PendingInteractionApprovalSubject, PendingInteractionCommandAction, PendingInteractionGrantablePermissionProfile, PendingInteractionGrantedPermissionProfile, PendingInteractionPayload, PendingInteractionRequestedPermissionProfile, PendingInteractionResolution, PendingInteractionUserQuestionQuestion, PermissionEscalation, PermissionMode, PreparedProviderCommandDispatch, PromptInput, ProviderBridgeContext, ProviderBridgeDefinition, ProviderBridgeEntry, ProviderErrorCategory, ProviderErrorInfo, ProviderInboundRequest, ProviderPostInitializeRequest, ProviderRateLimitState, ProviderRateLimitStatus, ProviderRateLimitWindow, ProviderRawEvent, ProviderRawEventCoverage, ProviderRawEventDescription, ProviderRuntimeEvent, ProviderTurnStateRegistry, ProviderVisibilityMetadata, ReasoningLevel, RuntimePermissionPolicy, RuntimePermissionScope, ServiceTier, ThreadDelta, ThreadDeltaKind, ThreadDeltaNotificationParams, ThreadEvent, ThreadEventBackgroundTaskItem, ThreadEventContextWindowUsage, ThreadEventItem, ThreadEventItemApprovalStatus, ThreadEventItemStatus, ThreadEventPlanStep, ThreadEventScope, ThreadEventTokenUsage, ThreadEventTokenUsageBreakdown, ThreadEventTurnStatus, ThreadEventUserContent, ThreadEventWebFetchItem, ThreadEventWebSearchItem, UserQuestionPendingInteractionPayload, UserQuestionPendingInteractionResolution, WorkflowAgentSnapshot, WorkflowAgentState, WorkflowPhaseSnapshot, WorkflowProgressSnapshot };
