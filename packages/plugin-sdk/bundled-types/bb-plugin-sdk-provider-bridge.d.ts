@@ -98,18 +98,18 @@ declare const LOCAL_WORKFLOW_TASK_TYPE = "local_workflow";
 declare const LOCAL_BASH_TASK_TYPE = "local_bash";
 declare function isBackgroundAgentTaskType(taskType: string): boolean;
 declare const backgroundTaskStatusSchema: z.ZodEnum<{
-    completed: "completed";
-    failed: "failed";
-    paused: "paused";
     pending: "pending";
     running: "running";
+    paused: "paused";
+    completed: "completed";
+    failed: "failed";
     killed: "killed";
     stopped: "stopped";
 }>;
 type BackgroundTaskStatus = z.infer<typeof backgroundTaskStatusSchema>;
 declare const workflowAgentStateSchema: z.ZodEnum<{
-    failed: "failed";
     running: "running";
+    failed: "failed";
     queued: "queued";
     done: "done";
     skipped: "skipped";
@@ -119,8 +119,8 @@ declare const workflowAgentSnapshotSchema: z.ZodObject<{
     index: z.ZodNumber;
     label: z.ZodString;
     state: z.ZodEnum<{
-        failed: "failed";
         running: "running";
+        failed: "failed";
         queued: "queued";
         done: "done";
         skipped: "skipped";
@@ -166,8 +166,8 @@ declare const workflowProgressSnapshotSchema: z.ZodObject<{
         index: z.ZodNumber;
         label: z.ZodString;
         state: z.ZodEnum<{
-            failed: "failed";
             running: "running";
+            failed: "failed";
             queued: "queued";
             done: "done";
             skipped: "skipped";
@@ -229,8 +229,8 @@ declare const claudeTaskToolOutputSchema: z.ZodUnion<readonly [z.ZodObject<{
     task: z.ZodNullable<z.ZodObject<{
         id: z.ZodString;
         status: z.ZodEnum<{
-            completed: "completed";
             pending: "pending";
+            completed: "completed";
             in_progress: "in_progress";
         }>;
         subject: z.ZodString;
@@ -876,10 +876,10 @@ declare const clientTurnRequestIdSchema: z.ZodString;
 type ClientTurnRequestId = z.infer<typeof clientTurnRequestIdSchema>;
 
 declare const threadEventItemStatusSchema: z.ZodEnum<{
+    pending: "pending";
     completed: "completed";
     failed: "failed";
     interrupted: "interrupted";
-    pending: "pending";
 }>;
 type ThreadEventItemStatus = z.infer<typeof threadEventItemStatusSchema>;
 declare const threadEventTurnStatusSchema: z.ZodEnum<{
@@ -993,10 +993,10 @@ type ProviderRateLimitState = z.infer<typeof providerRateLimitStateSchema>;
 declare const threadEventPlanStepSchema: z.ZodObject<{
     step: z.ZodString;
     status: z.ZodOptional<z.ZodEnum<{
+        pending: "pending";
         completed: "completed";
         failed: "failed";
         active: "active";
-        pending: "pending";
     }>>;
 }, z.core.$strip>;
 type ThreadEventPlanStep = z.infer<typeof threadEventPlanStepSchema>;
@@ -1532,8 +1532,8 @@ type InitializeResult = z.infer<typeof initializeResultSchema>;
 declare const bridgeExecutionOptionsSchema: z.ZodIntersection<z.ZodObject<{
     model: z.ZodOptional<z.ZodString>;
     serviceTier: z.ZodOptional<z.ZodEnum<{
-        fast: "fast";
         default: "default";
+        fast: "fast";
     }>>;
     reasoningLevel: z.ZodOptional<z.ZodEnum<{
         none: "none";
@@ -1685,8 +1685,8 @@ declare const threadStartParamsSchema: z.ZodObject<{
     options: z.ZodIntersection<z.ZodObject<{
         model: z.ZodOptional<z.ZodString>;
         serviceTier: z.ZodOptional<z.ZodEnum<{
-            fast: "fast";
             default: "default";
+            fast: "fast";
         }>>;
         reasoningLevel: z.ZodOptional<z.ZodEnum<{
             none: "none";
@@ -1741,8 +1741,8 @@ declare const threadResumeParamsSchema: z.ZodObject<{
     options: z.ZodIntersection<z.ZodObject<{
         model: z.ZodOptional<z.ZodString>;
         serviceTier: z.ZodOptional<z.ZodEnum<{
-            fast: "fast";
             default: "default";
+            fast: "fast";
         }>>;
         reasoningLevel: z.ZodOptional<z.ZodEnum<{
             none: "none";
@@ -1798,8 +1798,8 @@ declare const threadForkParamsSchema: z.ZodObject<{
     options: z.ZodIntersection<z.ZodObject<{
         model: z.ZodOptional<z.ZodString>;
         serviceTier: z.ZodOptional<z.ZodEnum<{
-            fast: "fast";
             default: "default";
+            fast: "fast";
         }>>;
         reasoningLevel: z.ZodOptional<z.ZodEnum<{
             none: "none";
@@ -1965,8 +1965,8 @@ declare const turnStartParamsSchema: z.ZodObject<{
     options: z.ZodIntersection<z.ZodObject<{
         model: z.ZodOptional<z.ZodString>;
         serviceTier: z.ZodOptional<z.ZodEnum<{
-            fast: "fast";
             default: "default";
+            fast: "fast";
         }>>;
         reasoningLevel: z.ZodOptional<z.ZodEnum<{
             none: "none";
@@ -2093,8 +2093,8 @@ declare const turnSteerParamsSchema: z.ZodObject<{
     options: z.ZodIntersection<z.ZodObject<{
         model: z.ZodOptional<z.ZodString>;
         serviceTier: z.ZodOptional<z.ZodEnum<{
-            fast: "fast";
             default: "default";
+            fast: "fast";
         }>>;
         reasoningLevel: z.ZodOptional<z.ZodEnum<{
             none: "none";
@@ -2225,8 +2225,8 @@ declare const deltaFileChangeSchema: z.ZodObject<{
     path: z.ZodString;
     kind: z.ZodEnum<{
         add: "add";
-        update: "update";
         delete: "delete";
+        update: "update";
     }>;
     movePath: z.ZodOptional<z.ZodString>;
     diff: z.ZodOptional<z.ZodString>;
@@ -2248,17 +2248,17 @@ declare const deltaBackgroundTaskShapeSchema: z.ZodObject<{
     taskType: z.ZodString;
     description: z.ZodString;
     status: z.ZodEnum<{
-        pending: "pending";
         completed: "completed";
         failed: "failed";
         interrupted: "interrupted";
+        pending: "pending";
     }>;
     taskStatus: z.ZodEnum<{
-        pending: "pending";
         completed: "completed";
         failed: "failed";
-        running: "running";
         paused: "paused";
+        pending: "pending";
+        running: "running";
         killed: "killed";
         stopped: "stopped";
     }>;
@@ -2323,8 +2323,8 @@ declare const deltaItemShapeSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
         path: z.ZodString;
         kind: z.ZodEnum<{
             add: "add";
-            update: "update";
             delete: "delete";
+            update: "update";
         }>;
         movePath: z.ZodOptional<z.ZodString>;
         diff: z.ZodOptional<z.ZodString>;
@@ -2367,17 +2367,17 @@ declare const deltaItemShapeSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
     taskType: z.ZodString;
     description: z.ZodString;
     status: z.ZodEnum<{
-        pending: "pending";
         completed: "completed";
         failed: "failed";
         interrupted: "interrupted";
+        pending: "pending";
     }>;
     taskStatus: z.ZodEnum<{
-        pending: "pending";
         completed: "completed";
         failed: "failed";
-        running: "running";
         paused: "paused";
+        pending: "pending";
+        running: "running";
         killed: "killed";
         stopped: "stopped";
     }>;
@@ -2439,8 +2439,8 @@ type DeltaMessageChannel = z.infer<typeof deltaMessageChannelSchema>;
  * `item/started` for an unknown item id.
  */
 declare const deltaTextChannelSchema: z.ZodEnum<{
-    agentMessage: "agentMessage";
     plan: "plan";
+    agentMessage: "agentMessage";
     reasoningSummary: "reasoningSummary";
     reasoningText: "reasoningText";
 }>;
@@ -2516,8 +2516,8 @@ declare const threadDeltaSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
             path: z.ZodString;
             kind: z.ZodEnum<{
                 add: "add";
-                update: "update";
                 delete: "delete";
+                update: "update";
             }>;
             movePath: z.ZodOptional<z.ZodString>;
             diff: z.ZodOptional<z.ZodString>;
@@ -2560,17 +2560,17 @@ declare const threadDeltaSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
         taskType: z.ZodString;
         description: z.ZodString;
         status: z.ZodEnum<{
-            pending: "pending";
             completed: "completed";
             failed: "failed";
             interrupted: "interrupted";
+            pending: "pending";
         }>;
         taskStatus: z.ZodEnum<{
-            pending: "pending";
             completed: "completed";
             failed: "failed";
-            running: "running";
             paused: "paused";
+            pending: "pending";
+            running: "running";
             killed: "killed";
             stopped: "stopped";
         }>;
@@ -2643,10 +2643,10 @@ declare const threadDeltaSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
         parentRef: z.ZodOptional<z.ZodString>;
     }, z.core.$strip>;
     status: z.ZodEnum<{
-        pending: "pending";
         completed: "completed";
         failed: "failed";
         interrupted: "interrupted";
+        pending: "pending";
     }>;
     resultText: z.ZodOptional<z.ZodString>;
     exitCode: z.ZodOptional<z.ZodNumber>;
@@ -2665,8 +2665,8 @@ declare const threadDeltaSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
             path: z.ZodString;
             kind: z.ZodEnum<{
                 add: "add";
-                update: "update";
                 delete: "delete";
+                update: "update";
             }>;
             movePath: z.ZodOptional<z.ZodString>;
             diff: z.ZodOptional<z.ZodString>;
@@ -2709,17 +2709,17 @@ declare const threadDeltaSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
         taskType: z.ZodString;
         description: z.ZodString;
         status: z.ZodEnum<{
-            pending: "pending";
             completed: "completed";
             failed: "failed";
             interrupted: "interrupted";
+            pending: "pending";
         }>;
         taskStatus: z.ZodEnum<{
-            pending: "pending";
             completed: "completed";
             failed: "failed";
-            running: "running";
             paused: "paused";
+            pending: "pending";
+            running: "running";
             killed: "killed";
             stopped: "stopped";
         }>;
@@ -2785,10 +2785,10 @@ declare const threadDeltaSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
     steps: z.ZodArray<z.ZodObject<{
         step: z.ZodString;
         status: z.ZodOptional<z.ZodEnum<{
-            pending: "pending";
             completed: "completed";
             failed: "failed";
             active: "active";
+            pending: "pending";
         }>>;
     }, z.core.$strip>>;
     explanation: z.ZodOptional<z.ZodString>;
@@ -2815,17 +2815,17 @@ declare const threadDeltaSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
         taskType: z.ZodString;
         description: z.ZodString;
         status: z.ZodEnum<{
-            pending: "pending";
             completed: "completed";
             failed: "failed";
             interrupted: "interrupted";
+            pending: "pending";
         }>;
         taskStatus: z.ZodEnum<{
-            pending: "pending";
             completed: "completed";
             failed: "failed";
-            running: "running";
             paused: "paused";
+            pending: "pending";
+            running: "running";
             killed: "killed";
             stopped: "stopped";
         }>;
@@ -2932,8 +2932,8 @@ declare const threadDeltaSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
         parentRef: z.ZodOptional<z.ZodString>;
     }, z.core.$strip>;
     channel: z.ZodEnum<{
-        agentMessage: "agentMessage";
         plan: "plan";
+        agentMessage: "agentMessage";
         reasoningSummary: "reasoningSummary";
         reasoningText: "reasoningText";
     }>;
@@ -3054,8 +3054,8 @@ declare const threadDeltaSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
     kind: z.ZodLiteral<"thread.goal">;
     objective: z.ZodString;
     status: z.ZodEnum<{
-        paused: "paused";
         active: "active";
+        paused: "paused";
         budgetLimited: "budgetLimited";
         complete: "complete";
     }>;
@@ -3171,6 +3171,7 @@ declare const threadDeltaSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
         deprecation: "deprecation";
         config: "config";
         general: "general";
+        "compaction-skipped": "compaction-skipped";
     }>>;
     vouchedTurn: z.ZodOptional<z.ZodBoolean>;
 }, z.core.$strip>, z.ZodObject<{
@@ -3245,8 +3246,8 @@ declare const threadDeltaNotificationParamsSchema: z.ZodObject<{
                 path: z.ZodString;
                 kind: z.ZodEnum<{
                     add: "add";
-                    update: "update";
                     delete: "delete";
+                    update: "update";
                 }>;
                 movePath: z.ZodOptional<z.ZodString>;
                 diff: z.ZodOptional<z.ZodString>;
@@ -3289,17 +3290,17 @@ declare const threadDeltaNotificationParamsSchema: z.ZodObject<{
             taskType: z.ZodString;
             description: z.ZodString;
             status: z.ZodEnum<{
-                pending: "pending";
                 completed: "completed";
                 failed: "failed";
                 interrupted: "interrupted";
+                pending: "pending";
             }>;
             taskStatus: z.ZodEnum<{
-                pending: "pending";
                 completed: "completed";
                 failed: "failed";
-                running: "running";
                 paused: "paused";
+                pending: "pending";
+                running: "running";
                 killed: "killed";
                 stopped: "stopped";
             }>;
@@ -3372,10 +3373,10 @@ declare const threadDeltaNotificationParamsSchema: z.ZodObject<{
             parentRef: z.ZodOptional<z.ZodString>;
         }, z.core.$strip>;
         status: z.ZodEnum<{
-            pending: "pending";
             completed: "completed";
             failed: "failed";
             interrupted: "interrupted";
+            pending: "pending";
         }>;
         resultText: z.ZodOptional<z.ZodString>;
         exitCode: z.ZodOptional<z.ZodNumber>;
@@ -3394,8 +3395,8 @@ declare const threadDeltaNotificationParamsSchema: z.ZodObject<{
                 path: z.ZodString;
                 kind: z.ZodEnum<{
                     add: "add";
-                    update: "update";
                     delete: "delete";
+                    update: "update";
                 }>;
                 movePath: z.ZodOptional<z.ZodString>;
                 diff: z.ZodOptional<z.ZodString>;
@@ -3438,17 +3439,17 @@ declare const threadDeltaNotificationParamsSchema: z.ZodObject<{
             taskType: z.ZodString;
             description: z.ZodString;
             status: z.ZodEnum<{
-                pending: "pending";
                 completed: "completed";
                 failed: "failed";
                 interrupted: "interrupted";
+                pending: "pending";
             }>;
             taskStatus: z.ZodEnum<{
-                pending: "pending";
                 completed: "completed";
                 failed: "failed";
-                running: "running";
                 paused: "paused";
+                pending: "pending";
+                running: "running";
                 killed: "killed";
                 stopped: "stopped";
             }>;
@@ -3514,10 +3515,10 @@ declare const threadDeltaNotificationParamsSchema: z.ZodObject<{
         steps: z.ZodArray<z.ZodObject<{
             step: z.ZodString;
             status: z.ZodOptional<z.ZodEnum<{
-                pending: "pending";
                 completed: "completed";
                 failed: "failed";
                 active: "active";
+                pending: "pending";
             }>>;
         }, z.core.$strip>>;
         explanation: z.ZodOptional<z.ZodString>;
@@ -3544,17 +3545,17 @@ declare const threadDeltaNotificationParamsSchema: z.ZodObject<{
             taskType: z.ZodString;
             description: z.ZodString;
             status: z.ZodEnum<{
-                pending: "pending";
                 completed: "completed";
                 failed: "failed";
                 interrupted: "interrupted";
+                pending: "pending";
             }>;
             taskStatus: z.ZodEnum<{
-                pending: "pending";
                 completed: "completed";
                 failed: "failed";
-                running: "running";
                 paused: "paused";
+                pending: "pending";
+                running: "running";
                 killed: "killed";
                 stopped: "stopped";
             }>;
@@ -3661,8 +3662,8 @@ declare const threadDeltaNotificationParamsSchema: z.ZodObject<{
             parentRef: z.ZodOptional<z.ZodString>;
         }, z.core.$strip>;
         channel: z.ZodEnum<{
-            agentMessage: "agentMessage";
             plan: "plan";
+            agentMessage: "agentMessage";
             reasoningSummary: "reasoningSummary";
             reasoningText: "reasoningText";
         }>;
@@ -3783,8 +3784,8 @@ declare const threadDeltaNotificationParamsSchema: z.ZodObject<{
         kind: z.ZodLiteral<"thread.goal">;
         objective: z.ZodString;
         status: z.ZodEnum<{
-            paused: "paused";
             active: "active";
+            paused: "paused";
             budgetLimited: "budgetLimited";
             complete: "complete";
         }>;
@@ -3900,6 +3901,7 @@ declare const threadDeltaNotificationParamsSchema: z.ZodObject<{
             deprecation: "deprecation";
             config: "config";
             general: "general";
+            "compaction-skipped": "compaction-skipped";
         }>>;
         vouchedTurn: z.ZodOptional<z.ZodBoolean>;
     }, z.core.$strip>, z.ZodObject<{
