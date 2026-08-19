@@ -5897,7 +5897,7 @@ declare const hostDaemonCommandRegistry: {
         cwd: z$1.ZodOptional<z$1.ZodString>;
         providerId: z$1.ZodString;
         type: z$1.ZodLiteral<"provider.health">;
-    }, z$1.core.$strip>, z$1.ZodDiscriminatedUnion<[z$1.ZodObject<{
+    }, z$1.core.$strict>, z$1.ZodDiscriminatedUnion<[z$1.ZodObject<{
         supported: z$1.ZodLiteral<false>;
     }, z$1.core.$loose>, z$1.ZodObject<{
         health: z$1.ZodObject<{
