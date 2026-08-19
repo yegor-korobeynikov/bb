@@ -160,13 +160,13 @@ function SidebarSectionRowComponent({
         className="absolute inset-0 rounded-md outline-none ring-sidebar-ring focus-visible:ring-2"
       />
       <span className="relative z-10 flex min-w-0 flex-1 items-center gap-1 text-left">
-        <span className="min-w-0 truncate">{name}</span>
         <SidebarChildToggleChevron
           isCollapsed={isCollapsed}
           expandLabel={`Expand ${label} section`}
           collapseLabel={`Collapse ${label} section`}
           onToggle={onToggleCollapsed}
         />
+        <span className="min-w-0 truncate">{name}</span>
       </span>
       {showRollupIndicator ? (
         <span

@@ -147,9 +147,6 @@ export function TopLevelSidebarSection({
         {...(dragBindings?.listeners ?? {})}
       >
         <span className="relative z-10 flex min-w-0 flex-1 items-center gap-1 text-left">
-          <span className="min-w-0 truncate" title={label}>
-            {label}
-          </span>
           {collapseControl ? (
             <button
               type="button"
@@ -181,6 +178,9 @@ export function TopLevelSidebarSection({
               />
             </button>
           ) : null}
+          <span className="min-w-0 truncate" title={label}>
+            {label}
+          </span>
         </span>
         {collapseControl?.isCollapsed &&
         (collapsedSplitIndicator.miniMap !== null || collapsedActivity) ? (

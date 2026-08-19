@@ -104,7 +104,6 @@ import {
   type SidebarSectionId,
 } from "./sidebarCollapsedAtoms";
 import {
-  SIDEBAR_PROJECT_GROUP_LINE_CLASS,
   SIDEBAR_MORE_ACTION_TRIGGER_CLASS,
   SIDEBAR_ROW_BASE_CLASS,
   getSidebarThreadGroupLineLeft,
@@ -488,13 +487,7 @@ function getProjectThreadTreeEmptyStateMessageClassName(): string {
   return "text-xs leading-4 text-subtle-foreground/60";
 }
 
-function getProjectThreadTreeGroupLineClassName(
-  variant: ProjectThreadTreeVariant,
-): string | undefined {
-  if (variant === "project") {
-    return SIDEBAR_PROJECT_GROUP_LINE_CLASS;
-  }
-
+function getProjectThreadTreeGroupLineClassName(): undefined {
   return undefined;
 }
 
@@ -617,7 +610,7 @@ function ProjectThreadTreeGroup({
       data-sidebar-sticky-section={variant === "section" ? "" : undefined}
       className={cn(
         "relative space-y-0.5 group-data-[collapsible=icon]:hidden",
-        getProjectThreadTreeGroupLineClassName(variant),
+        getProjectThreadTreeGroupLineClassName(),
       )}
       onClickCapture={onClickCapture}
     >
@@ -979,9 +972,6 @@ function EnvironmentThreadGroupHeader({
         />
       </span>
       <span className="pointer-events-none relative z-10 flex min-w-0 flex-1 items-center gap-1.5 text-left text-subtle-foreground/80">
-        <span className="min-w-0 truncate">
-          <span>{displayName}</span>
-        </span>
         <SidebarChildToggleChevron
           isCollapsed={isCollapsed}
           expandLabel={`Expand ${displayName} threads`}
@@ -989,6 +979,9 @@ function EnvironmentThreadGroupHeader({
           onToggle={() => onToggleCollapsed(environmentId)}
           revealOnHover
         />
+        <span className="min-w-0 truncate">
+          <span>{displayName}</span>
+        </span>
       </span>
       <span
         className={cn(

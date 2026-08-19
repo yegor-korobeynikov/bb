@@ -699,6 +699,15 @@ function ThreadRowComponent({
         className="absolute inset-0 rounded-md outline-none ring-sidebar-ring focus-visible:ring-2"
       />
       <span className="flex min-w-0 flex-1 items-center gap-1.5">
+        {parentOptions && hasChildren ? (
+          <SidebarChildToggleChevron
+            isCollapsed={isParentCollapsed}
+            expandLabel={`Expand ${labelTitle} threads`}
+            collapseLabel={`Collapse ${labelTitle} threads`}
+            onToggle={() => parentOptions.onToggleCollapsed(thread.id)}
+            revealOnHover
+          />
+        ) : null}
         {isEditing ? (
           <span className="relative z-10 min-w-0 flex-1 overflow-visible">
             {editor}
@@ -712,15 +721,6 @@ function ThreadRowComponent({
             <SidebarThreadTitle title={visibleTitle} />
           </span>
         )}
-        {parentOptions && hasChildren ? (
-          <SidebarChildToggleChevron
-            isCollapsed={isParentCollapsed}
-            expandLabel={`Expand ${labelTitle} threads`}
-            collapseLabel={`Collapse ${labelTitle} threads`}
-            onToggle={() => parentOptions.onToggleCollapsed(thread.id)}
-            revealOnHover
-          />
-        ) : null}
       </span>
       <span className="flex shrink-0 items-center gap-0.5">
         {shortcut ? (
