@@ -4379,34 +4379,6 @@ declare const bridgeExecutionOptionsSchema: z.ZodIntersection<z.ZodObject<{
 type BridgeExecutionOptions = z.infer<typeof bridgeExecutionOptionsSchema>;
 
 /**
- * Canonical runtime → bridge request methods. One vocabulary for every
- * provider: a bridge maps these to its provider's native dialect internally
- * (codex `thread/stop` → `turn/interrupt`, `thread/discard` →
- * `thread/archive`, …). Methods gated by a handshake capability are simply
- * never sent to a bridge that did not advertise them.
- */
-declare const BRIDGE_REQUEST_METHODS: {
-    readonly initialize: "initialize";
-    readonly modelList: "model/list";
-    readonly experimentalProviderHealth: "provider/health";
-    readonly experimentalProviderUsage: "provider/usage";
-    readonly threadStart: "thread/start";
-    readonly threadResume: "thread/resume";
-    readonly threadFork: "thread/fork";
-    readonly threadStop: "thread/stop";
-    readonly threadDiscard: "thread/discard";
-    readonly threadNameSet: "thread/name/set";
-    readonly threadArchive: "thread/archive";
-    readonly threadUnarchive: "thread/unarchive";
-    readonly threadGoalClear: "thread/goal/clear";
-    readonly turnStart: "turn/start";
-    readonly turnSteer: "turn/steer";
-    readonly skillsConfigure: "skills/configure";
-};
-declare const modelListParamsSchema: z.ZodObject<{
-    cwd: z.ZodOptional<z.ZodString>;
-}, z.core.$loose>;
-/**
  * Sessionless provider maintenance query. `providerOptions` carries the same
  * provider-scoped statics as model/list (notably an ACP launch spec), while
  * `providerId` lets one bridge implementation serve several provider ids.
@@ -4534,6 +4506,35 @@ declare const experimental_providerUsageResultSchema: z.ZodDiscriminatedUnion<[z
     }, z.core.$loose>], "status">;
 }, z.core.$loose>], "supported">;
 type ExperimentalProviderUsageResult = z.infer<typeof experimental_providerUsageResultSchema>;
+
+/**
+ * Canonical runtime → bridge request methods. One vocabulary for every
+ * provider: a bridge maps these to its provider's native dialect internally
+ * (codex `thread/stop` → `turn/interrupt`, `thread/discard` →
+ * `thread/archive`, …). Methods gated by a handshake capability are simply
+ * never sent to a bridge that did not advertise them.
+ */
+declare const BRIDGE_REQUEST_METHODS: {
+    readonly initialize: "initialize";
+    readonly modelList: "model/list";
+    readonly experimentalProviderHealth: "provider/health";
+    readonly experimentalProviderUsage: "provider/usage";
+    readonly threadStart: "thread/start";
+    readonly threadResume: "thread/resume";
+    readonly threadFork: "thread/fork";
+    readonly threadStop: "thread/stop";
+    readonly threadDiscard: "thread/discard";
+    readonly threadNameSet: "thread/name/set";
+    readonly threadArchive: "thread/archive";
+    readonly threadUnarchive: "thread/unarchive";
+    readonly threadGoalClear: "thread/goal/clear";
+    readonly turnStart: "turn/start";
+    readonly turnSteer: "turn/steer";
+    readonly skillsConfigure: "skills/configure";
+};
+declare const modelListParamsSchema: z.ZodObject<{
+    cwd: z.ZodOptional<z.ZodString>;
+}, z.core.$loose>;
 declare const threadStartParamsSchema: z.ZodObject<{
     cwd: z.ZodString;
     disallowedTools: z.ZodOptional<z.ZodArray<z.ZodString>>;
