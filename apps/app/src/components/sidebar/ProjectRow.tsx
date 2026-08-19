@@ -106,7 +106,6 @@ import {
 import {
   SIDEBAR_MORE_ACTION_TRIGGER_CLASS,
   SIDEBAR_ROW_BASE_CLASS,
-  getSidebarThreadGroupLineLeft,
   getSidebarThreadRowPaddingLeft,
 } from "./sidebarRowClasses";
 import {
@@ -374,14 +373,6 @@ interface EnvironmentThreadGroupRowProps {
   onToggleEnvironmentCollapsed: (environmentId: string) => void;
 }
 
-interface ThreadTreeGroupLineProps {
-  parentRowDepth: number;
-}
-
-interface ThreadTreeLineContinuationProps {
-  parentRowDepth: number;
-}
-
 interface GetThreadNodeStickyLevelArgs {
   depthOffset: number;
   node: ProjectThreadNode;
@@ -576,28 +567,6 @@ function getThreadNodeStickyLevel({
 }: GetThreadNodeStickyLevelArgs): number | undefined {
   const level = node.depth + depthOffset;
   return level < SIDEBAR_STICKY_PARENT_DEPTH_CAP ? level : undefined;
-}
-
-function ThreadTreeGroupLine({ parentRowDepth }: ThreadTreeGroupLineProps) {
-  return (
-    <span
-      className="pointer-events-none absolute bottom-0 top-0 z-30 w-px bg-border-hairline opacity-70"
-      style={{ left: getSidebarThreadGroupLineLeft(parentRowDepth) }}
-      aria-hidden="true"
-    />
-  );
-}
-
-function ThreadTreeLineContinuation({
-  parentRowDepth,
-}: ThreadTreeLineContinuationProps) {
-  return (
-    <span
-      className="pointer-events-none absolute -bottom-0.5 top-0 z-[1] w-px bg-border-hairline opacity-70"
-      style={{ left: getSidebarThreadGroupLineLeft(parentRowDepth) }}
-      aria-hidden="true"
-    />
-  );
 }
 
 function ProjectThreadTreeGroup({
@@ -955,9 +924,6 @@ function EnvironmentThreadGroupHeader({
   };
   const content = (
     <>
-      {parentLineDepth === undefined ? null : (
-        <ThreadTreeLineContinuation parentRowDepth={parentLineDepth} />
-      )}
       <span
         className={cn(
           "pointer-events-none relative z-10 inline-flex shrink-0 items-center justify-center text-subtle-foreground",
@@ -1132,7 +1098,6 @@ const EnvironmentThreadGroupRow = memo(function EnvironmentThreadGroupRow({
         />
         {!isCollapsed ? (
           <div className="relative space-y-px">
-            <ThreadTreeGroupLine parentRowDepth={rowDepth} />
             <SidebarWindowedItems
               itemKeys={itemKeys}
               estimateRows={estimateRows}
@@ -1381,9 +1346,6 @@ const SectionTreeItemRow = memo(function SectionTreeItemRow({
 
   const childrenArea = showChildrenArea ? (
     <div className="relative space-y-px">
-      {variant === "project" || depthOffset > 0 ? (
-        <ThreadTreeGroupLine parentRowDepth={headerDepth} />
-      ) : null}
       {showChildren ? (
         <SectionDndSortableList sectionDnd={sectionDnd} parentKey={section.key}>
           <SidebarWindowedItems
@@ -1607,11 +1569,6 @@ export const ThreadTreeNodeRow = memo(function ThreadTreeNodeRow({
   const isCollapsed = collapsedThreadIds.has(node.thread.id);
   const hasChildren = node.children.length > 0;
   const isParent = hasChildren;
-  const parentRowDepth = getThreadRowDepth({
-    depthOffset,
-    nodeDepth: node.depth,
-    variant,
-  });
   const options = useMemo<ThreadRowOptions>(
     () =>
       getThreadRowOptions({
@@ -1684,7 +1641,6 @@ export const ThreadTreeNodeRow = memo(function ThreadTreeNodeRow({
       {row}
       {showChildren ? (
         <div className="relative space-y-px">
-          <ThreadTreeGroupLine parentRowDepth={parentRowDepth} />
           <SidebarWindowedItems
             itemKeys={itemKeys}
             estimateRows={estimateRows}

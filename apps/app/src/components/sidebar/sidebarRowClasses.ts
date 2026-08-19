@@ -41,7 +41,6 @@ export const SIDEBAR_LEADING_GLYPH_SLOT_CLASS =
 
 const SIDEBAR_THREAD_ROW_BASE_PADDING_PX = 8;
 const SIDEBAR_THREAD_ROW_DEPTH_STEP_PX = 24;
-const SIDEBAR_THREAD_ROW_GLYPH_CENTER_OFFSET_PX = 8;
 
 export const SIDEBAR_STANDARD_ROW_PADDING_CLASS = "pl-2";
 
@@ -49,13 +48,6 @@ export function getSidebarThreadRowPaddingLeft(depth: number): number {
   return (
     SIDEBAR_THREAD_ROW_BASE_PADDING_PX +
     depth * SIDEBAR_THREAD_ROW_DEPTH_STEP_PX
-  );
-}
-
-export function getSidebarThreadGroupLineLeft(depth: number): number {
-  return (
-    getSidebarThreadRowPaddingLeft(depth) +
-    SIDEBAR_THREAD_ROW_GLYPH_CENTER_OFFSET_PX
   );
 }
 
