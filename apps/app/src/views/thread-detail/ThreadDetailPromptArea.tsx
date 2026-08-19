@@ -114,8 +114,6 @@ import {
   type FollowUpExecutionSelection,
 } from "./threadDetailPromptSubmission";
 
-const ignorePromptBannerFileClick = () => {};
-
 export interface ThreadDetailSentMessageEdit {
   draft: PromptDraftState;
   hostElement: HTMLDivElement | null;
@@ -892,13 +890,6 @@ export function ThreadDetailPromptArea({
 
   const bottomFocusEndKey = `${composerFocusRequestNonce}:${bottomPluginFocusNonce}`;
 
-  const handlePromptBannerFileClick = useCallback(
-    (selection: WorkspaceChangedFileSelection) => {
-      onChangedFileClick(selection);
-    },
-    [onChangedFileClick],
-  );
-
   const handleToggleBannerSection = useCallback(
     (section: ThreadPromptContextBannerExpandedSection | null) => {
       setExpandedBannerSection((previous) =>
@@ -1480,18 +1471,8 @@ export function ThreadDetailPromptArea({
           parentThreadSection={parentThreadSection}
           childThreadsSection={childThreadsSection}
           pullRequestSection={pullRequestSection}
-          gitSection={
-            workspaceChangedFilesSection
-              ? {
-                  changedFiles: workspaceChangedFilesSection,
-                  mergeBase: contextBannerMergeBase,
-                  onPromptBannerFileClick: canUseGitUi
-                    ? handlePromptBannerFileClick
-                    : ignorePromptBannerFileClick,
-                }
-              : null
-          }
-          gitSectionPending={workspaceStatusPending}
+          gitSection={null}
+          gitSectionPending={false}
           expandedSection={expandedBannerSection}
           onToggleSection={handleToggleBannerSection}
         />
@@ -1528,13 +1509,10 @@ export function ThreadDetailPromptArea({
       </>
     ),
     [
-      canUseGitUi,
       childPendingInteractionBanners,
-      contextBannerMergeBase,
       expandedBannerSection,
       handleDeleteQueuedMessage,
       beginEditQueuedMessage,
-      handlePromptBannerFileClick,
       handleReorderQueuedMessage,
       handleSendQueuedImmediately,
       handleSetQueuedMessageGroupBoundary,
@@ -1566,8 +1544,6 @@ export function ThreadDetailPromptArea({
       submitMode.kind,
       thread.archivedAt,
       thread.id,
-      workspaceChangedFilesSection,
-      workspaceStatusPending,
     ],
   );
 
