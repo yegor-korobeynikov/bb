@@ -8,76 +8,76 @@
 import { z } from 'zod';
 
 declare const acpReasoningCliSchema: z.ZodObject<{
-    flag: z.ZodString;
-    supportedLevels: z.ZodArray<z.ZodEnum<{
-        none: "none";
-        low: "low";
-        medium: "medium";
-        high: "high";
-        xhigh: "xhigh";
-        ultracode: "ultracode";
-        max: "max";
-        ultra: "ultra";
-    }>>;
-    levelValues: z.ZodOptional<z.ZodRecord<z.ZodEnum<{
-        none: "none";
-        low: "low";
-        medium: "medium";
-        high: "high";
-        xhigh: "xhigh";
-        ultracode: "ultracode";
-        max: "max";
-        ultra: "ultra";
-    }> & z.core.$partial, z.ZodString>>;
     defaultLevel: z.ZodOptional<z.ZodEnum<{
-        none: "none";
-        low: "low";
-        medium: "medium";
         high: "high";
-        xhigh: "xhigh";
-        ultracode: "ultracode";
+        low: "low";
         max: "max";
+        medium: "medium";
+        none: "none";
         ultra: "ultra";
+        ultracode: "ultracode";
+        xhigh: "xhigh";
+    }>>;
+    flag: z.ZodString;
+    levelValues: z.ZodOptional<z.ZodRecord<z.ZodEnum<{
+        high: "high";
+        low: "low";
+        max: "max";
+        medium: "medium";
+        none: "none";
+        ultra: "ultra";
+        ultracode: "ultracode";
+        xhigh: "xhigh";
+    }> & z.core.$partial, z.ZodString>>;
+    supportedLevels: z.ZodArray<z.ZodEnum<{
+        high: "high";
+        low: "low";
+        max: "max";
+        medium: "medium";
+        none: "none";
+        ultra: "ultra";
+        ultracode: "ultracode";
+        xhigh: "xhigh";
     }>>;
 }, z.core.$strict>;
 declare const acpNativeReasoningSchema: z.ZodObject<{
     configId: z.ZodString;
-    supportedLevels: z.ZodArray<z.ZodEnum<{
-        none: "none";
-        low: "low";
-        medium: "medium";
+    defaultLevel: z.ZodOptional<z.ZodEnum<{
         high: "high";
-        xhigh: "xhigh";
-        ultracode: "ultracode";
+        low: "low";
         max: "max";
+        medium: "medium";
+        none: "none";
         ultra: "ultra";
+        ultracode: "ultracode";
+        xhigh: "xhigh";
     }>>;
     levelValues: z.ZodOptional<z.ZodRecord<z.ZodEnum<{
-        none: "none";
-        low: "low";
-        medium: "medium";
         high: "high";
-        xhigh: "xhigh";
-        ultracode: "ultracode";
+        low: "low";
         max: "max";
+        medium: "medium";
+        none: "none";
         ultra: "ultra";
+        ultracode: "ultracode";
+        xhigh: "xhigh";
     }> & z.core.$partial, z.ZodString>>;
-    defaultLevel: z.ZodOptional<z.ZodEnum<{
-        none: "none";
-        low: "low";
-        medium: "medium";
+    supportedLevels: z.ZodArray<z.ZodEnum<{
         high: "high";
-        xhigh: "xhigh";
-        ultracode: "ultracode";
+        low: "low";
         max: "max";
+        medium: "medium";
+        none: "none";
         ultra: "ultra";
+        ultracode: "ultracode";
+        xhigh: "xhigh";
     }>>;
 }, z.core.$strict>;
 declare const acpPermissionCliSchema: z.ZodObject<{
     full: z.ZodOptional<z.ZodArray<z.ZodString>>;
-    workspaceWrite: z.ZodOptional<z.ZodArray<z.ZodString>>;
-    readonly: z.ZodOptional<z.ZodArray<z.ZodString>>;
     insertAfterArgs: z.ZodOptional<z.ZodNumber>;
+    readonly: z.ZodOptional<z.ZodArray<z.ZodString>>;
+    workspaceWrite: z.ZodOptional<z.ZodArray<z.ZodString>>;
 }, z.core.$strict>;
 
 interface JsonObject {
@@ -98,57 +98,57 @@ declare const LOCAL_WORKFLOW_TASK_TYPE = "local_workflow";
 declare const LOCAL_BASH_TASK_TYPE = "local_bash";
 declare function isBackgroundAgentTaskType(taskType: string): boolean;
 declare const backgroundTaskStatusSchema: z.ZodEnum<{
-    pending: "pending";
-    running: "running";
-    paused: "paused";
     completed: "completed";
     failed: "failed";
     killed: "killed";
+    paused: "paused";
+    pending: "pending";
+    running: "running";
     stopped: "stopped";
 }>;
 type BackgroundTaskStatus = z.infer<typeof backgroundTaskStatusSchema>;
 declare const workflowAgentStateSchema: z.ZodEnum<{
-    running: "running";
+    done: "done";
     failed: "failed";
     queued: "queued";
-    done: "done";
+    running: "running";
     skipped: "skipped";
 }>;
 type WorkflowAgentState = z.infer<typeof workflowAgentStateSchema>;
 declare const workflowAgentSnapshotSchema: z.ZodObject<{
-    index: z.ZodNumber;
-    label: z.ZodString;
-    state: z.ZodEnum<{
-        running: "running";
-        failed: "failed";
-        queued: "queued";
-        done: "done";
-        skipped: "skipped";
-    }>;
-    model: z.ZodString;
+    agentType: z.ZodOptional<z.ZodString>;
     attempt: z.ZodNumber;
     cached: z.ZodBoolean;
-    lastProgressAt: z.ZodNumber;
-    phaseIndex: z.ZodOptional<z.ZodNumber>;
-    phaseTitle: z.ZodOptional<z.ZodString>;
-    agentType: z.ZodOptional<z.ZodString>;
+    durationMs: z.ZodOptional<z.ZodNumber>;
+    error: z.ZodOptional<z.ZodString>;
+    index: z.ZodNumber;
     isolation: z.ZodOptional<z.ZodString>;
-    queuedAt: z.ZodOptional<z.ZodNumber>;
-    startedAt: z.ZodOptional<z.ZodNumber>;
+    label: z.ZodString;
+    lastProgressAt: z.ZodNumber;
     lastToolName: z.ZodOptional<z.ZodString>;
     lastToolSummary: z.ZodOptional<z.ZodString>;
+    model: z.ZodString;
+    phaseIndex: z.ZodOptional<z.ZodNumber>;
+    phaseTitle: z.ZodOptional<z.ZodString>;
     promptPreview: z.ZodOptional<z.ZodString>;
+    queuedAt: z.ZodOptional<z.ZodNumber>;
     resultPreview: z.ZodOptional<z.ZodString>;
-    error: z.ZodOptional<z.ZodString>;
+    startedAt: z.ZodOptional<z.ZodNumber>;
+    state: z.ZodEnum<{
+        done: "done";
+        failed: "failed";
+        queued: "queued";
+        running: "running";
+        skipped: "skipped";
+    }>;
     tokens: z.ZodOptional<z.ZodNumber>;
     toolCalls: z.ZodOptional<z.ZodNumber>;
-    durationMs: z.ZodOptional<z.ZodNumber>;
 }, z.core.$strip>;
 type WorkflowAgentSnapshot = z.infer<typeof workflowAgentSnapshotSchema>;
 declare const workflowPhaseSnapshotSchema: z.ZodObject<{
     index: z.ZodNumber;
-    title: z.ZodString;
     kind: z.ZodOptional<z.ZodString>;
+    title: z.ZodString;
 }, z.core.$strip>;
 type WorkflowPhaseSnapshot = z.infer<typeof workflowPhaseSnapshotSchema>;
 /**
@@ -157,46 +157,46 @@ type WorkflowPhaseSnapshot = z.infer<typeof workflowPhaseSnapshotSchema>;
  * persisted snapshot supersedes the previous one.
  */
 declare const workflowProgressSnapshotSchema: z.ZodObject<{
-    phases: z.ZodArray<z.ZodObject<{
-        index: z.ZodNumber;
-        title: z.ZodString;
-        kind: z.ZodOptional<z.ZodString>;
-    }, z.core.$strip>>;
     agents: z.ZodArray<z.ZodObject<{
-        index: z.ZodNumber;
-        label: z.ZodString;
-        state: z.ZodEnum<{
-            running: "running";
-            failed: "failed";
-            queued: "queued";
-            done: "done";
-            skipped: "skipped";
-        }>;
-        model: z.ZodString;
+        agentType: z.ZodOptional<z.ZodString>;
         attempt: z.ZodNumber;
         cached: z.ZodBoolean;
-        lastProgressAt: z.ZodNumber;
-        phaseIndex: z.ZodOptional<z.ZodNumber>;
-        phaseTitle: z.ZodOptional<z.ZodString>;
-        agentType: z.ZodOptional<z.ZodString>;
+        durationMs: z.ZodOptional<z.ZodNumber>;
+        error: z.ZodOptional<z.ZodString>;
+        index: z.ZodNumber;
         isolation: z.ZodOptional<z.ZodString>;
-        queuedAt: z.ZodOptional<z.ZodNumber>;
-        startedAt: z.ZodOptional<z.ZodNumber>;
+        label: z.ZodString;
+        lastProgressAt: z.ZodNumber;
         lastToolName: z.ZodOptional<z.ZodString>;
         lastToolSummary: z.ZodOptional<z.ZodString>;
+        model: z.ZodString;
+        phaseIndex: z.ZodOptional<z.ZodNumber>;
+        phaseTitle: z.ZodOptional<z.ZodString>;
         promptPreview: z.ZodOptional<z.ZodString>;
+        queuedAt: z.ZodOptional<z.ZodNumber>;
         resultPreview: z.ZodOptional<z.ZodString>;
-        error: z.ZodOptional<z.ZodString>;
+        startedAt: z.ZodOptional<z.ZodNumber>;
+        state: z.ZodEnum<{
+            done: "done";
+            failed: "failed";
+            queued: "queued";
+            running: "running";
+            skipped: "skipped";
+        }>;
         tokens: z.ZodOptional<z.ZodNumber>;
         toolCalls: z.ZodOptional<z.ZodNumber>;
-        durationMs: z.ZodOptional<z.ZodNumber>;
+    }, z.core.$strip>>;
+    phases: z.ZodArray<z.ZodObject<{
+        index: z.ZodNumber;
+        kind: z.ZodOptional<z.ZodString>;
+        title: z.ZodString;
     }, z.core.$strip>>;
 }, z.core.$strip>;
 type WorkflowProgressSnapshot = z.infer<typeof workflowProgressSnapshotSchema>;
 declare const backgroundTaskUsageSchema: z.ZodObject<{
-    totalTokens: z.ZodNumber;
-    toolUses: z.ZodNumber;
     durationMs: z.ZodNumber;
+    toolUses: z.ZodNumber;
+    totalTokens: z.ZodNumber;
 }, z.core.$strip>;
 type BackgroundTaskUsage = z.infer<typeof backgroundTaskUsageSchema>;
 /**
@@ -204,7 +204,7 @@ type BackgroundTaskUsage = z.infer<typeof backgroundTaskUsageSchema>;
  * item-status machinery: paused stays pending because a paused workflow is
  * resumable; stopped maps to interrupted (user/system stop, not a failure).
  */
-declare function backgroundTaskItemStatus(taskStatus: BackgroundTaskStatus): "pending" | "completed" | "failed" | "interrupted";
+declare function backgroundTaskItemStatus(taskStatus: BackgroundTaskStatus): "completed" | "failed" | "interrupted" | "pending";
 /**
  * Whether the provider-reported status already describes a finished task.
  * Settle backstops (thread restart, daemon crash, lease expiry) must preserve
@@ -229,9 +229,9 @@ declare const claudeTaskToolOutputSchema: z.ZodUnion<readonly [z.ZodObject<{
     task: z.ZodNullable<z.ZodObject<{
         id: z.ZodString;
         status: z.ZodEnum<{
-            pending: "pending";
             completed: "completed";
             in_progress: "in_progress";
+            pending: "pending";
         }>;
         subject: z.ZodString;
     }, z.core.$loose>>;
@@ -246,22 +246,22 @@ type ClaudeTaskToolOutput = z.infer<typeof claudeTaskToolOutputSchema>;
 declare function toPositiveNumber(value: unknown): number | undefined;
 
 declare const pendingInteractionCommandActionSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
-    type: z.ZodLiteral<"read">;
     command: z.ZodString;
     name: z.ZodString;
     path: z.ZodString;
+    type: z.ZodLiteral<"read">;
 }, z.core.$strip>, z.ZodObject<{
+    command: z.ZodString;
+    path: z.ZodNullable<z.ZodString>;
     type: z.ZodLiteral<"listFiles">;
+}, z.core.$strip>, z.ZodObject<{
     command: z.ZodString;
     path: z.ZodNullable<z.ZodString>;
-}, z.core.$strip>, z.ZodObject<{
-    type: z.ZodLiteral<"search">;
-    command: z.ZodString;
     query: z.ZodNullable<z.ZodString>;
-    path: z.ZodNullable<z.ZodString>;
+    type: z.ZodLiteral<"search">;
 }, z.core.$strip>, z.ZodObject<{
-    type: z.ZodLiteral<"unknown">;
     command: z.ZodString;
+    type: z.ZodLiteral<"unknown">;
 }, z.core.$strip>], "type">;
 type PendingInteractionCommandAction = z.infer<typeof pendingInteractionCommandActionSchema>;
 declare const pendingInteractionNetworkPermissionsSchema: z.ZodObject<{
@@ -272,342 +272,342 @@ declare const pendingInteractionFileSystemPermissionsSchema: z.ZodObject<{
     write: z.ZodArray<z.ZodString>;
 }, z.core.$strip>;
 declare const pendingInteractionMacOsPermissionsSchema: z.ZodObject<{
-    preferences: z.ZodEnum<{
-        none: "none";
-        read_only: "read_only";
-        read_write: "read_write";
-    }>;
-    automations: z.ZodUnion<readonly [z.ZodLiteral<"none">, z.ZodLiteral<"all">, z.ZodObject<{
-        kind: z.ZodLiteral<"bundle_ids">;
-        bundleIds: z.ZodArray<z.ZodString>;
-    }, z.core.$strip>]>;
-    launchServices: z.ZodBoolean;
     accessibility: z.ZodBoolean;
+    automations: z.ZodUnion<readonly [z.ZodLiteral<"none">, z.ZodLiteral<"all">, z.ZodObject<{
+        bundleIds: z.ZodArray<z.ZodString>;
+        kind: z.ZodLiteral<"bundle_ids">;
+    }, z.core.$strip>]>;
     calendar: z.ZodBoolean;
-    reminders: z.ZodBoolean;
     contacts: z.ZodEnum<{
         none: "none";
         read_only: "read_only";
         read_write: "read_write";
     }>;
+    launchServices: z.ZodBoolean;
+    preferences: z.ZodEnum<{
+        none: "none";
+        read_only: "read_only";
+        read_write: "read_write";
+    }>;
+    reminders: z.ZodBoolean;
 }, z.core.$strip>;
 declare const pendingInteractionRequestedPermissionProfileSchema: z.ZodObject<{
-    network: z.ZodNullable<z.ZodObject<{
-        enabled: z.ZodNullable<z.ZodBoolean>;
-    }, z.core.$strip>>;
     fileSystem: z.ZodNullable<z.ZodObject<{
         read: z.ZodArray<z.ZodString>;
         write: z.ZodArray<z.ZodString>;
     }, z.core.$strip>>;
     macos: z.ZodNullable<z.ZodObject<{
-        preferences: z.ZodEnum<{
-            none: "none";
-            read_only: "read_only";
-            read_write: "read_write";
-        }>;
-        automations: z.ZodUnion<readonly [z.ZodLiteral<"none">, z.ZodLiteral<"all">, z.ZodObject<{
-            kind: z.ZodLiteral<"bundle_ids">;
-            bundleIds: z.ZodArray<z.ZodString>;
-        }, z.core.$strip>]>;
-        launchServices: z.ZodBoolean;
         accessibility: z.ZodBoolean;
+        automations: z.ZodUnion<readonly [z.ZodLiteral<"none">, z.ZodLiteral<"all">, z.ZodObject<{
+            bundleIds: z.ZodArray<z.ZodString>;
+            kind: z.ZodLiteral<"bundle_ids">;
+        }, z.core.$strip>]>;
         calendar: z.ZodBoolean;
-        reminders: z.ZodBoolean;
         contacts: z.ZodEnum<{
             none: "none";
             read_only: "read_only";
             read_write: "read_write";
         }>;
+        launchServices: z.ZodBoolean;
+        preferences: z.ZodEnum<{
+            none: "none";
+            read_only: "read_only";
+            read_write: "read_write";
+        }>;
+        reminders: z.ZodBoolean;
+    }, z.core.$strip>>;
+    network: z.ZodNullable<z.ZodObject<{
+        enabled: z.ZodNullable<z.ZodBoolean>;
     }, z.core.$strip>>;
 }, z.core.$strip>;
 type PendingInteractionRequestedPermissionProfile = z.infer<typeof pendingInteractionRequestedPermissionProfileSchema>;
 declare const pendingInteractionGrantablePermissionProfileSchema: z.ZodObject<{
-    network: z.ZodNullable<z.ZodObject<{
-        enabled: z.ZodNullable<z.ZodBoolean>;
-    }, z.core.$strip>>;
     fileSystem: z.ZodNullable<z.ZodObject<{
         read: z.ZodArray<z.ZodString>;
         write: z.ZodArray<z.ZodString>;
+    }, z.core.$strip>>;
+    network: z.ZodNullable<z.ZodObject<{
+        enabled: z.ZodNullable<z.ZodBoolean>;
     }, z.core.$strip>>;
 }, z.core.$strict>;
 type PendingInteractionGrantablePermissionProfile = z.infer<typeof pendingInteractionGrantablePermissionProfileSchema>;
 declare const pendingInteractionGrantedPermissionProfileSchema: z.ZodObject<{
-    network: z.ZodNullable<z.ZodObject<{
-        enabled: z.ZodNullable<z.ZodBoolean>;
-    }, z.core.$strip>>;
     fileSystem: z.ZodNullable<z.ZodObject<{
         read: z.ZodArray<z.ZodString>;
         write: z.ZodArray<z.ZodString>;
     }, z.core.$strip>>;
+    network: z.ZodNullable<z.ZodObject<{
+        enabled: z.ZodNullable<z.ZodBoolean>;
+    }, z.core.$strip>>;
 }, z.core.$strict>;
 type PendingInteractionGrantedPermissionProfile = z.infer<typeof pendingInteractionGrantedPermissionProfileSchema>;
 declare const pendingInteractionApprovalDecisionSchema: z.ZodEnum<{
-    allow_once: "allow_once";
     allow_for_session: "allow_for_session";
+    allow_once: "allow_once";
     deny: "deny";
 }>;
 type PendingInteractionApprovalDecision = z.infer<typeof pendingInteractionApprovalDecisionSchema>;
 declare const pendingInteractionApprovalSubjectSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
-    kind: z.ZodLiteral<"command">;
-    itemId: z.ZodString;
-    command: z.ZodString;
-    cwd: z.ZodNullable<z.ZodString>;
     actions: z.ZodArray<z.ZodDiscriminatedUnion<[z.ZodObject<{
-        type: z.ZodLiteral<"read">;
         command: z.ZodString;
         name: z.ZodString;
         path: z.ZodString;
+        type: z.ZodLiteral<"read">;
     }, z.core.$strip>, z.ZodObject<{
+        command: z.ZodString;
+        path: z.ZodNullable<z.ZodString>;
         type: z.ZodLiteral<"listFiles">;
+    }, z.core.$strip>, z.ZodObject<{
         command: z.ZodString;
         path: z.ZodNullable<z.ZodString>;
-    }, z.core.$strip>, z.ZodObject<{
-        type: z.ZodLiteral<"search">;
-        command: z.ZodString;
         query: z.ZodNullable<z.ZodString>;
-        path: z.ZodNullable<z.ZodString>;
+        type: z.ZodLiteral<"search">;
     }, z.core.$strip>, z.ZodObject<{
-        type: z.ZodLiteral<"unknown">;
         command: z.ZodString;
+        type: z.ZodLiteral<"unknown">;
     }, z.core.$strip>], "type">>;
+    command: z.ZodString;
+    cwd: z.ZodNullable<z.ZodString>;
+    itemId: z.ZodString;
+    kind: z.ZodLiteral<"command">;
     sessionGrant: z.ZodNullable<z.ZodObject<{
-        network: z.ZodNullable<z.ZodObject<{
-            enabled: z.ZodNullable<z.ZodBoolean>;
-        }, z.core.$strip>>;
         fileSystem: z.ZodNullable<z.ZodObject<{
             read: z.ZodArray<z.ZodString>;
             write: z.ZodArray<z.ZodString>;
         }, z.core.$strip>>;
+        network: z.ZodNullable<z.ZodObject<{
+            enabled: z.ZodNullable<z.ZodBoolean>;
+        }, z.core.$strip>>;
     }, z.core.$strict>>;
 }, z.core.$strip>, z.ZodObject<{
+    itemId: z.ZodString;
     kind: z.ZodLiteral<"file_change">;
-    itemId: z.ZodString;
-    writeScope: z.ZodNullable<z.ZodString>;
     sessionGrant: z.ZodNullable<z.ZodObject<{
-        network: z.ZodNullable<z.ZodObject<{
-            enabled: z.ZodNullable<z.ZodBoolean>;
-        }, z.core.$strip>>;
         fileSystem: z.ZodNullable<z.ZodObject<{
             read: z.ZodArray<z.ZodString>;
             write: z.ZodArray<z.ZodString>;
+        }, z.core.$strip>>;
+        network: z.ZodNullable<z.ZodObject<{
+            enabled: z.ZodNullable<z.ZodBoolean>;
         }, z.core.$strip>>;
     }, z.core.$strict>>;
+    writeScope: z.ZodNullable<z.ZodString>;
 }, z.core.$strip>, z.ZodObject<{
-    kind: z.ZodLiteral<"permission_grant">;
     itemId: z.ZodString;
-    toolName: z.ZodNullable<z.ZodString>;
+    kind: z.ZodLiteral<"permission_grant">;
     permissions: z.ZodObject<{
-        network: z.ZodNullable<z.ZodObject<{
-            enabled: z.ZodNullable<z.ZodBoolean>;
-        }, z.core.$strip>>;
         fileSystem: z.ZodNullable<z.ZodObject<{
             read: z.ZodArray<z.ZodString>;
             write: z.ZodArray<z.ZodString>;
+        }, z.core.$strip>>;
+        network: z.ZodNullable<z.ZodObject<{
+            enabled: z.ZodNullable<z.ZodBoolean>;
         }, z.core.$strip>>;
     }, z.core.$strict>;
+    toolName: z.ZodNullable<z.ZodString>;
 }, z.core.$strip>, z.ZodObject<{
-    kind: z.ZodLiteral<"plan">;
     itemId: z.ZodString;
+    kind: z.ZodLiteral<"plan">;
     plan: z.ZodString;
     planFilePath: z.ZodNullable<z.ZodString>;
 }, z.core.$strip>], "kind">;
 type PendingInteractionApprovalSubject = z.infer<typeof pendingInteractionApprovalSubjectSchema>;
 declare const approvalPendingInteractionPayloadSchema: z.ZodObject<{
+    availableDecisions: z.ZodArray<z.ZodEnum<{
+        allow_for_session: "allow_for_session";
+        allow_once: "allow_once";
+        deny: "deny";
+    }>>;
     kind: z.ZodLiteral<"approval">;
+    reason: z.ZodNullable<z.ZodString>;
     subject: z.ZodDiscriminatedUnion<[z.ZodObject<{
-        kind: z.ZodLiteral<"command">;
-        itemId: z.ZodString;
-        command: z.ZodString;
-        cwd: z.ZodNullable<z.ZodString>;
         actions: z.ZodArray<z.ZodDiscriminatedUnion<[z.ZodObject<{
-            type: z.ZodLiteral<"read">;
             command: z.ZodString;
             name: z.ZodString;
             path: z.ZodString;
+            type: z.ZodLiteral<"read">;
         }, z.core.$strip>, z.ZodObject<{
+            command: z.ZodString;
+            path: z.ZodNullable<z.ZodString>;
             type: z.ZodLiteral<"listFiles">;
+        }, z.core.$strip>, z.ZodObject<{
             command: z.ZodString;
             path: z.ZodNullable<z.ZodString>;
-        }, z.core.$strip>, z.ZodObject<{
-            type: z.ZodLiteral<"search">;
-            command: z.ZodString;
             query: z.ZodNullable<z.ZodString>;
-            path: z.ZodNullable<z.ZodString>;
+            type: z.ZodLiteral<"search">;
         }, z.core.$strip>, z.ZodObject<{
-            type: z.ZodLiteral<"unknown">;
             command: z.ZodString;
+            type: z.ZodLiteral<"unknown">;
         }, z.core.$strip>], "type">>;
+        command: z.ZodString;
+        cwd: z.ZodNullable<z.ZodString>;
+        itemId: z.ZodString;
+        kind: z.ZodLiteral<"command">;
         sessionGrant: z.ZodNullable<z.ZodObject<{
-            network: z.ZodNullable<z.ZodObject<{
-                enabled: z.ZodNullable<z.ZodBoolean>;
-            }, z.core.$strip>>;
             fileSystem: z.ZodNullable<z.ZodObject<{
                 read: z.ZodArray<z.ZodString>;
                 write: z.ZodArray<z.ZodString>;
             }, z.core.$strip>>;
+            network: z.ZodNullable<z.ZodObject<{
+                enabled: z.ZodNullable<z.ZodBoolean>;
+            }, z.core.$strip>>;
         }, z.core.$strict>>;
     }, z.core.$strip>, z.ZodObject<{
+        itemId: z.ZodString;
         kind: z.ZodLiteral<"file_change">;
-        itemId: z.ZodString;
-        writeScope: z.ZodNullable<z.ZodString>;
         sessionGrant: z.ZodNullable<z.ZodObject<{
-            network: z.ZodNullable<z.ZodObject<{
-                enabled: z.ZodNullable<z.ZodBoolean>;
-            }, z.core.$strip>>;
             fileSystem: z.ZodNullable<z.ZodObject<{
                 read: z.ZodArray<z.ZodString>;
                 write: z.ZodArray<z.ZodString>;
+            }, z.core.$strip>>;
+            network: z.ZodNullable<z.ZodObject<{
+                enabled: z.ZodNullable<z.ZodBoolean>;
             }, z.core.$strip>>;
         }, z.core.$strict>>;
+        writeScope: z.ZodNullable<z.ZodString>;
     }, z.core.$strip>, z.ZodObject<{
-        kind: z.ZodLiteral<"permission_grant">;
         itemId: z.ZodString;
-        toolName: z.ZodNullable<z.ZodString>;
+        kind: z.ZodLiteral<"permission_grant">;
         permissions: z.ZodObject<{
-            network: z.ZodNullable<z.ZodObject<{
-                enabled: z.ZodNullable<z.ZodBoolean>;
-            }, z.core.$strip>>;
             fileSystem: z.ZodNullable<z.ZodObject<{
                 read: z.ZodArray<z.ZodString>;
                 write: z.ZodArray<z.ZodString>;
+            }, z.core.$strip>>;
+            network: z.ZodNullable<z.ZodObject<{
+                enabled: z.ZodNullable<z.ZodBoolean>;
             }, z.core.$strip>>;
         }, z.core.$strict>;
+        toolName: z.ZodNullable<z.ZodString>;
     }, z.core.$strip>, z.ZodObject<{
-        kind: z.ZodLiteral<"plan">;
         itemId: z.ZodString;
+        kind: z.ZodLiteral<"plan">;
         plan: z.ZodString;
         planFilePath: z.ZodNullable<z.ZodString>;
     }, z.core.$strip>], "kind">;
-    reason: z.ZodNullable<z.ZodString>;
-    availableDecisions: z.ZodArray<z.ZodEnum<{
-        allow_once: "allow_once";
-        allow_for_session: "allow_for_session";
-        deny: "deny";
-    }>>;
 }, z.core.$strip>;
 type ApprovalPendingInteractionPayload = z.infer<typeof approvalPendingInteractionPayloadSchema>;
 declare const USER_QUESTION_MAX_QUESTIONS = 4;
 declare const USER_QUESTION_MAX_OPTIONS = 4;
 declare const pendingInteractionUserQuestionQuestionSchema: z.ZodObject<{
+    allowFreeText: z.ZodBoolean;
     id: z.ZodString;
-    prompt: z.ZodString;
-    shortLabel: z.ZodOptional<z.ZodString>;
     multiSelect: z.ZodBoolean;
     options: z.ZodOptional<z.ZodArray<z.ZodObject<{
-        value: z.ZodString;
-        label: z.ZodString;
         description: z.ZodOptional<z.ZodString>;
+        label: z.ZodString;
+        value: z.ZodString;
     }, z.core.$strip>>>;
-    allowFreeText: z.ZodBoolean;
+    prompt: z.ZodString;
+    shortLabel: z.ZodOptional<z.ZodString>;
 }, z.core.$strip>;
 type PendingInteractionUserQuestionQuestion = z.infer<typeof pendingInteractionUserQuestionQuestionSchema>;
 declare const userQuestionPendingInteractionPayloadSchema: z.ZodObject<{
     kind: z.ZodLiteral<"user_question">;
     questions: z.ZodArray<z.ZodObject<{
+        allowFreeText: z.ZodBoolean;
         id: z.ZodString;
-        prompt: z.ZodString;
-        shortLabel: z.ZodOptional<z.ZodString>;
         multiSelect: z.ZodBoolean;
         options: z.ZodOptional<z.ZodArray<z.ZodObject<{
-            value: z.ZodString;
-            label: z.ZodString;
             description: z.ZodOptional<z.ZodString>;
+            label: z.ZodString;
+            value: z.ZodString;
         }, z.core.$strip>>>;
-        allowFreeText: z.ZodBoolean;
+        prompt: z.ZodString;
+        shortLabel: z.ZodOptional<z.ZodString>;
     }, z.core.$strip>>;
 }, z.core.$strip>;
 type UserQuestionPendingInteractionPayload = z.infer<typeof userQuestionPendingInteractionPayloadSchema>;
 declare const pluginPendingInteractionPayloadSchema: z.ZodObject<{
+    data: z.ZodType<JsonValue, unknown, z.core.$ZodTypeInternals<JsonValue, unknown>>;
     kind: z.ZodLiteral<"plugin">;
     title: z.ZodString;
-    data: z.ZodType<JsonValue, unknown, z.core.$ZodTypeInternals<JsonValue, unknown>>;
 }, z.core.$strip>;
 type PluginPendingInteractionPayload = z.infer<typeof pluginPendingInteractionPayloadSchema>;
 declare const pendingInteractionPayloadSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
+    availableDecisions: z.ZodArray<z.ZodEnum<{
+        allow_for_session: "allow_for_session";
+        allow_once: "allow_once";
+        deny: "deny";
+    }>>;
     kind: z.ZodLiteral<"approval">;
+    reason: z.ZodNullable<z.ZodString>;
     subject: z.ZodDiscriminatedUnion<[z.ZodObject<{
-        kind: z.ZodLiteral<"command">;
-        itemId: z.ZodString;
-        command: z.ZodString;
-        cwd: z.ZodNullable<z.ZodString>;
         actions: z.ZodArray<z.ZodDiscriminatedUnion<[z.ZodObject<{
-            type: z.ZodLiteral<"read">;
             command: z.ZodString;
             name: z.ZodString;
             path: z.ZodString;
+            type: z.ZodLiteral<"read">;
         }, z.core.$strip>, z.ZodObject<{
+            command: z.ZodString;
+            path: z.ZodNullable<z.ZodString>;
             type: z.ZodLiteral<"listFiles">;
+        }, z.core.$strip>, z.ZodObject<{
             command: z.ZodString;
             path: z.ZodNullable<z.ZodString>;
-        }, z.core.$strip>, z.ZodObject<{
-            type: z.ZodLiteral<"search">;
-            command: z.ZodString;
             query: z.ZodNullable<z.ZodString>;
-            path: z.ZodNullable<z.ZodString>;
+            type: z.ZodLiteral<"search">;
         }, z.core.$strip>, z.ZodObject<{
-            type: z.ZodLiteral<"unknown">;
             command: z.ZodString;
+            type: z.ZodLiteral<"unknown">;
         }, z.core.$strip>], "type">>;
+        command: z.ZodString;
+        cwd: z.ZodNullable<z.ZodString>;
+        itemId: z.ZodString;
+        kind: z.ZodLiteral<"command">;
         sessionGrant: z.ZodNullable<z.ZodObject<{
-            network: z.ZodNullable<z.ZodObject<{
-                enabled: z.ZodNullable<z.ZodBoolean>;
-            }, z.core.$strip>>;
             fileSystem: z.ZodNullable<z.ZodObject<{
                 read: z.ZodArray<z.ZodString>;
                 write: z.ZodArray<z.ZodString>;
             }, z.core.$strip>>;
+            network: z.ZodNullable<z.ZodObject<{
+                enabled: z.ZodNullable<z.ZodBoolean>;
+            }, z.core.$strip>>;
         }, z.core.$strict>>;
     }, z.core.$strip>, z.ZodObject<{
+        itemId: z.ZodString;
         kind: z.ZodLiteral<"file_change">;
-        itemId: z.ZodString;
-        writeScope: z.ZodNullable<z.ZodString>;
         sessionGrant: z.ZodNullable<z.ZodObject<{
-            network: z.ZodNullable<z.ZodObject<{
-                enabled: z.ZodNullable<z.ZodBoolean>;
-            }, z.core.$strip>>;
             fileSystem: z.ZodNullable<z.ZodObject<{
                 read: z.ZodArray<z.ZodString>;
                 write: z.ZodArray<z.ZodString>;
+            }, z.core.$strip>>;
+            network: z.ZodNullable<z.ZodObject<{
+                enabled: z.ZodNullable<z.ZodBoolean>;
             }, z.core.$strip>>;
         }, z.core.$strict>>;
+        writeScope: z.ZodNullable<z.ZodString>;
     }, z.core.$strip>, z.ZodObject<{
-        kind: z.ZodLiteral<"permission_grant">;
         itemId: z.ZodString;
-        toolName: z.ZodNullable<z.ZodString>;
+        kind: z.ZodLiteral<"permission_grant">;
         permissions: z.ZodObject<{
-            network: z.ZodNullable<z.ZodObject<{
-                enabled: z.ZodNullable<z.ZodBoolean>;
-            }, z.core.$strip>>;
             fileSystem: z.ZodNullable<z.ZodObject<{
                 read: z.ZodArray<z.ZodString>;
                 write: z.ZodArray<z.ZodString>;
+            }, z.core.$strip>>;
+            network: z.ZodNullable<z.ZodObject<{
+                enabled: z.ZodNullable<z.ZodBoolean>;
             }, z.core.$strip>>;
         }, z.core.$strict>;
+        toolName: z.ZodNullable<z.ZodString>;
     }, z.core.$strip>, z.ZodObject<{
-        kind: z.ZodLiteral<"plan">;
         itemId: z.ZodString;
+        kind: z.ZodLiteral<"plan">;
         plan: z.ZodString;
         planFilePath: z.ZodNullable<z.ZodString>;
     }, z.core.$strip>], "kind">;
-    reason: z.ZodNullable<z.ZodString>;
-    availableDecisions: z.ZodArray<z.ZodEnum<{
-        allow_once: "allow_once";
-        allow_for_session: "allow_for_session";
-        deny: "deny";
-    }>>;
 }, z.core.$strip>, z.ZodObject<{
     kind: z.ZodLiteral<"user_question">;
     questions: z.ZodArray<z.ZodObject<{
+        allowFreeText: z.ZodBoolean;
         id: z.ZodString;
-        prompt: z.ZodString;
-        shortLabel: z.ZodOptional<z.ZodString>;
         multiSelect: z.ZodBoolean;
         options: z.ZodOptional<z.ZodArray<z.ZodObject<{
-            value: z.ZodString;
-            label: z.ZodString;
             description: z.ZodOptional<z.ZodString>;
+            label: z.ZodString;
+            value: z.ZodString;
         }, z.core.$strip>>>;
-        allowFreeText: z.ZodBoolean;
+        prompt: z.ZodString;
+        shortLabel: z.ZodOptional<z.ZodString>;
     }, z.core.$strip>>;
 }, z.core.$strip>], "kind">;
 type PendingInteractionPayload = z.infer<typeof pendingInteractionPayloadSchema>;
@@ -617,23 +617,23 @@ declare function isUserQuestionPendingInteractionPayload(payload: AnyPendingInte
 declare const approvalPendingInteractionResolutionSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
     decision: z.ZodLiteral<"allow_once">;
     grantedPermissions: z.ZodNullable<z.ZodObject<{
-        network: z.ZodNullable<z.ZodObject<{
-            enabled: z.ZodNullable<z.ZodBoolean>;
-        }, z.core.$strip>>;
         fileSystem: z.ZodNullable<z.ZodObject<{
             read: z.ZodArray<z.ZodString>;
             write: z.ZodArray<z.ZodString>;
+        }, z.core.$strip>>;
+        network: z.ZodNullable<z.ZodObject<{
+            enabled: z.ZodNullable<z.ZodBoolean>;
         }, z.core.$strip>>;
     }, z.core.$strict>>;
 }, z.core.$strip>, z.ZodObject<{
     decision: z.ZodLiteral<"allow_for_session">;
     grantedPermissions: z.ZodNullable<z.ZodObject<{
-        network: z.ZodNullable<z.ZodObject<{
-            enabled: z.ZodNullable<z.ZodBoolean>;
-        }, z.core.$strip>>;
         fileSystem: z.ZodNullable<z.ZodObject<{
             read: z.ZodArray<z.ZodString>;
             write: z.ZodArray<z.ZodString>;
+        }, z.core.$strip>>;
+        network: z.ZodNullable<z.ZodObject<{
+            enabled: z.ZodNullable<z.ZodBoolean>;
         }, z.core.$strip>>;
     }, z.core.$strict>>;
 }, z.core.$strip>, z.ZodObject<{
@@ -641,43 +641,43 @@ declare const approvalPendingInteractionResolutionSchema: z.ZodDiscriminatedUnio
 }, z.core.$strip>], "decision">;
 type ApprovalPendingInteractionResolution = z.infer<typeof approvalPendingInteractionResolutionSchema>;
 declare const userQuestionPendingInteractionResolutionSchema: z.ZodObject<{
-    kind: z.ZodLiteral<"user_answer">;
     answers: z.ZodRecord<z.ZodString, z.ZodObject<{
-        selected: z.ZodArray<z.ZodString>;
         freeText: z.ZodOptional<z.ZodString>;
+        selected: z.ZodArray<z.ZodString>;
     }, z.core.$strip>>;
+    kind: z.ZodLiteral<"user_answer">;
 }, z.core.$strip>;
 type UserQuestionPendingInteractionResolution = z.infer<typeof userQuestionPendingInteractionResolutionSchema>;
 declare const pendingInteractionResolutionSchema: z.ZodUnion<readonly [z.ZodDiscriminatedUnion<[z.ZodObject<{
     decision: z.ZodLiteral<"allow_once">;
     grantedPermissions: z.ZodNullable<z.ZodObject<{
-        network: z.ZodNullable<z.ZodObject<{
-            enabled: z.ZodNullable<z.ZodBoolean>;
-        }, z.core.$strip>>;
         fileSystem: z.ZodNullable<z.ZodObject<{
             read: z.ZodArray<z.ZodString>;
             write: z.ZodArray<z.ZodString>;
+        }, z.core.$strip>>;
+        network: z.ZodNullable<z.ZodObject<{
+            enabled: z.ZodNullable<z.ZodBoolean>;
         }, z.core.$strip>>;
     }, z.core.$strict>>;
 }, z.core.$strip>, z.ZodObject<{
     decision: z.ZodLiteral<"allow_for_session">;
     grantedPermissions: z.ZodNullable<z.ZodObject<{
-        network: z.ZodNullable<z.ZodObject<{
-            enabled: z.ZodNullable<z.ZodBoolean>;
-        }, z.core.$strip>>;
         fileSystem: z.ZodNullable<z.ZodObject<{
             read: z.ZodArray<z.ZodString>;
             write: z.ZodArray<z.ZodString>;
+        }, z.core.$strip>>;
+        network: z.ZodNullable<z.ZodObject<{
+            enabled: z.ZodNullable<z.ZodBoolean>;
         }, z.core.$strip>>;
     }, z.core.$strict>>;
 }, z.core.$strip>, z.ZodObject<{
     decision: z.ZodLiteral<"deny">;
 }, z.core.$strip>], "decision">, z.ZodObject<{
-    kind: z.ZodLiteral<"user_answer">;
     answers: z.ZodRecord<z.ZodString, z.ZodObject<{
-        selected: z.ZodArray<z.ZodString>;
         freeText: z.ZodOptional<z.ZodString>;
+        selected: z.ZodArray<z.ZodString>;
     }, z.core.$strip>>;
+    kind: z.ZodLiteral<"user_answer">;
 }, z.core.$strip>, z.ZodObject<{
     kind: z.ZodLiteral<"plugin_submitted">;
 }, z.core.$strip>]>;
@@ -698,14 +698,14 @@ declare function isUserQuestionPendingInteractionResolution(resolution: PendingI
  */
 declare const reasoningLevelValues: readonly ["none", "low", "medium", "high", "xhigh", "ultracode", "max", "ultra"];
 declare const reasoningLevelSchema: z.ZodEnum<{
-    none: "none";
-    low: "low";
-    medium: "medium";
     high: "high";
-    xhigh: "xhigh";
-    ultracode: "ultracode";
+    low: "low";
     max: "max";
+    medium: "medium";
+    none: "none";
     ultra: "ultra";
+    ultracode: "ultracode";
+    xhigh: "xhigh";
 }>;
 type ReasoningLevel = z.infer<typeof reasoningLevelSchema>;
 declare const serviceTierSchema: z.ZodEnum<{
@@ -722,20 +722,20 @@ type ServiceTier = z.infer<typeof serviceTierSchema>;
  */
 declare const instructionModeValues: readonly ["append", "replace"];
 declare const instructionModeSchema: z.ZodEnum<{
-    replace: "replace";
     append: "append";
+    replace: "replace";
 }>;
 type InstructionMode = z.infer<typeof instructionModeSchema>;
 declare const permissionModeSchema: z.ZodEnum<{
-    full: "full";
-    auto: "auto";
     "accept-edits": "accept-edits";
+    auto: "auto";
+    full: "full";
 }>;
 type PermissionMode = z.infer<typeof permissionModeSchema>;
 declare const permissionEscalationValues: readonly ["ask", "deny"];
 declare const permissionEscalationSchema: z.ZodEnum<{
-    deny: "deny";
     ask: "ask";
+    deny: "deny";
 }>;
 type PermissionEscalation = z.infer<typeof permissionEscalationSchema>;
 declare const DEFAULT_CLAUDE_CODE_MOCK_CLI_TRAFFIC_ENDPOINT = "https://api.anthropic.com";
@@ -751,85 +751,85 @@ declare const promptMentionCommandTriggerSchema: z.ZodEnum<{
 }>;
 type PromptMentionCommandTrigger = z.infer<typeof promptMentionCommandTriggerSchema>;
 declare const promptInputSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
-    visibility: z.ZodOptional<z.ZodEnum<{
-        "agent-only": "agent-only";
-    }>>;
-    type: z.ZodLiteral<"text">;
-    text: z.ZodString;
     mentions: z.ZodDefault<z.ZodArray<z.ZodObject<{
-        start: z.ZodNumber;
         end: z.ZodNumber;
         resource: z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodDiscriminatedUnion<[z.ZodObject<{
             kind: z.ZodLiteral<"thread">;
-            threadId: z.ZodString;
-            projectId: z.ZodOptional<z.ZodString>;
             label: z.ZodString;
+            projectId: z.ZodOptional<z.ZodString>;
+            threadId: z.ZodString;
         }, z.core.$strip>, z.ZodObject<{
             kind: z.ZodLiteral<"project">;
-            projectId: z.ZodString;
             label: z.ZodString;
+            projectId: z.ZodString;
         }, z.core.$strip>, z.ZodObject<{
             kind: z.ZodLiteral<"section">;
+            label: z.ZodString;
             sectionId: z.ZodString;
-            label: z.ZodString;
         }, z.core.$strip>, z.ZodObject<{
-            kind: z.ZodLiteral<"path">;
-            source: z.ZodEnum<{
-                workspace: "workspace";
-                "thread-storage": "thread-storage";
-            }>;
             entryKind: z.ZodEnum<{
-                file: "file";
                 directory: "directory";
+                file: "file";
             }>;
-            path: z.ZodString;
+            kind: z.ZodLiteral<"path">;
             label: z.ZodString;
-        }, z.core.$strip>, z.ZodObject<{
-            kind: z.ZodLiteral<"command">;
-            trigger: z.ZodEnum<{
-                "/": "/";
+            path: z.ZodString;
+            source: z.ZodEnum<{
+                "thread-storage": "thread-storage";
+                workspace: "workspace";
             }>;
+        }, z.core.$strip>, z.ZodObject<{
+            argumentHint: z.ZodNullable<z.ZodString>;
+            kind: z.ZodLiteral<"command">;
+            label: z.ZodString;
             name: z.ZodString;
+            origin: z.ZodEnum<{
+                builtin: "builtin";
+                project: "project";
+                user: "user";
+            }>;
             source: z.ZodEnum<{
                 command: "command";
                 skill: "skill";
             }>;
-            origin: z.ZodEnum<{
-                user: "user";
-                project: "project";
-                builtin: "builtin";
+            trigger: z.ZodEnum<{
+                "/": "/";
             }>;
-            label: z.ZodString;
-            argumentHint: z.ZodNullable<z.ZodString>;
         }, z.core.$strip>, z.ZodObject<{
-            kind: z.ZodLiteral<"plugin">;
-            pluginId: z.ZodString;
             icon: z.ZodOptional<z.ZodNullable<z.ZodString>>;
             itemId: z.ZodString;
+            kind: z.ZodLiteral<"plugin">;
             label: z.ZodString;
+            pluginId: z.ZodString;
         }, z.core.$strip>], "kind">>;
+        start: z.ZodNumber;
     }, z.core.$strip>>>;
-}, z.core.$strip>, z.ZodObject<{
+    text: z.ZodString;
+    type: z.ZodLiteral<"text">;
     visibility: z.ZodOptional<z.ZodEnum<{
         "agent-only": "agent-only";
     }>>;
+}, z.core.$strip>, z.ZodObject<{
     type: z.ZodLiteral<"image">;
     url: z.ZodString;
-}, z.core.$strip>, z.ZodObject<{
     visibility: z.ZodOptional<z.ZodEnum<{
         "agent-only": "agent-only";
     }>>;
+}, z.core.$strip>, z.ZodObject<{
+    path: z.ZodString;
     type: z.ZodLiteral<"localImage">;
-    path: z.ZodString;
-}, z.core.$strip>, z.ZodObject<{
     visibility: z.ZodOptional<z.ZodEnum<{
         "agent-only": "agent-only";
     }>>;
-    type: z.ZodLiteral<"localFile">;
-    path: z.ZodString;
-    name: z.ZodOptional<z.ZodString>;
-    sizeBytes: z.ZodOptional<z.ZodNumber>;
+}, z.core.$strip>, z.ZodObject<{
     mimeType: z.ZodOptional<z.ZodString>;
+    name: z.ZodOptional<z.ZodString>;
+    path: z.ZodString;
+    sizeBytes: z.ZodOptional<z.ZodNumber>;
+    type: z.ZodLiteral<"localFile">;
+    visibility: z.ZodOptional<z.ZodEnum<{
+        "agent-only": "agent-only";
+    }>>;
 }, z.core.$strip>], "type">;
 type PromptInput = z.infer<typeof promptInputSchema>;
 interface PromptCommandSelector {
@@ -849,26 +849,26 @@ declare const runtimePermissionScopeSchema: z.ZodEnum<{
 }>;
 type RuntimePermissionScope = z.infer<typeof runtimePermissionScopeSchema>;
 declare const runtimePermissionPolicySchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
-    permissionMode: z.ZodLiteral<"accept-edits">;
-    permissionScope: z.ZodLiteral<"workspace">;
     approvalReviewer: z.ZodLiteral<"user">;
     permissionEscalation: z.ZodEnum<{
-        deny: "deny";
         ask: "ask";
+        deny: "deny";
     }>;
-}, z.core.$strip>, z.ZodObject<{
-    permissionMode: z.ZodLiteral<"auto">;
+    permissionMode: z.ZodLiteral<"accept-edits">;
     permissionScope: z.ZodLiteral<"workspace">;
+}, z.core.$strip>, z.ZodObject<{
     approvalReviewer: z.ZodLiteral<"automatic">;
     permissionEscalation: z.ZodEnum<{
-        deny: "deny";
         ask: "ask";
+        deny: "deny";
     }>;
+    permissionMode: z.ZodLiteral<"auto">;
+    permissionScope: z.ZodLiteral<"workspace">;
 }, z.core.$strip>, z.ZodObject<{
-    permissionMode: z.ZodLiteral<"full">;
-    permissionScope: z.ZodLiteral<"full">;
     approvalReviewer: z.ZodNull;
     permissionEscalation: z.ZodNull;
+    permissionMode: z.ZodLiteral<"full">;
+    permissionScope: z.ZodLiteral<"full">;
 }, z.core.$strip>], "permissionMode">;
 type RuntimePermissionPolicy = z.infer<typeof runtimePermissionPolicySchema>;
 
@@ -876,10 +876,10 @@ declare const clientTurnRequestIdSchema: z.ZodString;
 type ClientTurnRequestId = z.infer<typeof clientTurnRequestIdSchema>;
 
 declare const threadEventItemStatusSchema: z.ZodEnum<{
-    pending: "pending";
     completed: "completed";
     failed: "failed";
     interrupted: "interrupted";
+    pending: "pending";
 }>;
 type ThreadEventItemStatus = z.infer<typeof threadEventItemStatusSchema>;
 declare const threadEventTurnStatusSchema: z.ZodEnum<{
@@ -889,203 +889,203 @@ declare const threadEventTurnStatusSchema: z.ZodEnum<{
 }>;
 type ThreadEventTurnStatus = z.infer<typeof threadEventTurnStatusSchema>;
 declare const providerErrorCategorySchema: z.ZodEnum<{
-    unknown: "unknown";
     "active-turn-not-steerable": "active-turn-not-steerable";
     "bad-request": "bad-request";
+    "budget-exceeded": "budget-exceeded";
     "connection-failed": "connection-failed";
     "context-window-exceeded": "context-window-exceeded";
-    billing: "billing";
-    "budget-exceeded": "budget-exceeded";
-    internal: "internal";
     "max-output-tokens": "max-output-tokens";
     "max-turns": "max-turns";
-    overloaded: "overloaded";
-    policy: "policy";
     "rate-limit": "rate-limit";
-    sandbox: "sandbox";
     "stream-disconnected": "stream-disconnected";
     "structured-output-retries": "structured-output-retries";
     "thread-rollback-failed": "thread-rollback-failed";
     "too-many-failed-attempts": "too-many-failed-attempts";
+    billing: "billing";
+    internal: "internal";
+    overloaded: "overloaded";
+    policy: "policy";
+    sandbox: "sandbox";
     unauthorized: "unauthorized";
+    unknown: "unknown";
 }>;
 type ProviderErrorCategory = z.infer<typeof providerErrorCategorySchema>;
 declare const providerErrorInfoSchema: z.ZodObject<{
     category: z.ZodEnum<{
-        unknown: "unknown";
         "active-turn-not-steerable": "active-turn-not-steerable";
         "bad-request": "bad-request";
+        "budget-exceeded": "budget-exceeded";
         "connection-failed": "connection-failed";
         "context-window-exceeded": "context-window-exceeded";
-        billing: "billing";
-        "budget-exceeded": "budget-exceeded";
-        internal: "internal";
         "max-output-tokens": "max-output-tokens";
         "max-turns": "max-turns";
-        overloaded: "overloaded";
-        policy: "policy";
         "rate-limit": "rate-limit";
-        sandbox: "sandbox";
         "stream-disconnected": "stream-disconnected";
         "structured-output-retries": "structured-output-retries";
         "thread-rollback-failed": "thread-rollback-failed";
         "too-many-failed-attempts": "too-many-failed-attempts";
+        billing: "billing";
+        internal: "internal";
+        overloaded: "overloaded";
+        policy: "policy";
+        sandbox: "sandbox";
         unauthorized: "unauthorized";
+        unknown: "unknown";
     }>;
-    providerCode: z.ZodNullable<z.ZodString>;
     httpStatusCode: z.ZodNullable<z.ZodNumber>;
+    providerCode: z.ZodNullable<z.ZodString>;
 }, z.core.$strip>;
 type ProviderErrorInfo = z.infer<typeof providerErrorInfoSchema>;
 declare const providerRateLimitStatusSchema: z.ZodEnum<{
-    unknown: "unknown";
     allowed: "allowed";
-    warning: "warning";
     blocked: "blocked";
+    unknown: "unknown";
+    warning: "warning";
 }>;
 type ProviderRateLimitStatus = z.infer<typeof providerRateLimitStatusSchema>;
 declare const providerRateLimitWindowSchema: z.ZodObject<{
-    providerKey: z.ZodNullable<z.ZodString>;
     label: z.ZodNullable<z.ZodString>;
-    status: z.ZodEnum<{
-        unknown: "unknown";
-        allowed: "allowed";
-        warning: "warning";
-        blocked: "blocked";
-    }>;
+    providerKey: z.ZodNullable<z.ZodString>;
     resetsAtMs: z.ZodNullable<z.ZodNumber>;
+    status: z.ZodEnum<{
+        allowed: "allowed";
+        blocked: "blocked";
+        unknown: "unknown";
+        warning: "warning";
+    }>;
 }, z.core.$strip>;
 type ProviderRateLimitWindow = z.infer<typeof providerRateLimitWindowSchema>;
 declare const providerRateLimitStateSchema: z.ZodObject<{
-    providerId: z.ZodString;
-    status: z.ZodEnum<{
-        unknown: "unknown";
-        allowed: "allowed";
-        warning: "warning";
-        blocked: "blocked";
-    }>;
     kind: z.ZodEnum<{
-        unknown: "unknown";
+        "spend-control": "spend-control";
         "subscription-window": "subscription-window";
         credits: "credits";
-        "spend-control": "spend-control";
+        unknown: "unknown";
     }>;
-    windows: z.ZodArray<z.ZodObject<{
-        providerKey: z.ZodNullable<z.ZodString>;
-        label: z.ZodNullable<z.ZodString>;
-        status: z.ZodEnum<{
-            unknown: "unknown";
-            allowed: "allowed";
-            warning: "warning";
-            blocked: "blocked";
-        }>;
-        resetsAtMs: z.ZodNullable<z.ZodNumber>;
-    }, z.core.$strip>>;
-    reachedReason: z.ZodNullable<z.ZodString>;
+    overageReason: z.ZodNullable<z.ZodString>;
     overageStatus: z.ZodNullable<z.ZodEnum<{
         allowed: "allowed";
-        warning: "warning";
         rejected: "rejected";
         unavailable: "unavailable";
+        warning: "warning";
     }>>;
-    overageReason: z.ZodNullable<z.ZodString>;
+    providerId: z.ZodString;
+    reachedReason: z.ZodNullable<z.ZodString>;
+    status: z.ZodEnum<{
+        allowed: "allowed";
+        blocked: "blocked";
+        unknown: "unknown";
+        warning: "warning";
+    }>;
+    windows: z.ZodArray<z.ZodObject<{
+        label: z.ZodNullable<z.ZodString>;
+        providerKey: z.ZodNullable<z.ZodString>;
+        resetsAtMs: z.ZodNullable<z.ZodNumber>;
+        status: z.ZodEnum<{
+            allowed: "allowed";
+            blocked: "blocked";
+            unknown: "unknown";
+            warning: "warning";
+        }>;
+    }, z.core.$strip>>;
 }, z.core.$strip>;
 type ProviderRateLimitState = z.infer<typeof providerRateLimitStateSchema>;
 declare const threadEventPlanStepSchema: z.ZodObject<{
-    step: z.ZodString;
     status: z.ZodOptional<z.ZodEnum<{
-        pending: "pending";
+        active: "active";
         completed: "completed";
         failed: "failed";
-        active: "active";
+        pending: "pending";
     }>>;
+    step: z.ZodString;
 }, z.core.$strip>;
 type ThreadEventPlanStep = z.infer<typeof threadEventPlanStepSchema>;
 declare const threadEventUserContentSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
-    type: z.ZodLiteral<"text">;
     text: z.ZodString;
+    type: z.ZodLiteral<"text">;
 }, z.core.$strip>, z.ZodObject<{
     type: z.ZodLiteral<"image">;
     url: z.ZodString;
 }, z.core.$strip>, z.ZodObject<{
+    path: z.ZodString;
     type: z.ZodLiteral<"localImage">;
-    path: z.ZodString;
 }, z.core.$strip>, z.ZodObject<{
-    type: z.ZodLiteral<"localFile">;
     path: z.ZodString;
+    type: z.ZodLiteral<"localFile">;
 }, z.core.$strip>], "type">;
 type ThreadEventUserContent = z.infer<typeof threadEventUserContentSchema>;
 declare const threadEventTokenUsageBreakdownSchema: z.ZodObject<{
-    totalTokens: z.ZodNumber;
-    inputTokens: z.ZodNumber;
     cachedInputTokens: z.ZodNumber;
+    inputTokens: z.ZodNumber;
     outputTokens: z.ZodNumber;
     reasoningOutputTokens: z.ZodNumber;
+    totalTokens: z.ZodNumber;
 }, z.core.$strip>;
 type ThreadEventTokenUsageBreakdown = z.infer<typeof threadEventTokenUsageBreakdownSchema>;
 declare const threadEventContextWindowUsageSchema: z.ZodObject<{
-    usedTokens: z.ZodNullable<z.ZodNumber>;
-    modelContextWindow: z.ZodNullable<z.ZodNumber>;
     estimated: z.ZodBoolean;
+    modelContextWindow: z.ZodNullable<z.ZodNumber>;
+    usedTokens: z.ZodNullable<z.ZodNumber>;
 }, z.core.$strip>;
 type ThreadEventContextWindowUsage = z.infer<typeof threadEventContextWindowUsageSchema>;
 declare const providerRawEventSchema: z.ZodObject<{
-    jsonrpc: z.ZodLiteral<"2.0">;
     id: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>>;
+    jsonrpc: z.ZodLiteral<"2.0">;
     method: z.ZodString;
     params: z.ZodOptional<z.ZodType<JsonValue, unknown, z.core.$ZodTypeInternals<JsonValue, unknown>>>;
 }, z.core.$strip>;
 type ProviderRawEvent = z.infer<typeof providerRawEventSchema>;
 
 declare const modelReasoningEffortSchema: z.ZodObject<{
-    reasoningEffort: z.ZodEnum<{
-        none: "none";
-        low: "low";
-        medium: "medium";
-        high: "high";
-        xhigh: "xhigh";
-        ultracode: "ultracode";
-        max: "max";
-        ultra: "ultra";
-    }>;
     description: z.ZodString;
+    reasoningEffort: z.ZodEnum<{
+        high: "high";
+        low: "low";
+        max: "max";
+        medium: "medium";
+        none: "none";
+        ultra: "ultra";
+        ultracode: "ultracode";
+        xhigh: "xhigh";
+    }>;
 }, z.core.$strip>;
 type ModelReasoningEffort = z.infer<typeof modelReasoningEffortSchema>;
 declare const availableModelSchema: z.ZodObject<{
-    id: z.ZodString;
-    model: z.ZodString;
-    displayName: z.ZodString;
-    routeProviderId: z.ZodOptional<z.ZodString>;
-    description: z.ZodString;
-    supportedReasoningEfforts: z.ZodArray<z.ZodObject<{
-        reasoningEffort: z.ZodEnum<{
-            none: "none";
-            low: "low";
-            medium: "medium";
-            high: "high";
-            xhigh: "xhigh";
-            ultracode: "ultracode";
-            max: "max";
-            ultra: "ultra";
-        }>;
-        description: z.ZodString;
-    }, z.core.$strip>>;
     defaultReasoningEffort: z.ZodEnum<{
-        none: "none";
-        low: "low";
-        medium: "medium";
         high: "high";
-        xhigh: "xhigh";
-        ultracode: "ultracode";
+        low: "low";
         max: "max";
+        medium: "medium";
+        none: "none";
         ultra: "ultra";
+        ultracode: "ultracode";
+        xhigh: "xhigh";
     }>;
+    description: z.ZodString;
+    displayName: z.ZodString;
+    id: z.ZodString;
     isDefault: z.ZodBoolean;
+    model: z.ZodString;
+    routeProviderId: z.ZodOptional<z.ZodString>;
+    supportedReasoningEfforts: z.ZodArray<z.ZodObject<{
+        description: z.ZodString;
+        reasoningEffort: z.ZodEnum<{
+            high: "high";
+            low: "low";
+            max: "max";
+            medium: "medium";
+            none: "none";
+            ultra: "ultra";
+            ultracode: "ultracode";
+            xhigh: "xhigh";
+        }>;
+    }, z.core.$strip>>;
 }, z.core.$strip>;
 type AvailableModel = z.infer<typeof availableModelSchema>;
 declare const dynamicToolSchema: z.ZodObject<{
-    name: z.ZodString;
     description: z.ZodString;
     inputSchema: z.ZodUnknown;
+    name: z.ZodString;
 }, z.core.$strip>;
 type DynamicTool = z.infer<typeof dynamicToolSchema>;
 
@@ -1182,24 +1182,24 @@ interface BridgeToolCallRequest {
     };
 }
 declare const bridgeRequestEnvelopeSchema: z.ZodObject<{
-    jsonrpc: z.ZodLiteral<"2.0">;
     id: z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>;
+    jsonrpc: z.ZodLiteral<"2.0">;
     method: z.ZodString;
     params: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
 }, z.core.$strip>;
 declare const jsonRpcSuccessResponseSchema: z.ZodObject<{
-    jsonrpc: z.ZodLiteral<"2.0">;
     id: z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>;
+    jsonrpc: z.ZodLiteral<"2.0">;
     result: z.ZodUnknown;
 }, z.core.$strip>;
 declare const jsonRpcErrorResponseSchema: z.ZodObject<{
-    jsonrpc: z.ZodLiteral<"2.0">;
-    id: z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>;
     error: z.ZodObject<{
         code: z.ZodNumber;
-        message: z.ZodOptional<z.ZodString>;
         data: z.ZodOptional<z.ZodUnknown>;
+        message: z.ZodOptional<z.ZodString>;
     }, z.core.$strip>;
+    id: z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>;
+    jsonrpc: z.ZodLiteral<"2.0">;
 }, z.core.$strip>;
 type BridgeJsonRpcResponse = z.infer<typeof jsonRpcSuccessResponseSchema> | z.infer<typeof jsonRpcErrorResponseSchema>;
 declare function decodeBridgeJsonRpcResponse(input: unknown): BridgeJsonRpcResponse | null;
@@ -1268,28 +1268,28 @@ declare const sdkMessageEnvelopeSchema: z.ZodObject<{
     method: z.ZodLiteral<"sdk/message">;
     params: z.ZodObject<{
         message: z.ZodUnknown;
-        threadId: z.ZodOptional<z.ZodString>;
         parent_tool_use_id: z.ZodOptional<z.ZodString>;
+        threadId: z.ZodOptional<z.ZodString>;
     }, z.core.$loose>;
 }, z.core.$loose>;
 declare const threadIdentityEnvelopeSchema: z.ZodObject<{
     jsonrpc: z.ZodLiteral<"2.0">;
     method: z.ZodLiteral<"thread/identity">;
     params: z.ZodObject<{
-        threadId: z.ZodOptional<z.ZodString>;
         providerThreadId: z.ZodOptional<z.ZodString>;
+        threadId: z.ZodOptional<z.ZodString>;
     }, z.core.$loose>;
 }, z.core.$loose>;
 declare const threadContextWindowUsageEnvelopeSchema: z.ZodObject<{
     jsonrpc: z.ZodLiteral<"2.0">;
     method: z.ZodLiteral<"thread/contextWindowUsage/updated">;
     params: z.ZodObject<{
-        threadId: z.ZodOptional<z.ZodString>;
         contextWindowUsage: z.ZodObject<{
-            usedTokens: z.ZodNullable<z.ZodNumber>;
-            modelContextWindow: z.ZodNullable<z.ZodNumber>;
             estimated: z.ZodBoolean;
+            modelContextWindow: z.ZodNullable<z.ZodNumber>;
+            usedTokens: z.ZodNullable<z.ZodNumber>;
         }, z.core.$strip>;
+        threadId: z.ZodOptional<z.ZodString>;
     }, z.core.$loose>;
 }, z.core.$loose>;
 declare const errorEnvelopeSchema: z.ZodObject<{
@@ -1420,7 +1420,7 @@ declare class ProviderResponseEncodeError extends Error {
     constructor(message: string);
 }
 
-type ProviderRawEventCoverage = "normalized" | "noise" | "unknown";
+type ProviderRawEventCoverage = "noise" | "normalized" | "unknown";
 interface ProviderRawEventDescription {
     kind: string;
     coverage: ProviderRawEventCoverage;
@@ -1459,8 +1459,8 @@ declare const bashArgsSchema: z.ZodObject<{
     cwd: z.ZodOptional<z.ZodString>;
 }, z.core.$loose>;
 declare const textBlockSchema: z.ZodObject<{
-    type: z.ZodLiteral<"text">;
     text: z.ZodString;
+    type: z.ZodLiteral<"text">;
 }, z.core.$strip>;
 
 /**
@@ -1488,30 +1488,30 @@ declare const PROVIDER_BRIDGE_PROTOCOL_VERSION: 2;
 
 /** Runtime → bridge `initialize` params. */
 declare const initializeParamsSchema: z.ZodObject<{
-    protocolVersion: z.ZodNumber;
     client: z.ZodObject<{
         name: z.ZodString;
         version: z.ZodString;
     }, z.core.$strip>;
+    protocolVersion: z.ZodNumber;
 }, z.core.$loose>;
 /** Bridge → runtime `initialize` result. */
 declare const initializeResultSchema: z.ZodObject<{
-    protocolVersion: z.ZodNumber;
     capabilities: z.ZodPipe<z.ZodTransform<{}, unknown>, z.ZodObject<{
-        sessionRestore: z.ZodDefault<z.ZodBoolean>;
-        threadArchive: z.ZodDefault<z.ZodBoolean>;
-        threadRename: z.ZodDefault<z.ZodBoolean>;
-        threadGoalClear: z.ZodDefault<z.ZodBoolean>;
+        approvalEnforcedBy: z.ZodDefault<z.ZodEnum<{
+            provider: "provider";
+            runtime: "runtime";
+        }>>;
         fork: z.ZodDefault<z.ZodEnum<{
+            checkpoint: "checkpoint";
             none: "none";
             tip: "tip";
-            checkpoint: "checkpoint";
         }>>;
-        approvalEnforcedBy: z.ZodDefault<z.ZodEnum<{
-            runtime: "runtime";
-            provider: "provider";
-        }>>;
+        sessionRestore: z.ZodDefault<z.ZodBoolean>;
+        threadArchive: z.ZodDefault<z.ZodBoolean>;
+        threadGoalClear: z.ZodDefault<z.ZodBoolean>;
+        threadRename: z.ZodDefault<z.ZodBoolean>;
     }, z.core.$loose>>;
+    protocolVersion: z.ZodNumber;
 }, z.core.$loose>;
 type InitializeResult = z.infer<typeof initializeResultSchema>;
 
@@ -1530,45 +1530,45 @@ type InitializeResult = z.infer<typeof initializeResultSchema>;
  * `session/replaced` notification — never silent.
  */
 declare const bridgeExecutionOptionsSchema: z.ZodIntersection<z.ZodObject<{
+    envVars: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
+    instructions: z.ZodOptional<z.ZodString>;
     model: z.ZodOptional<z.ZodString>;
+    providerOptions: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+    reasoningLevel: z.ZodOptional<z.ZodEnum<{
+        high: "high";
+        low: "low";
+        max: "max";
+        medium: "medium";
+        none: "none";
+        ultra: "ultra";
+        ultracode: "ultracode";
+        xhigh: "xhigh";
+    }>>;
     serviceTier: z.ZodOptional<z.ZodEnum<{
         default: "default";
         fast: "fast";
     }>>;
-    reasoningLevel: z.ZodOptional<z.ZodEnum<{
-        none: "none";
-        low: "low";
-        medium: "medium";
-        high: "high";
-        xhigh: "xhigh";
-        ultracode: "ultracode";
-        max: "max";
-        ultra: "ultra";
-    }>>;
-    instructions: z.ZodOptional<z.ZodString>;
-    envVars: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
-    providerOptions: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
 }, z.core.$strip>, z.ZodDiscriminatedUnion<[z.ZodObject<{
-    permissionMode: z.ZodLiteral<"accept-edits">;
-    permissionScope: z.ZodLiteral<"workspace">;
     approvalReviewer: z.ZodLiteral<"user">;
     permissionEscalation: z.ZodEnum<{
         ask: "ask";
         deny: "deny";
     }>;
-}, z.core.$strip>, z.ZodObject<{
-    permissionMode: z.ZodLiteral<"auto">;
+    permissionMode: z.ZodLiteral<"accept-edits">;
     permissionScope: z.ZodLiteral<"workspace">;
+}, z.core.$strip>, z.ZodObject<{
     approvalReviewer: z.ZodLiteral<"automatic">;
     permissionEscalation: z.ZodEnum<{
         ask: "ask";
         deny: "deny";
     }>;
+    permissionMode: z.ZodLiteral<"auto">;
+    permissionScope: z.ZodLiteral<"workspace">;
 }, z.core.$strip>, z.ZodObject<{
-    permissionMode: z.ZodLiteral<"full">;
-    permissionScope: z.ZodLiteral<"full">;
     approvalReviewer: z.ZodNull;
     permissionEscalation: z.ZodNull;
+    permissionMode: z.ZodLiteral<"full">;
+    permissionScope: z.ZodLiteral<"full">;
 }, z.core.$strip>], "permissionMode">>;
 type BridgeExecutionOptions = z.infer<typeof bridgeExecutionOptionsSchema>;
 
@@ -1599,538 +1599,538 @@ declare const modelListParamsSchema: z.ZodObject<{
     cwd: z.ZodOptional<z.ZodString>;
 }, z.core.$loose>;
 declare const threadStartParamsSchema: z.ZodObject<{
+    cwd: z.ZodString;
+    disallowedTools: z.ZodOptional<z.ZodArray<z.ZodString>>;
+    dynamicTools: z.ZodOptional<z.ZodArray<z.ZodObject<{
+        description: z.ZodString;
+        inputSchema: z.ZodUnknown;
+        name: z.ZodString;
+    }, z.core.$strip>>>;
     input: z.ZodOptional<z.ZodArray<z.ZodDiscriminatedUnion<[z.ZodObject<{
-        visibility: z.ZodOptional<z.ZodEnum<{
-            "agent-only": "agent-only";
-        }>>;
-        type: z.ZodLiteral<"text">;
-        text: z.ZodString;
         mentions: z.ZodDefault<z.ZodArray<z.ZodObject<{
-            start: z.ZodNumber;
             end: z.ZodNumber;
             resource: z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodDiscriminatedUnion<[z.ZodObject<{
                 kind: z.ZodLiteral<"thread">;
-                threadId: z.ZodString;
-                projectId: z.ZodOptional<z.ZodString>;
                 label: z.ZodString;
+                projectId: z.ZodOptional<z.ZodString>;
+                threadId: z.ZodString;
             }, z.core.$strip>, z.ZodObject<{
                 kind: z.ZodLiteral<"project">;
-                projectId: z.ZodString;
                 label: z.ZodString;
+                projectId: z.ZodString;
             }, z.core.$strip>, z.ZodObject<{
                 kind: z.ZodLiteral<"section">;
+                label: z.ZodString;
                 sectionId: z.ZodString;
-                label: z.ZodString;
             }, z.core.$strip>, z.ZodObject<{
-                kind: z.ZodLiteral<"path">;
-                source: z.ZodEnum<{
-                    workspace: "workspace";
-                    "thread-storage": "thread-storage";
-                }>;
                 entryKind: z.ZodEnum<{
-                    file: "file";
                     directory: "directory";
+                    file: "file";
                 }>;
-                path: z.ZodString;
+                kind: z.ZodLiteral<"path">;
                 label: z.ZodString;
-            }, z.core.$strip>, z.ZodObject<{
-                kind: z.ZodLiteral<"command">;
-                trigger: z.ZodEnum<{
-                    "/": "/";
+                path: z.ZodString;
+                source: z.ZodEnum<{
+                    "thread-storage": "thread-storage";
+                    workspace: "workspace";
                 }>;
+            }, z.core.$strip>, z.ZodObject<{
+                argumentHint: z.ZodNullable<z.ZodString>;
+                kind: z.ZodLiteral<"command">;
+                label: z.ZodString;
                 name: z.ZodString;
+                origin: z.ZodEnum<{
+                    builtin: "builtin";
+                    project: "project";
+                    user: "user";
+                }>;
                 source: z.ZodEnum<{
                     command: "command";
                     skill: "skill";
                 }>;
-                origin: z.ZodEnum<{
-                    user: "user";
-                    project: "project";
-                    builtin: "builtin";
+                trigger: z.ZodEnum<{
+                    "/": "/";
                 }>;
-                label: z.ZodString;
-                argumentHint: z.ZodNullable<z.ZodString>;
             }, z.core.$strip>, z.ZodObject<{
-                kind: z.ZodLiteral<"plugin">;
-                pluginId: z.ZodString;
                 icon: z.ZodOptional<z.ZodNullable<z.ZodString>>;
                 itemId: z.ZodString;
+                kind: z.ZodLiteral<"plugin">;
                 label: z.ZodString;
+                pluginId: z.ZodString;
             }, z.core.$strip>], "kind">>;
+            start: z.ZodNumber;
         }, z.core.$strip>>>;
-    }, z.core.$strip>, z.ZodObject<{
+        text: z.ZodString;
+        type: z.ZodLiteral<"text">;
         visibility: z.ZodOptional<z.ZodEnum<{
             "agent-only": "agent-only";
         }>>;
+    }, z.core.$strip>, z.ZodObject<{
         type: z.ZodLiteral<"image">;
         url: z.ZodString;
-    }, z.core.$strip>, z.ZodObject<{
         visibility: z.ZodOptional<z.ZodEnum<{
             "agent-only": "agent-only";
         }>>;
+    }, z.core.$strip>, z.ZodObject<{
+        path: z.ZodString;
         type: z.ZodLiteral<"localImage">;
-        path: z.ZodString;
-    }, z.core.$strip>, z.ZodObject<{
         visibility: z.ZodOptional<z.ZodEnum<{
             "agent-only": "agent-only";
         }>>;
-        type: z.ZodLiteral<"localFile">;
-        path: z.ZodString;
-        name: z.ZodOptional<z.ZodString>;
-        sizeBytes: z.ZodOptional<z.ZodNumber>;
+    }, z.core.$strip>, z.ZodObject<{
         mimeType: z.ZodOptional<z.ZodString>;
+        name: z.ZodOptional<z.ZodString>;
+        path: z.ZodString;
+        sizeBytes: z.ZodOptional<z.ZodNumber>;
+        type: z.ZodLiteral<"localFile">;
+        visibility: z.ZodOptional<z.ZodEnum<{
+            "agent-only": "agent-only";
+        }>>;
     }, z.core.$strip>], "type">>>;
-    threadId: z.ZodString;
-    cwd: z.ZodString;
+    instructionMode: z.ZodEnum<{
+        append: "append";
+        replace: "replace";
+    }>;
     options: z.ZodIntersection<z.ZodObject<{
+        envVars: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
+        instructions: z.ZodOptional<z.ZodString>;
         model: z.ZodOptional<z.ZodString>;
+        providerOptions: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+        reasoningLevel: z.ZodOptional<z.ZodEnum<{
+            high: "high";
+            low: "low";
+            max: "max";
+            medium: "medium";
+            none: "none";
+            ultra: "ultra";
+            ultracode: "ultracode";
+            xhigh: "xhigh";
+        }>>;
         serviceTier: z.ZodOptional<z.ZodEnum<{
             default: "default";
             fast: "fast";
         }>>;
-        reasoningLevel: z.ZodOptional<z.ZodEnum<{
-            none: "none";
-            low: "low";
-            medium: "medium";
-            high: "high";
-            xhigh: "xhigh";
-            ultracode: "ultracode";
-            max: "max";
-            ultra: "ultra";
-        }>>;
-        instructions: z.ZodOptional<z.ZodString>;
-        envVars: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
-        providerOptions: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
     }, z.core.$strip>, z.ZodDiscriminatedUnion<[z.ZodObject<{
-        permissionMode: z.ZodLiteral<"accept-edits">;
-        permissionScope: z.ZodLiteral<"workspace">;
         approvalReviewer: z.ZodLiteral<"user">;
         permissionEscalation: z.ZodEnum<{
             ask: "ask";
             deny: "deny";
         }>;
-    }, z.core.$strip>, z.ZodObject<{
-        permissionMode: z.ZodLiteral<"auto">;
+        permissionMode: z.ZodLiteral<"accept-edits">;
         permissionScope: z.ZodLiteral<"workspace">;
+    }, z.core.$strip>, z.ZodObject<{
         approvalReviewer: z.ZodLiteral<"automatic">;
         permissionEscalation: z.ZodEnum<{
             ask: "ask";
             deny: "deny";
         }>;
+        permissionMode: z.ZodLiteral<"auto">;
+        permissionScope: z.ZodLiteral<"workspace">;
     }, z.core.$strip>, z.ZodObject<{
-        permissionMode: z.ZodLiteral<"full">;
-        permissionScope: z.ZodLiteral<"full">;
         approvalReviewer: z.ZodNull;
         permissionEscalation: z.ZodNull;
+        permissionMode: z.ZodLiteral<"full">;
+        permissionScope: z.ZodLiteral<"full">;
     }, z.core.$strip>], "permissionMode">>;
-    dynamicTools: z.ZodOptional<z.ZodArray<z.ZodObject<{
-        name: z.ZodString;
-        description: z.ZodString;
-        inputSchema: z.ZodUnknown;
-    }, z.core.$strip>>>;
-    disallowedTools: z.ZodOptional<z.ZodArray<z.ZodString>>;
-    instructionMode: z.ZodEnum<{
-        append: "append";
-        replace: "replace";
-    }>;
+    threadId: z.ZodString;
 }, z.core.$loose>;
 declare const threadResumeParamsSchema: z.ZodObject<{
-    providerThreadId: z.ZodString;
-    threadId: z.ZodString;
     cwd: z.ZodString;
+    disallowedTools: z.ZodOptional<z.ZodArray<z.ZodString>>;
+    dynamicTools: z.ZodOptional<z.ZodArray<z.ZodObject<{
+        description: z.ZodString;
+        inputSchema: z.ZodUnknown;
+        name: z.ZodString;
+    }, z.core.$strip>>>;
+    instructionMode: z.ZodEnum<{
+        append: "append";
+        replace: "replace";
+    }>;
     options: z.ZodIntersection<z.ZodObject<{
+        envVars: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
+        instructions: z.ZodOptional<z.ZodString>;
         model: z.ZodOptional<z.ZodString>;
+        providerOptions: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+        reasoningLevel: z.ZodOptional<z.ZodEnum<{
+            high: "high";
+            low: "low";
+            max: "max";
+            medium: "medium";
+            none: "none";
+            ultra: "ultra";
+            ultracode: "ultracode";
+            xhigh: "xhigh";
+        }>>;
         serviceTier: z.ZodOptional<z.ZodEnum<{
             default: "default";
             fast: "fast";
         }>>;
-        reasoningLevel: z.ZodOptional<z.ZodEnum<{
-            none: "none";
-            low: "low";
-            medium: "medium";
-            high: "high";
-            xhigh: "xhigh";
-            ultracode: "ultracode";
-            max: "max";
-            ultra: "ultra";
-        }>>;
-        instructions: z.ZodOptional<z.ZodString>;
-        envVars: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
-        providerOptions: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
     }, z.core.$strip>, z.ZodDiscriminatedUnion<[z.ZodObject<{
-        permissionMode: z.ZodLiteral<"accept-edits">;
-        permissionScope: z.ZodLiteral<"workspace">;
         approvalReviewer: z.ZodLiteral<"user">;
         permissionEscalation: z.ZodEnum<{
             ask: "ask";
             deny: "deny";
         }>;
-    }, z.core.$strip>, z.ZodObject<{
-        permissionMode: z.ZodLiteral<"auto">;
+        permissionMode: z.ZodLiteral<"accept-edits">;
         permissionScope: z.ZodLiteral<"workspace">;
+    }, z.core.$strip>, z.ZodObject<{
         approvalReviewer: z.ZodLiteral<"automatic">;
         permissionEscalation: z.ZodEnum<{
             ask: "ask";
             deny: "deny";
         }>;
+        permissionMode: z.ZodLiteral<"auto">;
+        permissionScope: z.ZodLiteral<"workspace">;
     }, z.core.$strip>, z.ZodObject<{
-        permissionMode: z.ZodLiteral<"full">;
-        permissionScope: z.ZodLiteral<"full">;
         approvalReviewer: z.ZodNull;
         permissionEscalation: z.ZodNull;
+        permissionMode: z.ZodLiteral<"full">;
+        permissionScope: z.ZodLiteral<"full">;
     }, z.core.$strip>], "permissionMode">>;
-    dynamicTools: z.ZodOptional<z.ZodArray<z.ZodObject<{
-        name: z.ZodString;
-        description: z.ZodString;
-        inputSchema: z.ZodUnknown;
-    }, z.core.$strip>>>;
-    disallowedTools: z.ZodOptional<z.ZodArray<z.ZodString>>;
-    instructionMode: z.ZodEnum<{
-        append: "append";
-        replace: "replace";
-    }>;
+    providerThreadId: z.ZodString;
+    threadId: z.ZodString;
 }, z.core.$loose>;
 declare const threadForkParamsSchema: z.ZodObject<{
-    sourceProviderThreadId: z.ZodString;
-    sourceProviderCheckpointId: z.ZodOptional<z.ZodString>;
-    threadId: z.ZodString;
     cwd: z.ZodString;
+    disallowedTools: z.ZodOptional<z.ZodArray<z.ZodString>>;
+    dynamicTools: z.ZodOptional<z.ZodArray<z.ZodObject<{
+        description: z.ZodString;
+        inputSchema: z.ZodUnknown;
+        name: z.ZodString;
+    }, z.core.$strip>>>;
+    instructionMode: z.ZodEnum<{
+        append: "append";
+        replace: "replace";
+    }>;
     options: z.ZodIntersection<z.ZodObject<{
+        envVars: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
+        instructions: z.ZodOptional<z.ZodString>;
         model: z.ZodOptional<z.ZodString>;
+        providerOptions: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+        reasoningLevel: z.ZodOptional<z.ZodEnum<{
+            high: "high";
+            low: "low";
+            max: "max";
+            medium: "medium";
+            none: "none";
+            ultra: "ultra";
+            ultracode: "ultracode";
+            xhigh: "xhigh";
+        }>>;
         serviceTier: z.ZodOptional<z.ZodEnum<{
             default: "default";
             fast: "fast";
         }>>;
-        reasoningLevel: z.ZodOptional<z.ZodEnum<{
-            none: "none";
-            low: "low";
-            medium: "medium";
-            high: "high";
-            xhigh: "xhigh";
-            ultracode: "ultracode";
-            max: "max";
-            ultra: "ultra";
-        }>>;
-        instructions: z.ZodOptional<z.ZodString>;
-        envVars: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
-        providerOptions: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
     }, z.core.$strip>, z.ZodDiscriminatedUnion<[z.ZodObject<{
-        permissionMode: z.ZodLiteral<"accept-edits">;
-        permissionScope: z.ZodLiteral<"workspace">;
         approvalReviewer: z.ZodLiteral<"user">;
         permissionEscalation: z.ZodEnum<{
             ask: "ask";
             deny: "deny";
         }>;
-    }, z.core.$strip>, z.ZodObject<{
-        permissionMode: z.ZodLiteral<"auto">;
+        permissionMode: z.ZodLiteral<"accept-edits">;
         permissionScope: z.ZodLiteral<"workspace">;
+    }, z.core.$strip>, z.ZodObject<{
         approvalReviewer: z.ZodLiteral<"automatic">;
         permissionEscalation: z.ZodEnum<{
             ask: "ask";
             deny: "deny";
         }>;
+        permissionMode: z.ZodLiteral<"auto">;
+        permissionScope: z.ZodLiteral<"workspace">;
     }, z.core.$strip>, z.ZodObject<{
-        permissionMode: z.ZodLiteral<"full">;
-        permissionScope: z.ZodLiteral<"full">;
         approvalReviewer: z.ZodNull;
         permissionEscalation: z.ZodNull;
+        permissionMode: z.ZodLiteral<"full">;
+        permissionScope: z.ZodLiteral<"full">;
     }, z.core.$strip>], "permissionMode">>;
-    dynamicTools: z.ZodOptional<z.ZodArray<z.ZodObject<{
-        name: z.ZodString;
-        description: z.ZodString;
-        inputSchema: z.ZodUnknown;
-    }, z.core.$strip>>>;
-    disallowedTools: z.ZodOptional<z.ZodArray<z.ZodString>>;
-    instructionMode: z.ZodEnum<{
-        append: "append";
-        replace: "replace";
-    }>;
+    sourceProviderCheckpointId: z.ZodOptional<z.ZodString>;
+    sourceProviderThreadId: z.ZodString;
+    threadId: z.ZodString;
 }, z.core.$loose>;
 declare const threadStopParamsSchema: z.ZodObject<{
-    threadId: z.ZodString;
-    providerThreadId: z.ZodString;
+    activeTurnId: z.ZodNullable<z.ZodString>;
     intent: z.ZodEnum<{
         interrupt: "interrupt";
         release: "release";
     }>;
-    activeTurnId: z.ZodNullable<z.ZodString>;
+    providerThreadId: z.ZodString;
+    threadId: z.ZodString;
 }, z.core.$loose>;
 declare const threadDiscardParamsSchema: z.ZodObject<{
-    threadId: z.ZodString;
     providerThreadId: z.ZodString;
+    threadId: z.ZodString;
 }, z.core.$loose>;
 declare const threadArchiveParamsSchema: z.ZodObject<{
-    threadId: z.ZodString;
     providerThreadId: z.ZodString;
+    threadId: z.ZodString;
 }, z.core.$loose>;
 declare const threadUnarchiveParamsSchema: z.ZodObject<{
-    threadId: z.ZodString;
     providerThreadId: z.ZodString;
+    threadId: z.ZodString;
 }, z.core.$loose>;
 declare const threadGoalClearParamsSchema: z.ZodObject<{
-    threadId: z.ZodString;
     providerThreadId: z.ZodString;
+    threadId: z.ZodString;
 }, z.core.$loose>;
 declare const threadNameSetParamsSchema: z.ZodObject<{
-    threadId: z.ZodString;
     providerThreadId: z.ZodString;
+    threadId: z.ZodString;
     title: z.ZodString;
 }, z.core.$loose>;
 declare const turnStartParamsSchema: z.ZodObject<{
-    threadId: z.ZodString;
-    providerThreadId: z.ZodString;
+    clientRequestId: z.ZodString;
     input: z.ZodArray<z.ZodDiscriminatedUnion<[z.ZodObject<{
-        visibility: z.ZodOptional<z.ZodEnum<{
-            "agent-only": "agent-only";
-        }>>;
-        type: z.ZodLiteral<"text">;
-        text: z.ZodString;
         mentions: z.ZodDefault<z.ZodArray<z.ZodObject<{
-            start: z.ZodNumber;
             end: z.ZodNumber;
             resource: z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodDiscriminatedUnion<[z.ZodObject<{
                 kind: z.ZodLiteral<"thread">;
-                threadId: z.ZodString;
-                projectId: z.ZodOptional<z.ZodString>;
                 label: z.ZodString;
+                projectId: z.ZodOptional<z.ZodString>;
+                threadId: z.ZodString;
             }, z.core.$strip>, z.ZodObject<{
                 kind: z.ZodLiteral<"project">;
-                projectId: z.ZodString;
                 label: z.ZodString;
+                projectId: z.ZodString;
             }, z.core.$strip>, z.ZodObject<{
                 kind: z.ZodLiteral<"section">;
+                label: z.ZodString;
                 sectionId: z.ZodString;
-                label: z.ZodString;
             }, z.core.$strip>, z.ZodObject<{
-                kind: z.ZodLiteral<"path">;
-                source: z.ZodEnum<{
-                    workspace: "workspace";
-                    "thread-storage": "thread-storage";
-                }>;
                 entryKind: z.ZodEnum<{
-                    file: "file";
                     directory: "directory";
+                    file: "file";
                 }>;
-                path: z.ZodString;
+                kind: z.ZodLiteral<"path">;
                 label: z.ZodString;
-            }, z.core.$strip>, z.ZodObject<{
-                kind: z.ZodLiteral<"command">;
-                trigger: z.ZodEnum<{
-                    "/": "/";
+                path: z.ZodString;
+                source: z.ZodEnum<{
+                    "thread-storage": "thread-storage";
+                    workspace: "workspace";
                 }>;
+            }, z.core.$strip>, z.ZodObject<{
+                argumentHint: z.ZodNullable<z.ZodString>;
+                kind: z.ZodLiteral<"command">;
+                label: z.ZodString;
                 name: z.ZodString;
+                origin: z.ZodEnum<{
+                    builtin: "builtin";
+                    project: "project";
+                    user: "user";
+                }>;
                 source: z.ZodEnum<{
                     command: "command";
                     skill: "skill";
                 }>;
-                origin: z.ZodEnum<{
-                    user: "user";
-                    project: "project";
-                    builtin: "builtin";
+                trigger: z.ZodEnum<{
+                    "/": "/";
                 }>;
-                label: z.ZodString;
-                argumentHint: z.ZodNullable<z.ZodString>;
             }, z.core.$strip>, z.ZodObject<{
-                kind: z.ZodLiteral<"plugin">;
-                pluginId: z.ZodString;
                 icon: z.ZodOptional<z.ZodNullable<z.ZodString>>;
                 itemId: z.ZodString;
+                kind: z.ZodLiteral<"plugin">;
                 label: z.ZodString;
+                pluginId: z.ZodString;
             }, z.core.$strip>], "kind">>;
+            start: z.ZodNumber;
         }, z.core.$strip>>>;
-    }, z.core.$strip>, z.ZodObject<{
+        text: z.ZodString;
+        type: z.ZodLiteral<"text">;
         visibility: z.ZodOptional<z.ZodEnum<{
             "agent-only": "agent-only";
         }>>;
+    }, z.core.$strip>, z.ZodObject<{
         type: z.ZodLiteral<"image">;
         url: z.ZodString;
-    }, z.core.$strip>, z.ZodObject<{
         visibility: z.ZodOptional<z.ZodEnum<{
             "agent-only": "agent-only";
         }>>;
+    }, z.core.$strip>, z.ZodObject<{
+        path: z.ZodString;
         type: z.ZodLiteral<"localImage">;
-        path: z.ZodString;
-    }, z.core.$strip>, z.ZodObject<{
         visibility: z.ZodOptional<z.ZodEnum<{
             "agent-only": "agent-only";
         }>>;
-        type: z.ZodLiteral<"localFile">;
-        path: z.ZodString;
-        name: z.ZodOptional<z.ZodString>;
-        sizeBytes: z.ZodOptional<z.ZodNumber>;
+    }, z.core.$strip>, z.ZodObject<{
         mimeType: z.ZodOptional<z.ZodString>;
+        name: z.ZodOptional<z.ZodString>;
+        path: z.ZodString;
+        sizeBytes: z.ZodOptional<z.ZodNumber>;
+        type: z.ZodLiteral<"localFile">;
+        visibility: z.ZodOptional<z.ZodEnum<{
+            "agent-only": "agent-only";
+        }>>;
     }, z.core.$strip>], "type">>;
-    clientRequestId: z.ZodString;
     options: z.ZodIntersection<z.ZodObject<{
+        envVars: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
+        instructions: z.ZodOptional<z.ZodString>;
         model: z.ZodOptional<z.ZodString>;
+        providerOptions: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+        reasoningLevel: z.ZodOptional<z.ZodEnum<{
+            high: "high";
+            low: "low";
+            max: "max";
+            medium: "medium";
+            none: "none";
+            ultra: "ultra";
+            ultracode: "ultracode";
+            xhigh: "xhigh";
+        }>>;
         serviceTier: z.ZodOptional<z.ZodEnum<{
             default: "default";
             fast: "fast";
         }>>;
-        reasoningLevel: z.ZodOptional<z.ZodEnum<{
-            none: "none";
-            low: "low";
-            medium: "medium";
-            high: "high";
-            xhigh: "xhigh";
-            ultracode: "ultracode";
-            max: "max";
-            ultra: "ultra";
-        }>>;
-        instructions: z.ZodOptional<z.ZodString>;
-        envVars: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
-        providerOptions: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
     }, z.core.$strip>, z.ZodDiscriminatedUnion<[z.ZodObject<{
-        permissionMode: z.ZodLiteral<"accept-edits">;
-        permissionScope: z.ZodLiteral<"workspace">;
         approvalReviewer: z.ZodLiteral<"user">;
         permissionEscalation: z.ZodEnum<{
             ask: "ask";
             deny: "deny";
         }>;
-    }, z.core.$strip>, z.ZodObject<{
-        permissionMode: z.ZodLiteral<"auto">;
+        permissionMode: z.ZodLiteral<"accept-edits">;
         permissionScope: z.ZodLiteral<"workspace">;
+    }, z.core.$strip>, z.ZodObject<{
         approvalReviewer: z.ZodLiteral<"automatic">;
         permissionEscalation: z.ZodEnum<{
             ask: "ask";
             deny: "deny";
         }>;
+        permissionMode: z.ZodLiteral<"auto">;
+        permissionScope: z.ZodLiteral<"workspace">;
     }, z.core.$strip>, z.ZodObject<{
-        permissionMode: z.ZodLiteral<"full">;
-        permissionScope: z.ZodLiteral<"full">;
         approvalReviewer: z.ZodNull;
         permissionEscalation: z.ZodNull;
+        permissionMode: z.ZodLiteral<"full">;
+        permissionScope: z.ZodLiteral<"full">;
     }, z.core.$strip>], "permissionMode">>;
+    providerThreadId: z.ZodString;
+    threadId: z.ZodString;
 }, z.core.$loose>;
 declare const turnSteerParamsSchema: z.ZodObject<{
+    clientRequestId: z.ZodString;
     expectedTurnId: z.ZodString;
-    threadId: z.ZodString;
-    providerThreadId: z.ZodString;
     input: z.ZodArray<z.ZodDiscriminatedUnion<[z.ZodObject<{
-        visibility: z.ZodOptional<z.ZodEnum<{
-            "agent-only": "agent-only";
-        }>>;
-        type: z.ZodLiteral<"text">;
-        text: z.ZodString;
         mentions: z.ZodDefault<z.ZodArray<z.ZodObject<{
-            start: z.ZodNumber;
             end: z.ZodNumber;
             resource: z.ZodPipe<z.ZodTransform<unknown, unknown>, z.ZodDiscriminatedUnion<[z.ZodObject<{
                 kind: z.ZodLiteral<"thread">;
-                threadId: z.ZodString;
-                projectId: z.ZodOptional<z.ZodString>;
                 label: z.ZodString;
+                projectId: z.ZodOptional<z.ZodString>;
+                threadId: z.ZodString;
             }, z.core.$strip>, z.ZodObject<{
                 kind: z.ZodLiteral<"project">;
-                projectId: z.ZodString;
                 label: z.ZodString;
+                projectId: z.ZodString;
             }, z.core.$strip>, z.ZodObject<{
                 kind: z.ZodLiteral<"section">;
+                label: z.ZodString;
                 sectionId: z.ZodString;
-                label: z.ZodString;
             }, z.core.$strip>, z.ZodObject<{
-                kind: z.ZodLiteral<"path">;
-                source: z.ZodEnum<{
-                    workspace: "workspace";
-                    "thread-storage": "thread-storage";
-                }>;
                 entryKind: z.ZodEnum<{
-                    file: "file";
                     directory: "directory";
+                    file: "file";
                 }>;
-                path: z.ZodString;
+                kind: z.ZodLiteral<"path">;
                 label: z.ZodString;
-            }, z.core.$strip>, z.ZodObject<{
-                kind: z.ZodLiteral<"command">;
-                trigger: z.ZodEnum<{
-                    "/": "/";
+                path: z.ZodString;
+                source: z.ZodEnum<{
+                    "thread-storage": "thread-storage";
+                    workspace: "workspace";
                 }>;
+            }, z.core.$strip>, z.ZodObject<{
+                argumentHint: z.ZodNullable<z.ZodString>;
+                kind: z.ZodLiteral<"command">;
+                label: z.ZodString;
                 name: z.ZodString;
+                origin: z.ZodEnum<{
+                    builtin: "builtin";
+                    project: "project";
+                    user: "user";
+                }>;
                 source: z.ZodEnum<{
                     command: "command";
                     skill: "skill";
                 }>;
-                origin: z.ZodEnum<{
-                    user: "user";
-                    project: "project";
-                    builtin: "builtin";
+                trigger: z.ZodEnum<{
+                    "/": "/";
                 }>;
-                label: z.ZodString;
-                argumentHint: z.ZodNullable<z.ZodString>;
             }, z.core.$strip>, z.ZodObject<{
-                kind: z.ZodLiteral<"plugin">;
-                pluginId: z.ZodString;
                 icon: z.ZodOptional<z.ZodNullable<z.ZodString>>;
                 itemId: z.ZodString;
+                kind: z.ZodLiteral<"plugin">;
                 label: z.ZodString;
+                pluginId: z.ZodString;
             }, z.core.$strip>], "kind">>;
+            start: z.ZodNumber;
         }, z.core.$strip>>>;
-    }, z.core.$strip>, z.ZodObject<{
+        text: z.ZodString;
+        type: z.ZodLiteral<"text">;
         visibility: z.ZodOptional<z.ZodEnum<{
             "agent-only": "agent-only";
         }>>;
+    }, z.core.$strip>, z.ZodObject<{
         type: z.ZodLiteral<"image">;
         url: z.ZodString;
-    }, z.core.$strip>, z.ZodObject<{
         visibility: z.ZodOptional<z.ZodEnum<{
             "agent-only": "agent-only";
         }>>;
+    }, z.core.$strip>, z.ZodObject<{
+        path: z.ZodString;
         type: z.ZodLiteral<"localImage">;
-        path: z.ZodString;
-    }, z.core.$strip>, z.ZodObject<{
         visibility: z.ZodOptional<z.ZodEnum<{
             "agent-only": "agent-only";
         }>>;
-        type: z.ZodLiteral<"localFile">;
-        path: z.ZodString;
-        name: z.ZodOptional<z.ZodString>;
-        sizeBytes: z.ZodOptional<z.ZodNumber>;
+    }, z.core.$strip>, z.ZodObject<{
         mimeType: z.ZodOptional<z.ZodString>;
+        name: z.ZodOptional<z.ZodString>;
+        path: z.ZodString;
+        sizeBytes: z.ZodOptional<z.ZodNumber>;
+        type: z.ZodLiteral<"localFile">;
+        visibility: z.ZodOptional<z.ZodEnum<{
+            "agent-only": "agent-only";
+        }>>;
     }, z.core.$strip>], "type">>;
-    clientRequestId: z.ZodString;
     options: z.ZodIntersection<z.ZodObject<{
+        envVars: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
+        instructions: z.ZodOptional<z.ZodString>;
         model: z.ZodOptional<z.ZodString>;
+        providerOptions: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+        reasoningLevel: z.ZodOptional<z.ZodEnum<{
+            high: "high";
+            low: "low";
+            max: "max";
+            medium: "medium";
+            none: "none";
+            ultra: "ultra";
+            ultracode: "ultracode";
+            xhigh: "xhigh";
+        }>>;
         serviceTier: z.ZodOptional<z.ZodEnum<{
             default: "default";
             fast: "fast";
         }>>;
-        reasoningLevel: z.ZodOptional<z.ZodEnum<{
-            none: "none";
-            low: "low";
-            medium: "medium";
-            high: "high";
-            xhigh: "xhigh";
-            ultracode: "ultracode";
-            max: "max";
-            ultra: "ultra";
-        }>>;
-        instructions: z.ZodOptional<z.ZodString>;
-        envVars: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodString>>;
-        providerOptions: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
     }, z.core.$strip>, z.ZodDiscriminatedUnion<[z.ZodObject<{
-        permissionMode: z.ZodLiteral<"accept-edits">;
-        permissionScope: z.ZodLiteral<"workspace">;
         approvalReviewer: z.ZodLiteral<"user">;
         permissionEscalation: z.ZodEnum<{
             ask: "ask";
             deny: "deny";
         }>;
-    }, z.core.$strip>, z.ZodObject<{
-        permissionMode: z.ZodLiteral<"auto">;
+        permissionMode: z.ZodLiteral<"accept-edits">;
         permissionScope: z.ZodLiteral<"workspace">;
+    }, z.core.$strip>, z.ZodObject<{
         approvalReviewer: z.ZodLiteral<"automatic">;
         permissionEscalation: z.ZodEnum<{
             ask: "ask";
             deny: "deny";
         }>;
+        permissionMode: z.ZodLiteral<"auto">;
+        permissionScope: z.ZodLiteral<"workspace">;
     }, z.core.$strip>, z.ZodObject<{
-        permissionMode: z.ZodLiteral<"full">;
-        permissionScope: z.ZodLiteral<"full">;
         approvalReviewer: z.ZodNull;
         permissionEscalation: z.ZodNull;
+        permissionMode: z.ZodLiteral<"full">;
+        permissionScope: z.ZodLiteral<"full">;
     }, z.core.$strip>], "permissionMode">>;
+    providerThreadId: z.ZodString;
+    threadId: z.ZodString;
 }, z.core.$loose>;
 /**
  * The canonical skill-injection payload. One shape for every provider: the
@@ -2144,8 +2144,8 @@ declare const skillsConfigureParamsSchema: z.ZodObject<{
         id: z.ZodString;
         path: z.ZodString;
         skills: z.ZodArray<z.ZodObject<{
-            name: z.ZodString;
             description: z.ZodString;
+            name: z.ZodString;
         }, z.core.$loose>>;
     }, z.core.$loose>>;
 }, z.core.$loose>;
@@ -2208,9 +2208,9 @@ declare const THREAD_DELTA_NOTIFICATION_METHOD = "thread/delta";
  * bb-minted ids.
  */
 declare const deltaItemKeySchema: z.ZodObject<{
-    providerItemId: z.ZodOptional<z.ZodString>;
     channel: z.ZodOptional<z.ZodString>;
     parentRef: z.ZodOptional<z.ZodString>;
+    providerItemId: z.ZodOptional<z.ZodString>;
 }, z.core.$strip>;
 type DeltaItemKey = z.infer<typeof deltaItemKeySchema>;
 /**
@@ -2222,16 +2222,16 @@ type DeltaItemKey = z.infer<typeof deltaItemKeySchema>;
  * present.
  */
 declare const deltaFileChangeSchema: z.ZodObject<{
-    path: z.ZodString;
+    diff: z.ZodOptional<z.ZodString>;
     kind: z.ZodEnum<{
         add: "add";
         delete: "delete";
         update: "update";
     }>;
     movePath: z.ZodOptional<z.ZodString>;
-    diff: z.ZodOptional<z.ZodString>;
-    oldText: z.ZodOptional<z.ZodString>;
     newText: z.ZodOptional<z.ZodString>;
+    oldText: z.ZodOptional<z.ZodString>;
+    path: z.ZodString;
 }, z.core.$strip>;
 type DeltaFileChange = z.infer<typeof deltaFileChangeSchema>;
 /**
@@ -2244,194 +2244,194 @@ type DeltaFileChange = z.infer<typeof deltaFileChangeSchema>;
  * turn; only the spawning `item.open` (→ `item/started`) is turn-scoped.
  */
 declare const deltaBackgroundTaskShapeSchema: z.ZodObject<{
-    type: z.ZodLiteral<"backgroundTask">;
-    taskType: z.ZodString;
     description: z.ZodString;
+    error: z.ZodOptional<z.ZodString>;
+    outputFile: z.ZodOptional<z.ZodString>;
+    skipTranscript: z.ZodBoolean;
     status: z.ZodEnum<{
         completed: "completed";
         failed: "failed";
         interrupted: "interrupted";
         pending: "pending";
     }>;
+    summary: z.ZodOptional<z.ZodString>;
     taskStatus: z.ZodEnum<{
         completed: "completed";
         failed: "failed";
+        killed: "killed";
         paused: "paused";
         pending: "pending";
         running: "running";
-        killed: "killed";
         stopped: "stopped";
     }>;
-    skipTranscript: z.ZodBoolean;
-    workflowName: z.ZodOptional<z.ZodString>;
+    taskType: z.ZodString;
+    type: z.ZodLiteral<"backgroundTask">;
+    usage: z.ZodOptional<z.ZodObject<{
+        durationMs: z.ZodNumber;
+        toolUses: z.ZodNumber;
+        totalTokens: z.ZodNumber;
+    }, z.core.$strip>>;
     workflow: z.ZodOptional<z.ZodObject<{
-        phases: z.ZodArray<z.ZodObject<{
-            index: z.ZodNumber;
-            title: z.ZodString;
-            kind: z.ZodOptional<z.ZodString>;
-        }, z.core.$strip>>;
         agents: z.ZodArray<z.ZodObject<{
-            index: z.ZodNumber;
-            label: z.ZodString;
-            state: z.ZodEnum<{
-                failed: "failed";
-                running: "running";
-                queued: "queued";
-                done: "done";
-                skipped: "skipped";
-            }>;
-            model: z.ZodString;
+            agentType: z.ZodOptional<z.ZodString>;
             attempt: z.ZodNumber;
             cached: z.ZodBoolean;
-            lastProgressAt: z.ZodNumber;
-            phaseIndex: z.ZodOptional<z.ZodNumber>;
-            phaseTitle: z.ZodOptional<z.ZodString>;
-            agentType: z.ZodOptional<z.ZodString>;
+            durationMs: z.ZodOptional<z.ZodNumber>;
+            error: z.ZodOptional<z.ZodString>;
+            index: z.ZodNumber;
             isolation: z.ZodOptional<z.ZodString>;
-            queuedAt: z.ZodOptional<z.ZodNumber>;
-            startedAt: z.ZodOptional<z.ZodNumber>;
+            label: z.ZodString;
+            lastProgressAt: z.ZodNumber;
             lastToolName: z.ZodOptional<z.ZodString>;
             lastToolSummary: z.ZodOptional<z.ZodString>;
+            model: z.ZodString;
+            phaseIndex: z.ZodOptional<z.ZodNumber>;
+            phaseTitle: z.ZodOptional<z.ZodString>;
             promptPreview: z.ZodOptional<z.ZodString>;
+            queuedAt: z.ZodOptional<z.ZodNumber>;
             resultPreview: z.ZodOptional<z.ZodString>;
-            error: z.ZodOptional<z.ZodString>;
+            startedAt: z.ZodOptional<z.ZodNumber>;
+            state: z.ZodEnum<{
+                done: "done";
+                failed: "failed";
+                queued: "queued";
+                running: "running";
+                skipped: "skipped";
+            }>;
             tokens: z.ZodOptional<z.ZodNumber>;
             toolCalls: z.ZodOptional<z.ZodNumber>;
-            durationMs: z.ZodOptional<z.ZodNumber>;
+        }, z.core.$strip>>;
+        phases: z.ZodArray<z.ZodObject<{
+            index: z.ZodNumber;
+            kind: z.ZodOptional<z.ZodString>;
+            title: z.ZodString;
         }, z.core.$strip>>;
     }, z.core.$strip>>;
-    usage: z.ZodOptional<z.ZodObject<{
-        totalTokens: z.ZodNumber;
-        toolUses: z.ZodNumber;
-        durationMs: z.ZodNumber;
-    }, z.core.$strip>>;
-    summary: z.ZodOptional<z.ZodString>;
-    error: z.ZodOptional<z.ZodString>;
-    outputFile: z.ZodOptional<z.ZodString>;
+    workflowName: z.ZodOptional<z.ZodString>;
 }, z.core.$strip>;
 type DeltaBackgroundTaskShape = z.infer<typeof deltaBackgroundTaskShapeSchema>;
 declare const deltaItemShapeSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
-    type: z.ZodLiteral<"command">;
+    aggregatedOutput: z.ZodOptional<z.ZodString>;
     command: z.ZodString;
     cwd: z.ZodString;
-    aggregatedOutput: z.ZodOptional<z.ZodString>;
-    exitCode: z.ZodOptional<z.ZodNumber>;
     durationMs: z.ZodOptional<z.ZodNumber>;
+    exitCode: z.ZodOptional<z.ZodNumber>;
+    type: z.ZodLiteral<"command">;
 }, z.core.$strip>, z.ZodObject<{
-    type: z.ZodLiteral<"fileChange">;
     changes: z.ZodArray<z.ZodObject<{
-        path: z.ZodString;
+        diff: z.ZodOptional<z.ZodString>;
         kind: z.ZodEnum<{
             add: "add";
             delete: "delete";
             update: "update";
         }>;
         movePath: z.ZodOptional<z.ZodString>;
-        diff: z.ZodOptional<z.ZodString>;
-        oldText: z.ZodOptional<z.ZodString>;
         newText: z.ZodOptional<z.ZodString>;
+        oldText: z.ZodOptional<z.ZodString>;
+        path: z.ZodString;
     }, z.core.$strip>>;
+    type: z.ZodLiteral<"fileChange">;
 }, z.core.$strip>, z.ZodObject<{
-    type: z.ZodLiteral<"tool">;
-    tool: z.ZodString;
-    server: z.ZodOptional<z.ZodString>;
     args: z.ZodOptional<z.ZodUnknown>;
-    result: z.ZodOptional<z.ZodUnknown>;
-    error: z.ZodOptional<z.ZodString>;
     durationMs: z.ZodOptional<z.ZodNumber>;
+    error: z.ZodOptional<z.ZodString>;
+    result: z.ZodOptional<z.ZodUnknown>;
+    server: z.ZodOptional<z.ZodString>;
+    tool: z.ZodString;
+    type: z.ZodLiteral<"tool">;
 }, z.core.$strip>, z.ZodObject<{
     type: z.ZodLiteral<"compaction">;
 }, z.core.$strip>, z.ZodObject<{
+    text: z.ZodString;
     type: z.ZodLiteral<"agentMessage">;
-    text: z.ZodString;
 }, z.core.$strip>, z.ZodObject<{
-    type: z.ZodLiteral<"reasoning">;
-    summary: z.ZodArray<z.ZodString>;
     content: z.ZodArray<z.ZodString>;
+    summary: z.ZodArray<z.ZodString>;
+    type: z.ZodLiteral<"reasoning">;
 }, z.core.$strip>, z.ZodObject<{
-    type: z.ZodLiteral<"plan">;
     text: z.ZodString;
+    type: z.ZodLiteral<"plan">;
 }, z.core.$strip>, z.ZodObject<{
-    type: z.ZodLiteral<"webSearch">;
     queries: z.ZodArray<z.ZodString>;
+    type: z.ZodLiteral<"webSearch">;
 }, z.core.$strip>, z.ZodObject<{
+    pattern: z.ZodNullable<z.ZodString>;
+    prompt: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     type: z.ZodLiteral<"webFetch">;
     url: z.ZodString;
-    prompt: z.ZodOptional<z.ZodNullable<z.ZodString>>;
-    pattern: z.ZodNullable<z.ZodString>;
 }, z.core.$strip>, z.ZodObject<{
-    type: z.ZodLiteral<"imageView">;
     path: z.ZodString;
+    type: z.ZodLiteral<"imageView">;
 }, z.core.$strip>, z.ZodObject<{
-    type: z.ZodLiteral<"backgroundTask">;
-    taskType: z.ZodString;
     description: z.ZodString;
+    error: z.ZodOptional<z.ZodString>;
+    outputFile: z.ZodOptional<z.ZodString>;
+    skipTranscript: z.ZodBoolean;
     status: z.ZodEnum<{
         completed: "completed";
         failed: "failed";
         interrupted: "interrupted";
         pending: "pending";
     }>;
+    summary: z.ZodOptional<z.ZodString>;
     taskStatus: z.ZodEnum<{
         completed: "completed";
         failed: "failed";
+        killed: "killed";
         paused: "paused";
         pending: "pending";
         running: "running";
-        killed: "killed";
         stopped: "stopped";
     }>;
-    skipTranscript: z.ZodBoolean;
-    workflowName: z.ZodOptional<z.ZodString>;
+    taskType: z.ZodString;
+    type: z.ZodLiteral<"backgroundTask">;
+    usage: z.ZodOptional<z.ZodObject<{
+        durationMs: z.ZodNumber;
+        toolUses: z.ZodNumber;
+        totalTokens: z.ZodNumber;
+    }, z.core.$strip>>;
     workflow: z.ZodOptional<z.ZodObject<{
-        phases: z.ZodArray<z.ZodObject<{
-            index: z.ZodNumber;
-            title: z.ZodString;
-            kind: z.ZodOptional<z.ZodString>;
-        }, z.core.$strip>>;
         agents: z.ZodArray<z.ZodObject<{
-            index: z.ZodNumber;
-            label: z.ZodString;
-            state: z.ZodEnum<{
-                failed: "failed";
-                running: "running";
-                queued: "queued";
-                done: "done";
-                skipped: "skipped";
-            }>;
-            model: z.ZodString;
+            agentType: z.ZodOptional<z.ZodString>;
             attempt: z.ZodNumber;
             cached: z.ZodBoolean;
-            lastProgressAt: z.ZodNumber;
-            phaseIndex: z.ZodOptional<z.ZodNumber>;
-            phaseTitle: z.ZodOptional<z.ZodString>;
-            agentType: z.ZodOptional<z.ZodString>;
+            durationMs: z.ZodOptional<z.ZodNumber>;
+            error: z.ZodOptional<z.ZodString>;
+            index: z.ZodNumber;
             isolation: z.ZodOptional<z.ZodString>;
-            queuedAt: z.ZodOptional<z.ZodNumber>;
-            startedAt: z.ZodOptional<z.ZodNumber>;
+            label: z.ZodString;
+            lastProgressAt: z.ZodNumber;
             lastToolName: z.ZodOptional<z.ZodString>;
             lastToolSummary: z.ZodOptional<z.ZodString>;
+            model: z.ZodString;
+            phaseIndex: z.ZodOptional<z.ZodNumber>;
+            phaseTitle: z.ZodOptional<z.ZodString>;
             promptPreview: z.ZodOptional<z.ZodString>;
+            queuedAt: z.ZodOptional<z.ZodNumber>;
             resultPreview: z.ZodOptional<z.ZodString>;
-            error: z.ZodOptional<z.ZodString>;
+            startedAt: z.ZodOptional<z.ZodNumber>;
+            state: z.ZodEnum<{
+                done: "done";
+                failed: "failed";
+                queued: "queued";
+                running: "running";
+                skipped: "skipped";
+            }>;
             tokens: z.ZodOptional<z.ZodNumber>;
             toolCalls: z.ZodOptional<z.ZodNumber>;
-            durationMs: z.ZodOptional<z.ZodNumber>;
+        }, z.core.$strip>>;
+        phases: z.ZodArray<z.ZodObject<{
+            index: z.ZodNumber;
+            kind: z.ZodOptional<z.ZodString>;
+            title: z.ZodString;
         }, z.core.$strip>>;
     }, z.core.$strip>>;
-    usage: z.ZodOptional<z.ZodObject<{
-        totalTokens: z.ZodNumber;
-        toolUses: z.ZodNumber;
-        durationMs: z.ZodNumber;
-    }, z.core.$strip>>;
-    summary: z.ZodOptional<z.ZodString>;
-    error: z.ZodOptional<z.ZodString>;
-    outputFile: z.ZodOptional<z.ZodString>;
+    workflowName: z.ZodOptional<z.ZodString>;
 }, z.core.$strip>], "type">;
 type DeltaItemShape = z.infer<typeof deltaItemShapeSchema>;
 declare const deltaMessageChannelSchema: z.ZodEnum<{
-    reasoning: "reasoning";
     assistant: "assistant";
+    reasoning: "reasoning";
 }>;
 type DeltaMessageChannel = z.infer<typeof deltaMessageChannelSchema>;
 /**
@@ -2439,8 +2439,8 @@ type DeltaMessageChannel = z.infer<typeof deltaMessageChannelSchema>;
  * `item/started` for an unknown item id.
  */
 declare const deltaTextChannelSchema: z.ZodEnum<{
-    plan: "plan";
     agentMessage: "agentMessage";
+    plan: "plan";
     reasoningSummary: "reasoningSummary";
     reasoningText: "reasoningText";
 }>;
@@ -2467,8 +2467,8 @@ type DeltaOutputChannel = z.infer<typeof deltaOutputChannelSchema>;
  */
 declare const deltaNoTurnFallbackSchema: z.ZodObject<{
     raw: z.ZodObject<{
-        jsonrpc: z.ZodLiteral<"2.0">;
         id: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>>;
+        jsonrpc: z.ZodLiteral<"2.0">;
         method: z.ZodString;
         params: z.ZodOptional<z.ZodType<JsonValue, unknown, z.core.$ZodTypeInternals<JsonValue, unknown>>>;
     }, z.core.$strip>;
@@ -2476,571 +2476,571 @@ declare const deltaNoTurnFallbackSchema: z.ZodObject<{
 }, z.core.$strip>;
 type DeltaNoTurnFallback = z.infer<typeof deltaNoTurnFallbackSchema>;
 declare const threadDeltaSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
-    kind: z.ZodLiteral<"input.accepted">;
     clientRequestId: z.ZodString;
+    kind: z.ZodLiteral<"input.accepted">;
     providerTurnId: z.ZodOptional<z.ZodString>;
 }, z.core.$strip>, z.ZodObject<{
     kind: z.ZodLiteral<"turn.open">;
-    providerTurnId: z.ZodOptional<z.ZodString>;
     parentRef: z.ZodOptional<z.ZodString>;
+    providerTurnId: z.ZodOptional<z.ZodString>;
 }, z.core.$strip>, z.ZodObject<{
+    claimIfIdle: z.ZodOptional<z.ZodBoolean>;
+    error: z.ZodOptional<z.ZodObject<{
+        message: z.ZodString;
+    }, z.core.$strip>>;
     kind: z.ZodLiteral<"turn.boundary">;
+    providerCheckpointId: z.ZodOptional<z.ZodString>;
+    providerTurnId: z.ZodOptional<z.ZodString>;
     status: z.ZodEnum<{
         completed: "completed";
         failed: "failed";
         interrupted: "interrupted";
     }>;
-    error: z.ZodOptional<z.ZodObject<{
-        message: z.ZodString;
-    }, z.core.$strip>>;
-    providerCheckpointId: z.ZodOptional<z.ZodString>;
-    claimIfIdle: z.ZodOptional<z.ZodBoolean>;
-    providerTurnId: z.ZodOptional<z.ZodString>;
 }, z.core.$strip>, z.ZodObject<{
-    kind: z.ZodLiteral<"item.open">;
-    key: z.ZodObject<{
-        providerItemId: z.ZodOptional<z.ZodString>;
-        channel: z.ZodOptional<z.ZodString>;
-        parentRef: z.ZodOptional<z.ZodString>;
-    }, z.core.$strip>;
+    attach: z.ZodOptional<z.ZodEnum<{
+        currentOrLast: "currentOrLast";
+        open: "open";
+    }>>;
     item: z.ZodDiscriminatedUnion<[z.ZodObject<{
-        type: z.ZodLiteral<"command">;
+        aggregatedOutput: z.ZodOptional<z.ZodString>;
         command: z.ZodString;
         cwd: z.ZodString;
-        aggregatedOutput: z.ZodOptional<z.ZodString>;
-        exitCode: z.ZodOptional<z.ZodNumber>;
         durationMs: z.ZodOptional<z.ZodNumber>;
+        exitCode: z.ZodOptional<z.ZodNumber>;
+        type: z.ZodLiteral<"command">;
     }, z.core.$strip>, z.ZodObject<{
-        type: z.ZodLiteral<"fileChange">;
         changes: z.ZodArray<z.ZodObject<{
-            path: z.ZodString;
+            diff: z.ZodOptional<z.ZodString>;
             kind: z.ZodEnum<{
                 add: "add";
                 delete: "delete";
                 update: "update";
             }>;
             movePath: z.ZodOptional<z.ZodString>;
-            diff: z.ZodOptional<z.ZodString>;
-            oldText: z.ZodOptional<z.ZodString>;
             newText: z.ZodOptional<z.ZodString>;
+            oldText: z.ZodOptional<z.ZodString>;
+            path: z.ZodString;
         }, z.core.$strip>>;
+        type: z.ZodLiteral<"fileChange">;
     }, z.core.$strip>, z.ZodObject<{
-        type: z.ZodLiteral<"tool">;
-        tool: z.ZodString;
-        server: z.ZodOptional<z.ZodString>;
         args: z.ZodOptional<z.ZodUnknown>;
-        result: z.ZodOptional<z.ZodUnknown>;
-        error: z.ZodOptional<z.ZodString>;
         durationMs: z.ZodOptional<z.ZodNumber>;
+        error: z.ZodOptional<z.ZodString>;
+        result: z.ZodOptional<z.ZodUnknown>;
+        server: z.ZodOptional<z.ZodString>;
+        tool: z.ZodString;
+        type: z.ZodLiteral<"tool">;
     }, z.core.$strip>, z.ZodObject<{
         type: z.ZodLiteral<"compaction">;
     }, z.core.$strip>, z.ZodObject<{
+        text: z.ZodString;
         type: z.ZodLiteral<"agentMessage">;
-        text: z.ZodString;
     }, z.core.$strip>, z.ZodObject<{
-        type: z.ZodLiteral<"reasoning">;
-        summary: z.ZodArray<z.ZodString>;
         content: z.ZodArray<z.ZodString>;
+        summary: z.ZodArray<z.ZodString>;
+        type: z.ZodLiteral<"reasoning">;
     }, z.core.$strip>, z.ZodObject<{
-        type: z.ZodLiteral<"plan">;
         text: z.ZodString;
+        type: z.ZodLiteral<"plan">;
     }, z.core.$strip>, z.ZodObject<{
-        type: z.ZodLiteral<"webSearch">;
         queries: z.ZodArray<z.ZodString>;
+        type: z.ZodLiteral<"webSearch">;
     }, z.core.$strip>, z.ZodObject<{
+        pattern: z.ZodNullable<z.ZodString>;
+        prompt: z.ZodOptional<z.ZodNullable<z.ZodString>>;
         type: z.ZodLiteral<"webFetch">;
         url: z.ZodString;
-        prompt: z.ZodOptional<z.ZodNullable<z.ZodString>>;
-        pattern: z.ZodNullable<z.ZodString>;
     }, z.core.$strip>, z.ZodObject<{
-        type: z.ZodLiteral<"imageView">;
         path: z.ZodString;
+        type: z.ZodLiteral<"imageView">;
     }, z.core.$strip>, z.ZodObject<{
-        type: z.ZodLiteral<"backgroundTask">;
-        taskType: z.ZodString;
         description: z.ZodString;
+        error: z.ZodOptional<z.ZodString>;
+        outputFile: z.ZodOptional<z.ZodString>;
+        skipTranscript: z.ZodBoolean;
         status: z.ZodEnum<{
             completed: "completed";
             failed: "failed";
             interrupted: "interrupted";
             pending: "pending";
         }>;
+        summary: z.ZodOptional<z.ZodString>;
         taskStatus: z.ZodEnum<{
             completed: "completed";
             failed: "failed";
+            killed: "killed";
             paused: "paused";
             pending: "pending";
             running: "running";
-            killed: "killed";
             stopped: "stopped";
         }>;
-        skipTranscript: z.ZodBoolean;
-        workflowName: z.ZodOptional<z.ZodString>;
+        taskType: z.ZodString;
+        type: z.ZodLiteral<"backgroundTask">;
+        usage: z.ZodOptional<z.ZodObject<{
+            durationMs: z.ZodNumber;
+            toolUses: z.ZodNumber;
+            totalTokens: z.ZodNumber;
+        }, z.core.$strip>>;
         workflow: z.ZodOptional<z.ZodObject<{
-            phases: z.ZodArray<z.ZodObject<{
-                index: z.ZodNumber;
-                title: z.ZodString;
-                kind: z.ZodOptional<z.ZodString>;
-            }, z.core.$strip>>;
             agents: z.ZodArray<z.ZodObject<{
-                index: z.ZodNumber;
-                label: z.ZodString;
-                state: z.ZodEnum<{
-                    failed: "failed";
-                    running: "running";
-                    queued: "queued";
-                    done: "done";
-                    skipped: "skipped";
-                }>;
-                model: z.ZodString;
+                agentType: z.ZodOptional<z.ZodString>;
                 attempt: z.ZodNumber;
                 cached: z.ZodBoolean;
-                lastProgressAt: z.ZodNumber;
-                phaseIndex: z.ZodOptional<z.ZodNumber>;
-                phaseTitle: z.ZodOptional<z.ZodString>;
-                agentType: z.ZodOptional<z.ZodString>;
+                durationMs: z.ZodOptional<z.ZodNumber>;
+                error: z.ZodOptional<z.ZodString>;
+                index: z.ZodNumber;
                 isolation: z.ZodOptional<z.ZodString>;
-                queuedAt: z.ZodOptional<z.ZodNumber>;
-                startedAt: z.ZodOptional<z.ZodNumber>;
+                label: z.ZodString;
+                lastProgressAt: z.ZodNumber;
                 lastToolName: z.ZodOptional<z.ZodString>;
                 lastToolSummary: z.ZodOptional<z.ZodString>;
+                model: z.ZodString;
+                phaseIndex: z.ZodOptional<z.ZodNumber>;
+                phaseTitle: z.ZodOptional<z.ZodString>;
                 promptPreview: z.ZodOptional<z.ZodString>;
+                queuedAt: z.ZodOptional<z.ZodNumber>;
                 resultPreview: z.ZodOptional<z.ZodString>;
-                error: z.ZodOptional<z.ZodString>;
+                startedAt: z.ZodOptional<z.ZodNumber>;
+                state: z.ZodEnum<{
+                    done: "done";
+                    failed: "failed";
+                    queued: "queued";
+                    running: "running";
+                    skipped: "skipped";
+                }>;
                 tokens: z.ZodOptional<z.ZodNumber>;
                 toolCalls: z.ZodOptional<z.ZodNumber>;
-                durationMs: z.ZodOptional<z.ZodNumber>;
+            }, z.core.$strip>>;
+            phases: z.ZodArray<z.ZodObject<{
+                index: z.ZodNumber;
+                kind: z.ZodOptional<z.ZodString>;
+                title: z.ZodString;
             }, z.core.$strip>>;
         }, z.core.$strip>>;
-        usage: z.ZodOptional<z.ZodObject<{
-            totalTokens: z.ZodNumber;
-            toolUses: z.ZodNumber;
-            durationMs: z.ZodNumber;
-        }, z.core.$strip>>;
-        summary: z.ZodOptional<z.ZodString>;
-        error: z.ZodOptional<z.ZodString>;
-        outputFile: z.ZodOptional<z.ZodString>;
+        workflowName: z.ZodOptional<z.ZodString>;
     }, z.core.$strip>], "type">;
-    attach: z.ZodOptional<z.ZodEnum<{
-        open: "open";
-        currentOrLast: "currentOrLast";
-    }>>;
-    providerTurnId: z.ZodOptional<z.ZodString>;
+    key: z.ZodObject<{
+        channel: z.ZodOptional<z.ZodString>;
+        parentRef: z.ZodOptional<z.ZodString>;
+        providerItemId: z.ZodOptional<z.ZodString>;
+    }, z.core.$strip>;
+    kind: z.ZodLiteral<"item.open">;
     noTurnFallback: z.ZodOptional<z.ZodObject<{
         raw: z.ZodObject<{
-            jsonrpc: z.ZodLiteral<"2.0">;
             id: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>>;
+            jsonrpc: z.ZodLiteral<"2.0">;
             method: z.ZodString;
             params: z.ZodOptional<z.ZodType<JsonValue, unknown, z.core.$ZodTypeInternals<JsonValue, unknown>>>;
         }, z.core.$strip>;
         rawType: z.ZodString;
     }, z.core.$strip>>;
+    providerTurnId: z.ZodOptional<z.ZodString>;
 }, z.core.$strip>, z.ZodObject<{
-    kind: z.ZodLiteral<"item.close">;
+    aggregatedOutput: z.ZodOptional<z.ZodString>;
+    approvalStatus: z.ZodOptional<z.ZodLiteral<"denied">>;
+    exitCode: z.ZodOptional<z.ZodNumber>;
+    item: z.ZodDiscriminatedUnion<[z.ZodObject<{
+        aggregatedOutput: z.ZodOptional<z.ZodString>;
+        command: z.ZodString;
+        cwd: z.ZodString;
+        durationMs: z.ZodOptional<z.ZodNumber>;
+        exitCode: z.ZodOptional<z.ZodNumber>;
+        type: z.ZodLiteral<"command">;
+    }, z.core.$strip>, z.ZodObject<{
+        changes: z.ZodArray<z.ZodObject<{
+            diff: z.ZodOptional<z.ZodString>;
+            kind: z.ZodEnum<{
+                add: "add";
+                delete: "delete";
+                update: "update";
+            }>;
+            movePath: z.ZodOptional<z.ZodString>;
+            newText: z.ZodOptional<z.ZodString>;
+            oldText: z.ZodOptional<z.ZodString>;
+            path: z.ZodString;
+        }, z.core.$strip>>;
+        type: z.ZodLiteral<"fileChange">;
+    }, z.core.$strip>, z.ZodObject<{
+        args: z.ZodOptional<z.ZodUnknown>;
+        durationMs: z.ZodOptional<z.ZodNumber>;
+        error: z.ZodOptional<z.ZodString>;
+        result: z.ZodOptional<z.ZodUnknown>;
+        server: z.ZodOptional<z.ZodString>;
+        tool: z.ZodString;
+        type: z.ZodLiteral<"tool">;
+    }, z.core.$strip>, z.ZodObject<{
+        type: z.ZodLiteral<"compaction">;
+    }, z.core.$strip>, z.ZodObject<{
+        text: z.ZodString;
+        type: z.ZodLiteral<"agentMessage">;
+    }, z.core.$strip>, z.ZodObject<{
+        content: z.ZodArray<z.ZodString>;
+        summary: z.ZodArray<z.ZodString>;
+        type: z.ZodLiteral<"reasoning">;
+    }, z.core.$strip>, z.ZodObject<{
+        text: z.ZodString;
+        type: z.ZodLiteral<"plan">;
+    }, z.core.$strip>, z.ZodObject<{
+        queries: z.ZodArray<z.ZodString>;
+        type: z.ZodLiteral<"webSearch">;
+    }, z.core.$strip>, z.ZodObject<{
+        pattern: z.ZodNullable<z.ZodString>;
+        prompt: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+        type: z.ZodLiteral<"webFetch">;
+        url: z.ZodString;
+    }, z.core.$strip>, z.ZodObject<{
+        path: z.ZodString;
+        type: z.ZodLiteral<"imageView">;
+    }, z.core.$strip>, z.ZodObject<{
+        description: z.ZodString;
+        error: z.ZodOptional<z.ZodString>;
+        outputFile: z.ZodOptional<z.ZodString>;
+        skipTranscript: z.ZodBoolean;
+        status: z.ZodEnum<{
+            completed: "completed";
+            failed: "failed";
+            interrupted: "interrupted";
+            pending: "pending";
+        }>;
+        summary: z.ZodOptional<z.ZodString>;
+        taskStatus: z.ZodEnum<{
+            completed: "completed";
+            failed: "failed";
+            killed: "killed";
+            paused: "paused";
+            pending: "pending";
+            running: "running";
+            stopped: "stopped";
+        }>;
+        taskType: z.ZodString;
+        type: z.ZodLiteral<"backgroundTask">;
+        usage: z.ZodOptional<z.ZodObject<{
+            durationMs: z.ZodNumber;
+            toolUses: z.ZodNumber;
+            totalTokens: z.ZodNumber;
+        }, z.core.$strip>>;
+        workflow: z.ZodOptional<z.ZodObject<{
+            agents: z.ZodArray<z.ZodObject<{
+                agentType: z.ZodOptional<z.ZodString>;
+                attempt: z.ZodNumber;
+                cached: z.ZodBoolean;
+                durationMs: z.ZodOptional<z.ZodNumber>;
+                error: z.ZodOptional<z.ZodString>;
+                index: z.ZodNumber;
+                isolation: z.ZodOptional<z.ZodString>;
+                label: z.ZodString;
+                lastProgressAt: z.ZodNumber;
+                lastToolName: z.ZodOptional<z.ZodString>;
+                lastToolSummary: z.ZodOptional<z.ZodString>;
+                model: z.ZodString;
+                phaseIndex: z.ZodOptional<z.ZodNumber>;
+                phaseTitle: z.ZodOptional<z.ZodString>;
+                promptPreview: z.ZodOptional<z.ZodString>;
+                queuedAt: z.ZodOptional<z.ZodNumber>;
+                resultPreview: z.ZodOptional<z.ZodString>;
+                startedAt: z.ZodOptional<z.ZodNumber>;
+                state: z.ZodEnum<{
+                    done: "done";
+                    failed: "failed";
+                    queued: "queued";
+                    running: "running";
+                    skipped: "skipped";
+                }>;
+                tokens: z.ZodOptional<z.ZodNumber>;
+                toolCalls: z.ZodOptional<z.ZodNumber>;
+            }, z.core.$strip>>;
+            phases: z.ZodArray<z.ZodObject<{
+                index: z.ZodNumber;
+                kind: z.ZodOptional<z.ZodString>;
+                title: z.ZodString;
+            }, z.core.$strip>>;
+        }, z.core.$strip>>;
+        workflowName: z.ZodOptional<z.ZodString>;
+    }, z.core.$strip>], "type">;
     key: z.ZodObject<{
-        providerItemId: z.ZodOptional<z.ZodString>;
         channel: z.ZodOptional<z.ZodString>;
         parentRef: z.ZodOptional<z.ZodString>;
+        providerItemId: z.ZodOptional<z.ZodString>;
     }, z.core.$strip>;
+    kind: z.ZodLiteral<"item.close">;
+    noTurnFallback: z.ZodOptional<z.ZodObject<{
+        raw: z.ZodObject<{
+            id: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>>;
+            jsonrpc: z.ZodLiteral<"2.0">;
+            method: z.ZodString;
+            params: z.ZodOptional<z.ZodType<JsonValue, unknown, z.core.$ZodTypeInternals<JsonValue, unknown>>>;
+        }, z.core.$strip>;
+        rawType: z.ZodString;
+    }, z.core.$strip>>;
+    providerTurnId: z.ZodOptional<z.ZodString>;
+    resultText: z.ZodOptional<z.ZodString>;
     status: z.ZodEnum<{
         completed: "completed";
         failed: "failed";
         interrupted: "interrupted";
         pending: "pending";
     }>;
-    resultText: z.ZodOptional<z.ZodString>;
-    exitCode: z.ZodOptional<z.ZodNumber>;
-    aggregatedOutput: z.ZodOptional<z.ZodString>;
-    approvalStatus: z.ZodOptional<z.ZodLiteral<"denied">>;
-    item: z.ZodDiscriminatedUnion<[z.ZodObject<{
-        type: z.ZodLiteral<"command">;
-        command: z.ZodString;
-        cwd: z.ZodString;
-        aggregatedOutput: z.ZodOptional<z.ZodString>;
-        exitCode: z.ZodOptional<z.ZodNumber>;
-        durationMs: z.ZodOptional<z.ZodNumber>;
-    }, z.core.$strip>, z.ZodObject<{
-        type: z.ZodLiteral<"fileChange">;
-        changes: z.ZodArray<z.ZodObject<{
-            path: z.ZodString;
-            kind: z.ZodEnum<{
-                add: "add";
-                delete: "delete";
-                update: "update";
-            }>;
-            movePath: z.ZodOptional<z.ZodString>;
-            diff: z.ZodOptional<z.ZodString>;
-            oldText: z.ZodOptional<z.ZodString>;
-            newText: z.ZodOptional<z.ZodString>;
-        }, z.core.$strip>>;
-    }, z.core.$strip>, z.ZodObject<{
-        type: z.ZodLiteral<"tool">;
-        tool: z.ZodString;
-        server: z.ZodOptional<z.ZodString>;
-        args: z.ZodOptional<z.ZodUnknown>;
-        result: z.ZodOptional<z.ZodUnknown>;
-        error: z.ZodOptional<z.ZodString>;
-        durationMs: z.ZodOptional<z.ZodNumber>;
-    }, z.core.$strip>, z.ZodObject<{
-        type: z.ZodLiteral<"compaction">;
-    }, z.core.$strip>, z.ZodObject<{
-        type: z.ZodLiteral<"agentMessage">;
-        text: z.ZodString;
-    }, z.core.$strip>, z.ZodObject<{
-        type: z.ZodLiteral<"reasoning">;
-        summary: z.ZodArray<z.ZodString>;
-        content: z.ZodArray<z.ZodString>;
-    }, z.core.$strip>, z.ZodObject<{
-        type: z.ZodLiteral<"plan">;
-        text: z.ZodString;
-    }, z.core.$strip>, z.ZodObject<{
-        type: z.ZodLiteral<"webSearch">;
-        queries: z.ZodArray<z.ZodString>;
-    }, z.core.$strip>, z.ZodObject<{
-        type: z.ZodLiteral<"webFetch">;
-        url: z.ZodString;
-        prompt: z.ZodOptional<z.ZodNullable<z.ZodString>>;
-        pattern: z.ZodNullable<z.ZodString>;
-    }, z.core.$strip>, z.ZodObject<{
-        type: z.ZodLiteral<"imageView">;
-        path: z.ZodString;
-    }, z.core.$strip>, z.ZodObject<{
-        type: z.ZodLiteral<"backgroundTask">;
-        taskType: z.ZodString;
-        description: z.ZodString;
-        status: z.ZodEnum<{
-            completed: "completed";
-            failed: "failed";
-            interrupted: "interrupted";
-            pending: "pending";
-        }>;
-        taskStatus: z.ZodEnum<{
-            completed: "completed";
-            failed: "failed";
-            paused: "paused";
-            pending: "pending";
-            running: "running";
-            killed: "killed";
-            stopped: "stopped";
-        }>;
-        skipTranscript: z.ZodBoolean;
-        workflowName: z.ZodOptional<z.ZodString>;
-        workflow: z.ZodOptional<z.ZodObject<{
-            phases: z.ZodArray<z.ZodObject<{
-                index: z.ZodNumber;
-                title: z.ZodString;
-                kind: z.ZodOptional<z.ZodString>;
-            }, z.core.$strip>>;
-            agents: z.ZodArray<z.ZodObject<{
-                index: z.ZodNumber;
-                label: z.ZodString;
-                state: z.ZodEnum<{
-                    failed: "failed";
-                    running: "running";
-                    queued: "queued";
-                    done: "done";
-                    skipped: "skipped";
-                }>;
-                model: z.ZodString;
-                attempt: z.ZodNumber;
-                cached: z.ZodBoolean;
-                lastProgressAt: z.ZodNumber;
-                phaseIndex: z.ZodOptional<z.ZodNumber>;
-                phaseTitle: z.ZodOptional<z.ZodString>;
-                agentType: z.ZodOptional<z.ZodString>;
-                isolation: z.ZodOptional<z.ZodString>;
-                queuedAt: z.ZodOptional<z.ZodNumber>;
-                startedAt: z.ZodOptional<z.ZodNumber>;
-                lastToolName: z.ZodOptional<z.ZodString>;
-                lastToolSummary: z.ZodOptional<z.ZodString>;
-                promptPreview: z.ZodOptional<z.ZodString>;
-                resultPreview: z.ZodOptional<z.ZodString>;
-                error: z.ZodOptional<z.ZodString>;
-                tokens: z.ZodOptional<z.ZodNumber>;
-                toolCalls: z.ZodOptional<z.ZodNumber>;
-                durationMs: z.ZodOptional<z.ZodNumber>;
-            }, z.core.$strip>>;
-        }, z.core.$strip>>;
-        usage: z.ZodOptional<z.ZodObject<{
-            totalTokens: z.ZodNumber;
-            toolUses: z.ZodNumber;
-            durationMs: z.ZodNumber;
-        }, z.core.$strip>>;
-        summary: z.ZodOptional<z.ZodString>;
-        error: z.ZodOptional<z.ZodString>;
-        outputFile: z.ZodOptional<z.ZodString>;
-    }, z.core.$strip>], "type">;
-    providerTurnId: z.ZodOptional<z.ZodString>;
+}, z.core.$strip>, z.ZodObject<{
+    explanation: z.ZodOptional<z.ZodString>;
+    kind: z.ZodLiteral<"turn.plan">;
     noTurnFallback: z.ZodOptional<z.ZodObject<{
         raw: z.ZodObject<{
-            jsonrpc: z.ZodLiteral<"2.0">;
             id: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>>;
+            jsonrpc: z.ZodLiteral<"2.0">;
             method: z.ZodString;
             params: z.ZodOptional<z.ZodType<JsonValue, unknown, z.core.$ZodTypeInternals<JsonValue, unknown>>>;
         }, z.core.$strip>;
         rawType: z.ZodString;
     }, z.core.$strip>>;
-}, z.core.$strip>, z.ZodObject<{
-    kind: z.ZodLiteral<"turn.plan">;
+    providerTurnId: z.ZodOptional<z.ZodString>;
     steps: z.ZodArray<z.ZodObject<{
-        step: z.ZodString;
         status: z.ZodOptional<z.ZodEnum<{
+            active: "active";
             completed: "completed";
             failed: "failed";
-            active: "active";
             pending: "pending";
         }>>;
+        step: z.ZodString;
     }, z.core.$strip>>;
-    explanation: z.ZodOptional<z.ZodString>;
-    providerTurnId: z.ZodOptional<z.ZodString>;
+}, z.core.$strip>, z.ZodObject<{
+    flush: z.ZodOptional<z.ZodBoolean>;
+    key: z.ZodObject<{
+        channel: z.ZodOptional<z.ZodString>;
+        parentRef: z.ZodOptional<z.ZodString>;
+        providerItemId: z.ZodOptional<z.ZodString>;
+    }, z.core.$strip>;
+    kind: z.ZodLiteral<"item.progress">;
+    message: z.ZodOptional<z.ZodString>;
     noTurnFallback: z.ZodOptional<z.ZodObject<{
         raw: z.ZodObject<{
-            jsonrpc: z.ZodLiteral<"2.0">;
             id: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>>;
+            jsonrpc: z.ZodLiteral<"2.0">;
             method: z.ZodString;
             params: z.ZodOptional<z.ZodType<JsonValue, unknown, z.core.$ZodTypeInternals<JsonValue, unknown>>>;
         }, z.core.$strip>;
         rawType: z.ZodString;
     }, z.core.$strip>>;
-}, z.core.$strip>, z.ZodObject<{
-    kind: z.ZodLiteral<"item.progress">;
-    key: z.ZodObject<{
-        providerItemId: z.ZodOptional<z.ZodString>;
-        channel: z.ZodOptional<z.ZodString>;
-        parentRef: z.ZodOptional<z.ZodString>;
-    }, z.core.$strip>;
-    message: z.ZodOptional<z.ZodString>;
+    providerTurnId: z.ZodOptional<z.ZodString>;
     snapshot: z.ZodOptional<z.ZodObject<{
-        type: z.ZodLiteral<"backgroundTask">;
-        taskType: z.ZodString;
         description: z.ZodString;
+        error: z.ZodOptional<z.ZodString>;
+        outputFile: z.ZodOptional<z.ZodString>;
+        skipTranscript: z.ZodBoolean;
         status: z.ZodEnum<{
             completed: "completed";
             failed: "failed";
             interrupted: "interrupted";
             pending: "pending";
         }>;
+        summary: z.ZodOptional<z.ZodString>;
         taskStatus: z.ZodEnum<{
             completed: "completed";
             failed: "failed";
+            killed: "killed";
             paused: "paused";
             pending: "pending";
             running: "running";
-            killed: "killed";
             stopped: "stopped";
         }>;
-        skipTranscript: z.ZodBoolean;
-        workflowName: z.ZodOptional<z.ZodString>;
+        taskType: z.ZodString;
+        type: z.ZodLiteral<"backgroundTask">;
+        usage: z.ZodOptional<z.ZodObject<{
+            durationMs: z.ZodNumber;
+            toolUses: z.ZodNumber;
+            totalTokens: z.ZodNumber;
+        }, z.core.$strip>>;
         workflow: z.ZodOptional<z.ZodObject<{
-            phases: z.ZodArray<z.ZodObject<{
-                index: z.ZodNumber;
-                title: z.ZodString;
-                kind: z.ZodOptional<z.ZodString>;
-            }, z.core.$strip>>;
             agents: z.ZodArray<z.ZodObject<{
-                index: z.ZodNumber;
-                label: z.ZodString;
-                state: z.ZodEnum<{
-                    failed: "failed";
-                    running: "running";
-                    queued: "queued";
-                    done: "done";
-                    skipped: "skipped";
-                }>;
-                model: z.ZodString;
+                agentType: z.ZodOptional<z.ZodString>;
                 attempt: z.ZodNumber;
                 cached: z.ZodBoolean;
-                lastProgressAt: z.ZodNumber;
-                phaseIndex: z.ZodOptional<z.ZodNumber>;
-                phaseTitle: z.ZodOptional<z.ZodString>;
-                agentType: z.ZodOptional<z.ZodString>;
+                durationMs: z.ZodOptional<z.ZodNumber>;
+                error: z.ZodOptional<z.ZodString>;
+                index: z.ZodNumber;
                 isolation: z.ZodOptional<z.ZodString>;
-                queuedAt: z.ZodOptional<z.ZodNumber>;
-                startedAt: z.ZodOptional<z.ZodNumber>;
+                label: z.ZodString;
+                lastProgressAt: z.ZodNumber;
                 lastToolName: z.ZodOptional<z.ZodString>;
                 lastToolSummary: z.ZodOptional<z.ZodString>;
+                model: z.ZodString;
+                phaseIndex: z.ZodOptional<z.ZodNumber>;
+                phaseTitle: z.ZodOptional<z.ZodString>;
                 promptPreview: z.ZodOptional<z.ZodString>;
+                queuedAt: z.ZodOptional<z.ZodNumber>;
                 resultPreview: z.ZodOptional<z.ZodString>;
-                error: z.ZodOptional<z.ZodString>;
+                startedAt: z.ZodOptional<z.ZodNumber>;
+                state: z.ZodEnum<{
+                    done: "done";
+                    failed: "failed";
+                    queued: "queued";
+                    running: "running";
+                    skipped: "skipped";
+                }>;
                 tokens: z.ZodOptional<z.ZodNumber>;
                 toolCalls: z.ZodOptional<z.ZodNumber>;
-                durationMs: z.ZodOptional<z.ZodNumber>;
+            }, z.core.$strip>>;
+            phases: z.ZodArray<z.ZodObject<{
+                index: z.ZodNumber;
+                kind: z.ZodOptional<z.ZodString>;
+                title: z.ZodString;
             }, z.core.$strip>>;
         }, z.core.$strip>>;
-        usage: z.ZodOptional<z.ZodObject<{
-            totalTokens: z.ZodNumber;
-            toolUses: z.ZodNumber;
-            durationMs: z.ZodNumber;
-        }, z.core.$strip>>;
-        summary: z.ZodOptional<z.ZodString>;
-        error: z.ZodOptional<z.ZodString>;
-        outputFile: z.ZodOptional<z.ZodString>;
+        workflowName: z.ZodOptional<z.ZodString>;
     }, z.core.$strip>>;
-    flush: z.ZodOptional<z.ZodBoolean>;
-    providerTurnId: z.ZodOptional<z.ZodString>;
+}, z.core.$strip>, z.ZodObject<{
+    channel: z.ZodEnum<{
+        assistant: "assistant";
+        reasoning: "reasoning";
+    }>;
+    kind: z.ZodLiteral<"message.delta">;
     noTurnFallback: z.ZodOptional<z.ZodObject<{
         raw: z.ZodObject<{
-            jsonrpc: z.ZodLiteral<"2.0">;
             id: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>>;
+            jsonrpc: z.ZodLiteral<"2.0">;
             method: z.ZodString;
             params: z.ZodOptional<z.ZodType<JsonValue, unknown, z.core.$ZodTypeInternals<JsonValue, unknown>>>;
         }, z.core.$strip>;
         rawType: z.ZodString;
     }, z.core.$strip>>;
-}, z.core.$strip>, z.ZodObject<{
-    kind: z.ZodLiteral<"message.delta">;
-    channel: z.ZodEnum<{
-        reasoning: "reasoning";
-        assistant: "assistant";
-    }>;
+    parentRef: z.ZodOptional<z.ZodString>;
     streamKey: z.ZodString;
     text: z.ZodString;
-    parentRef: z.ZodOptional<z.ZodString>;
+}, z.core.$strip>, z.ZodObject<{
+    channel: z.ZodEnum<{
+        assistant: "assistant";
+        reasoning: "reasoning";
+    }>;
+    detach: z.ZodOptional<z.ZodBoolean>;
+    kind: z.ZodLiteral<"message.close">;
     noTurnFallback: z.ZodOptional<z.ZodObject<{
         raw: z.ZodObject<{
-            jsonrpc: z.ZodLiteral<"2.0">;
             id: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>>;
+            jsonrpc: z.ZodLiteral<"2.0">;
             method: z.ZodString;
             params: z.ZodOptional<z.ZodType<JsonValue, unknown, z.core.$ZodTypeInternals<JsonValue, unknown>>>;
         }, z.core.$strip>;
         rawType: z.ZodString;
     }, z.core.$strip>>;
-}, z.core.$strip>, z.ZodObject<{
-    kind: z.ZodLiteral<"message.close">;
-    channel: z.ZodEnum<{
-        reasoning: "reasoning";
-        assistant: "assistant";
-    }>;
+    parentRef: z.ZodOptional<z.ZodString>;
     streamKey: z.ZodOptional<z.ZodString>;
     text: z.ZodOptional<z.ZodString>;
-    detach: z.ZodOptional<z.ZodBoolean>;
-    parentRef: z.ZodOptional<z.ZodString>;
-    noTurnFallback: z.ZodOptional<z.ZodObject<{
-        raw: z.ZodObject<{
-            jsonrpc: z.ZodLiteral<"2.0">;
-            id: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>>;
-            method: z.ZodString;
-            params: z.ZodOptional<z.ZodType<JsonValue, unknown, z.core.$ZodTypeInternals<JsonValue, unknown>>>;
-        }, z.core.$strip>;
-        rawType: z.ZodString;
-    }, z.core.$strip>>;
 }, z.core.$strip>, z.ZodObject<{
-    kind: z.ZodLiteral<"item.textDelta">;
-    key: z.ZodObject<{
-        providerItemId: z.ZodOptional<z.ZodString>;
-        channel: z.ZodOptional<z.ZodString>;
-        parentRef: z.ZodOptional<z.ZodString>;
-    }, z.core.$strip>;
     channel: z.ZodEnum<{
-        plan: "plan";
         agentMessage: "agentMessage";
+        plan: "plan";
         reasoningSummary: "reasoningSummary";
         reasoningText: "reasoningText";
     }>;
-    text: z.ZodString;
-    providerTurnId: z.ZodOptional<z.ZodString>;
+    key: z.ZodObject<{
+        channel: z.ZodOptional<z.ZodString>;
+        parentRef: z.ZodOptional<z.ZodString>;
+        providerItemId: z.ZodOptional<z.ZodString>;
+    }, z.core.$strip>;
+    kind: z.ZodLiteral<"item.textDelta">;
     noTurnFallback: z.ZodOptional<z.ZodObject<{
         raw: z.ZodObject<{
-            jsonrpc: z.ZodLiteral<"2.0">;
             id: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>>;
+            jsonrpc: z.ZodLiteral<"2.0">;
             method: z.ZodString;
             params: z.ZodOptional<z.ZodType<JsonValue, unknown, z.core.$ZodTypeInternals<JsonValue, unknown>>>;
         }, z.core.$strip>;
         rawType: z.ZodString;
     }, z.core.$strip>>;
+    providerTurnId: z.ZodOptional<z.ZodString>;
+    text: z.ZodString;
 }, z.core.$strip>, z.ZodObject<{
-    kind: z.ZodLiteral<"item.outputDelta">;
-    key: z.ZodObject<{
-        providerItemId: z.ZodOptional<z.ZodString>;
-        channel: z.ZodOptional<z.ZodString>;
-        parentRef: z.ZodOptional<z.ZodString>;
-    }, z.core.$strip>;
     channel: z.ZodEnum<{
         command: "command";
         fileChange: "fileChange";
     }>;
-    text: z.ZodString;
-    providerTurnId: z.ZodOptional<z.ZodString>;
-    noTurnFallback: z.ZodOptional<z.ZodObject<{
-        raw: z.ZodObject<{
-            jsonrpc: z.ZodLiteral<"2.0">;
-            id: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>>;
-            method: z.ZodString;
-            params: z.ZodOptional<z.ZodType<JsonValue, unknown, z.core.$ZodTypeInternals<JsonValue, unknown>>>;
-        }, z.core.$strip>;
-        rawType: z.ZodString;
-    }, z.core.$strip>>;
-}, z.core.$strip>, z.ZodObject<{
-    kind: z.ZodLiteral<"command.outputSnapshot">;
     key: z.ZodObject<{
-        providerItemId: z.ZodOptional<z.ZodString>;
         channel: z.ZodOptional<z.ZodString>;
         parentRef: z.ZodOptional<z.ZodString>;
+        providerItemId: z.ZodOptional<z.ZodString>;
     }, z.core.$strip>;
-    text: z.ZodString;
+    kind: z.ZodLiteral<"item.outputDelta">;
     noTurnFallback: z.ZodOptional<z.ZodObject<{
         raw: z.ZodObject<{
-            jsonrpc: z.ZodLiteral<"2.0">;
             id: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>>;
+            jsonrpc: z.ZodLiteral<"2.0">;
             method: z.ZodString;
             params: z.ZodOptional<z.ZodType<JsonValue, unknown, z.core.$ZodTypeInternals<JsonValue, unknown>>>;
         }, z.core.$strip>;
         rawType: z.ZodString;
     }, z.core.$strip>>;
+    providerTurnId: z.ZodOptional<z.ZodString>;
+    text: z.ZodString;
+}, z.core.$strip>, z.ZodObject<{
+    key: z.ZodObject<{
+        channel: z.ZodOptional<z.ZodString>;
+        parentRef: z.ZodOptional<z.ZodString>;
+        providerItemId: z.ZodOptional<z.ZodString>;
+    }, z.core.$strip>;
+    kind: z.ZodLiteral<"command.outputSnapshot">;
+    noTurnFallback: z.ZodOptional<z.ZodObject<{
+        raw: z.ZodObject<{
+            id: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>>;
+            jsonrpc: z.ZodLiteral<"2.0">;
+            method: z.ZodString;
+            params: z.ZodOptional<z.ZodType<JsonValue, unknown, z.core.$ZodTypeInternals<JsonValue, unknown>>>;
+        }, z.core.$strip>;
+        rawType: z.ZodString;
+    }, z.core.$strip>>;
+    text: z.ZodString;
 }, z.core.$strip>, z.ZodObject<{
     kind: z.ZodLiteral<"usage.turn">;
+    modelContextWindow: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
     tokens: z.ZodObject<{
-        totalTokens: z.ZodNumber;
-        inputTokens: z.ZodNumber;
         cachedInputTokens: z.ZodNumber;
+        inputTokens: z.ZodNumber;
         outputTokens: z.ZodNumber;
         reasoningOutputTokens: z.ZodNumber;
+        totalTokens: z.ZodNumber;
     }, z.core.$strip>;
-    modelContextWindow: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
 }, z.core.$strip>, z.ZodObject<{
     kind: z.ZodLiteral<"usage.exact">;
-    total: z.ZodObject<{
-        totalTokens: z.ZodNumber;
-        inputTokens: z.ZodNumber;
-        cachedInputTokens: z.ZodNumber;
-        outputTokens: z.ZodNumber;
-        reasoningOutputTokens: z.ZodNumber;
-    }, z.core.$strip>;
     last: z.ZodObject<{
-        totalTokens: z.ZodNumber;
-        inputTokens: z.ZodNumber;
         cachedInputTokens: z.ZodNumber;
+        inputTokens: z.ZodNumber;
         outputTokens: z.ZodNumber;
         reasoningOutputTokens: z.ZodNumber;
+        totalTokens: z.ZodNumber;
     }, z.core.$strip>;
     modelContextWindow: z.ZodNullable<z.ZodNumber>;
     providerTurnId: z.ZodOptional<z.ZodString>;
+    total: z.ZodObject<{
+        cachedInputTokens: z.ZodNumber;
+        inputTokens: z.ZodNumber;
+        outputTokens: z.ZodNumber;
+        reasoningOutputTokens: z.ZodNumber;
+        totalTokens: z.ZodNumber;
+    }, z.core.$strip>;
 }, z.core.$strip>, z.ZodObject<{
-    kind: z.ZodLiteral<"contextWindow">;
-    used: z.ZodNullable<z.ZodNumber>;
-    size: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
-    estimated: z.ZodBoolean;
     attach: z.ZodEnum<{
-        open: "open";
         currentOrLast: "currentOrLast";
+        open: "open";
     }>;
+    estimated: z.ZodBoolean;
+    kind: z.ZodLiteral<"contextWindow">;
+    size: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
+    used: z.ZodNullable<z.ZodNumber>;
 }, z.core.$strip>, z.ZodObject<{
     kind: z.ZodLiteral<"context.compacted">;
-    providerTurnId: z.ZodOptional<z.ZodString>;
     noTurnFallback: z.ZodOptional<z.ZodObject<{
         raw: z.ZodObject<{
-            jsonrpc: z.ZodLiteral<"2.0">;
             id: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>>;
+            jsonrpc: z.ZodLiteral<"2.0">;
             method: z.ZodString;
             params: z.ZodOptional<z.ZodType<JsonValue, unknown, z.core.$ZodTypeInternals<JsonValue, unknown>>>;
         }, z.core.$strip>;
         rawType: z.ZodString;
     }, z.core.$strip>>;
+    providerTurnId: z.ZodOptional<z.ZodString>;
 }, z.core.$strip>, z.ZodObject<{
     kind: z.ZodLiteral<"context.cleared">;
 }, z.core.$strip>, z.ZodObject<{
-    kind: z.ZodLiteral<"turn.diff">;
     diff: z.ZodString;
+    kind: z.ZodLiteral<"turn.diff">;
     providerTurnId: z.ZodOptional<z.ZodString>;
 }, z.core.$strip>, z.ZodObject<{
     kind: z.ZodLiteral<"thread.started">;
@@ -3055,148 +3055,148 @@ declare const threadDeltaSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
     objective: z.ZodString;
     status: z.ZodEnum<{
         active: "active";
-        paused: "paused";
         budgetLimited: "budgetLimited";
         complete: "complete";
+        paused: "paused";
     }>;
+    timeUsedSeconds: z.ZodNumber;
     tokenBudget: z.ZodNullable<z.ZodNumber>;
     tokensUsed: z.ZodNumber;
-    timeUsedSeconds: z.ZodNumber;
 }, z.core.$strip>, z.ZodObject<{
     kind: z.ZodLiteral<"thread.goalCleared">;
 }, z.core.$strip>, z.ZodObject<{
     kind: z.ZodLiteral<"provider.rateLimits">;
     rateLimits: z.ZodObject<{
-        providerId: z.ZodString;
-        status: z.ZodEnum<{
-            unknown: "unknown";
-            allowed: "allowed";
-            warning: "warning";
-            blocked: "blocked";
-        }>;
         kind: z.ZodEnum<{
-            unknown: "unknown";
+            "spend-control": "spend-control";
             "subscription-window": "subscription-window";
             credits: "credits";
-            "spend-control": "spend-control";
+            unknown: "unknown";
         }>;
-        windows: z.ZodArray<z.ZodObject<{
-            providerKey: z.ZodNullable<z.ZodString>;
-            label: z.ZodNullable<z.ZodString>;
-            status: z.ZodEnum<{
-                unknown: "unknown";
-                allowed: "allowed";
-                warning: "warning";
-                blocked: "blocked";
-            }>;
-            resetsAtMs: z.ZodNullable<z.ZodNumber>;
-        }, z.core.$strip>>;
-        reachedReason: z.ZodNullable<z.ZodString>;
+        overageReason: z.ZodNullable<z.ZodString>;
         overageStatus: z.ZodNullable<z.ZodEnum<{
             allowed: "allowed";
-            warning: "warning";
             rejected: "rejected";
             unavailable: "unavailable";
+            warning: "warning";
         }>>;
-        overageReason: z.ZodNullable<z.ZodString>;
+        providerId: z.ZodString;
+        reachedReason: z.ZodNullable<z.ZodString>;
+        status: z.ZodEnum<{
+            allowed: "allowed";
+            blocked: "blocked";
+            unknown: "unknown";
+            warning: "warning";
+        }>;
+        windows: z.ZodArray<z.ZodObject<{
+            label: z.ZodNullable<z.ZodString>;
+            providerKey: z.ZodNullable<z.ZodString>;
+            resetsAtMs: z.ZodNullable<z.ZodNumber>;
+            status: z.ZodEnum<{
+                allowed: "allowed";
+                blocked: "blocked";
+                unknown: "unknown";
+                warning: "warning";
+            }>;
+        }, z.core.$strip>>;
     }, z.core.$strip>;
 }, z.core.$strip>, z.ZodObject<{
-    kind: z.ZodLiteral<"provider.error">;
-    message: z.ZodString;
-    detail: z.ZodOptional<z.ZodString>;
-    willRetry: z.ZodOptional<z.ZodBoolean>;
     category: z.ZodOptional<z.ZodEnum<{
-        unknown: "unknown";
         "active-turn-not-steerable": "active-turn-not-steerable";
         "bad-request": "bad-request";
+        "budget-exceeded": "budget-exceeded";
         "connection-failed": "connection-failed";
         "context-window-exceeded": "context-window-exceeded";
-        billing: "billing";
-        "budget-exceeded": "budget-exceeded";
-        internal: "internal";
         "max-output-tokens": "max-output-tokens";
         "max-turns": "max-turns";
-        overloaded: "overloaded";
-        policy: "policy";
         "rate-limit": "rate-limit";
-        sandbox: "sandbox";
         "stream-disconnected": "stream-disconnected";
         "structured-output-retries": "structured-output-retries";
         "thread-rollback-failed": "thread-rollback-failed";
         "too-many-failed-attempts": "too-many-failed-attempts";
+        billing: "billing";
+        internal: "internal";
+        overloaded: "overloaded";
+        policy: "policy";
+        sandbox: "sandbox";
         unauthorized: "unauthorized";
+        unknown: "unknown";
     }>>;
+    detail: z.ZodOptional<z.ZodString>;
     errorInfo: z.ZodOptional<z.ZodObject<{
         category: z.ZodEnum<{
-            unknown: "unknown";
             "active-turn-not-steerable": "active-turn-not-steerable";
             "bad-request": "bad-request";
+            "budget-exceeded": "budget-exceeded";
             "connection-failed": "connection-failed";
             "context-window-exceeded": "context-window-exceeded";
-            billing: "billing";
-            "budget-exceeded": "budget-exceeded";
-            internal: "internal";
             "max-output-tokens": "max-output-tokens";
             "max-turns": "max-turns";
-            overloaded: "overloaded";
-            policy: "policy";
             "rate-limit": "rate-limit";
-            sandbox: "sandbox";
             "stream-disconnected": "stream-disconnected";
             "structured-output-retries": "structured-output-retries";
             "thread-rollback-failed": "thread-rollback-failed";
             "too-many-failed-attempts": "too-many-failed-attempts";
+            billing: "billing";
+            internal: "internal";
+            overloaded: "overloaded";
+            policy: "policy";
+            sandbox: "sandbox";
             unauthorized: "unauthorized";
+            unknown: "unknown";
         }>;
-        providerCode: z.ZodNullable<z.ZodString>;
         httpStatusCode: z.ZodNullable<z.ZodNumber>;
+        providerCode: z.ZodNullable<z.ZodString>;
     }, z.core.$strip>>;
-    settlesTurn: z.ZodOptional<z.ZodBoolean>;
+    kind: z.ZodLiteral<"provider.error">;
+    message: z.ZodString;
     providerTurnId: z.ZodOptional<z.ZodString>;
+    settlesTurn: z.ZodOptional<z.ZodBoolean>;
     threadScoped: z.ZodOptional<z.ZodBoolean>;
+    willRetry: z.ZodOptional<z.ZodBoolean>;
 }, z.core.$strip>, z.ZodObject<{
-    kind: z.ZodLiteral<"provider.modelFallback">;
-    originalModel: z.ZodString;
     fallbackModel: z.ZodString;
+    kind: z.ZodLiteral<"provider.modelFallback">;
+    message: z.ZodString;
+    originalModel: z.ZodString;
     reason: z.ZodEnum<{
         provider: "provider";
         refusal: "refusal";
     }>;
-    message: z.ZodString;
 }, z.core.$strip>, z.ZodObject<{
+    category: z.ZodOptional<z.ZodEnum<{
+        "compaction-skipped": "compaction-skipped";
+        config: "config";
+        deprecation: "deprecation";
+        general: "general";
+    }>>;
+    details: z.ZodOptional<z.ZodString>;
     kind: z.ZodLiteral<"provider.warning">;
     summary: z.ZodOptional<z.ZodString>;
-    details: z.ZodOptional<z.ZodString>;
-    category: z.ZodOptional<z.ZodEnum<{
-        deprecation: "deprecation";
-        config: "config";
-        general: "general";
-        "compaction-skipped": "compaction-skipped";
-    }>>;
     vouchedTurn: z.ZodOptional<z.ZodBoolean>;
 }, z.core.$strip>, z.ZodObject<{
     kind: z.ZodLiteral<"unhandled">;
+    onlyIfNoTurn: z.ZodOptional<z.ZodBoolean>;
+    parentRef: z.ZodOptional<z.ZodString>;
+    providerTurnId: z.ZodOptional<z.ZodString>;
     raw: z.ZodObject<{
-        jsonrpc: z.ZodLiteral<"2.0">;
         id: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>>;
+        jsonrpc: z.ZodLiteral<"2.0">;
         method: z.ZodString;
         params: z.ZodOptional<z.ZodType<JsonValue, unknown, z.core.$ZodTypeInternals<JsonValue, unknown>>>;
     }, z.core.$strip>;
     rawType: z.ZodString;
     vouchedTurn: z.ZodBoolean;
-    onlyIfNoTurn: z.ZodOptional<z.ZodBoolean>;
-    parentRef: z.ZodOptional<z.ZodString>;
-    providerTurnId: z.ZodOptional<z.ZodString>;
 }, z.core.$strip>, z.ZodObject<{
-    kind: z.ZodLiteral<"session.ended">;
-    reason: z.ZodEnum<{
-        interrupted: "interrupted";
-        replaced: "replaced";
-        exited: "exited";
-    }>;
     error: z.ZodOptional<z.ZodObject<{
         message: z.ZodString;
     }, z.core.$strip>>;
+    kind: z.ZodLiteral<"session.ended">;
+    reason: z.ZodEnum<{
+        exited: "exited";
+        interrupted: "interrupted";
+        replaced: "replaced";
+    }>;
 }, z.core.$strip>, z.ZodObject<{
     kind: z.ZodLiteral<"session.reset">;
 }, z.core.$strip>], "kind">;
@@ -3204,573 +3204,572 @@ type ThreadDelta = z.infer<typeof threadDeltaSchema>;
 type ThreadDeltaKind = ThreadDelta["kind"];
 /** `thread/delta` notification params: batched deltas for one thread. */
 declare const threadDeltaNotificationParamsSchema: z.ZodObject<{
-    threadId: z.ZodString;
     deltas: z.ZodArray<z.ZodDiscriminatedUnion<[z.ZodObject<{
-        kind: z.ZodLiteral<"input.accepted">;
         clientRequestId: z.ZodString;
+        kind: z.ZodLiteral<"input.accepted">;
         providerTurnId: z.ZodOptional<z.ZodString>;
     }, z.core.$strip>, z.ZodObject<{
         kind: z.ZodLiteral<"turn.open">;
-        providerTurnId: z.ZodOptional<z.ZodString>;
         parentRef: z.ZodOptional<z.ZodString>;
+        providerTurnId: z.ZodOptional<z.ZodString>;
     }, z.core.$strip>, z.ZodObject<{
+        claimIfIdle: z.ZodOptional<z.ZodBoolean>;
+        error: z.ZodOptional<z.ZodObject<{
+            message: z.ZodString;
+        }, z.core.$strip>>;
         kind: z.ZodLiteral<"turn.boundary">;
+        providerCheckpointId: z.ZodOptional<z.ZodString>;
+        providerTurnId: z.ZodOptional<z.ZodString>;
         status: z.ZodEnum<{
             completed: "completed";
             failed: "failed";
             interrupted: "interrupted";
         }>;
-        error: z.ZodOptional<z.ZodObject<{
-            message: z.ZodString;
-        }, z.core.$strip>>;
-        providerCheckpointId: z.ZodOptional<z.ZodString>;
-        claimIfIdle: z.ZodOptional<z.ZodBoolean>;
-        providerTurnId: z.ZodOptional<z.ZodString>;
     }, z.core.$strip>, z.ZodObject<{
-        kind: z.ZodLiteral<"item.open">;
-        key: z.ZodObject<{
-            providerItemId: z.ZodOptional<z.ZodString>;
-            channel: z.ZodOptional<z.ZodString>;
-            parentRef: z.ZodOptional<z.ZodString>;
-        }, z.core.$strip>;
+        attach: z.ZodOptional<z.ZodEnum<{
+            currentOrLast: "currentOrLast";
+            open: "open";
+        }>>;
         item: z.ZodDiscriminatedUnion<[z.ZodObject<{
-            type: z.ZodLiteral<"command">;
+            aggregatedOutput: z.ZodOptional<z.ZodString>;
             command: z.ZodString;
             cwd: z.ZodString;
-            aggregatedOutput: z.ZodOptional<z.ZodString>;
-            exitCode: z.ZodOptional<z.ZodNumber>;
             durationMs: z.ZodOptional<z.ZodNumber>;
+            exitCode: z.ZodOptional<z.ZodNumber>;
+            type: z.ZodLiteral<"command">;
         }, z.core.$strip>, z.ZodObject<{
-            type: z.ZodLiteral<"fileChange">;
             changes: z.ZodArray<z.ZodObject<{
-                path: z.ZodString;
+                diff: z.ZodOptional<z.ZodString>;
                 kind: z.ZodEnum<{
                     add: "add";
                     delete: "delete";
                     update: "update";
                 }>;
                 movePath: z.ZodOptional<z.ZodString>;
-                diff: z.ZodOptional<z.ZodString>;
-                oldText: z.ZodOptional<z.ZodString>;
                 newText: z.ZodOptional<z.ZodString>;
+                oldText: z.ZodOptional<z.ZodString>;
+                path: z.ZodString;
             }, z.core.$strip>>;
+            type: z.ZodLiteral<"fileChange">;
         }, z.core.$strip>, z.ZodObject<{
-            type: z.ZodLiteral<"tool">;
-            tool: z.ZodString;
-            server: z.ZodOptional<z.ZodString>;
             args: z.ZodOptional<z.ZodUnknown>;
-            result: z.ZodOptional<z.ZodUnknown>;
-            error: z.ZodOptional<z.ZodString>;
             durationMs: z.ZodOptional<z.ZodNumber>;
+            error: z.ZodOptional<z.ZodString>;
+            result: z.ZodOptional<z.ZodUnknown>;
+            server: z.ZodOptional<z.ZodString>;
+            tool: z.ZodString;
+            type: z.ZodLiteral<"tool">;
         }, z.core.$strip>, z.ZodObject<{
             type: z.ZodLiteral<"compaction">;
         }, z.core.$strip>, z.ZodObject<{
+            text: z.ZodString;
             type: z.ZodLiteral<"agentMessage">;
-            text: z.ZodString;
         }, z.core.$strip>, z.ZodObject<{
-            type: z.ZodLiteral<"reasoning">;
-            summary: z.ZodArray<z.ZodString>;
             content: z.ZodArray<z.ZodString>;
+            summary: z.ZodArray<z.ZodString>;
+            type: z.ZodLiteral<"reasoning">;
         }, z.core.$strip>, z.ZodObject<{
-            type: z.ZodLiteral<"plan">;
             text: z.ZodString;
+            type: z.ZodLiteral<"plan">;
         }, z.core.$strip>, z.ZodObject<{
-            type: z.ZodLiteral<"webSearch">;
             queries: z.ZodArray<z.ZodString>;
+            type: z.ZodLiteral<"webSearch">;
         }, z.core.$strip>, z.ZodObject<{
+            pattern: z.ZodNullable<z.ZodString>;
+            prompt: z.ZodOptional<z.ZodNullable<z.ZodString>>;
             type: z.ZodLiteral<"webFetch">;
             url: z.ZodString;
-            prompt: z.ZodOptional<z.ZodNullable<z.ZodString>>;
-            pattern: z.ZodNullable<z.ZodString>;
         }, z.core.$strip>, z.ZodObject<{
-            type: z.ZodLiteral<"imageView">;
             path: z.ZodString;
+            type: z.ZodLiteral<"imageView">;
         }, z.core.$strip>, z.ZodObject<{
-            type: z.ZodLiteral<"backgroundTask">;
-            taskType: z.ZodString;
             description: z.ZodString;
+            error: z.ZodOptional<z.ZodString>;
+            outputFile: z.ZodOptional<z.ZodString>;
+            skipTranscript: z.ZodBoolean;
             status: z.ZodEnum<{
                 completed: "completed";
                 failed: "failed";
                 interrupted: "interrupted";
                 pending: "pending";
             }>;
+            summary: z.ZodOptional<z.ZodString>;
             taskStatus: z.ZodEnum<{
                 completed: "completed";
                 failed: "failed";
+                killed: "killed";
                 paused: "paused";
                 pending: "pending";
                 running: "running";
-                killed: "killed";
                 stopped: "stopped";
             }>;
-            skipTranscript: z.ZodBoolean;
-            workflowName: z.ZodOptional<z.ZodString>;
+            taskType: z.ZodString;
+            type: z.ZodLiteral<"backgroundTask">;
+            usage: z.ZodOptional<z.ZodObject<{
+                durationMs: z.ZodNumber;
+                toolUses: z.ZodNumber;
+                totalTokens: z.ZodNumber;
+            }, z.core.$strip>>;
             workflow: z.ZodOptional<z.ZodObject<{
-                phases: z.ZodArray<z.ZodObject<{
-                    index: z.ZodNumber;
-                    title: z.ZodString;
-                    kind: z.ZodOptional<z.ZodString>;
-                }, z.core.$strip>>;
                 agents: z.ZodArray<z.ZodObject<{
-                    index: z.ZodNumber;
-                    label: z.ZodString;
-                    state: z.ZodEnum<{
-                        failed: "failed";
-                        running: "running";
-                        queued: "queued";
-                        done: "done";
-                        skipped: "skipped";
-                    }>;
-                    model: z.ZodString;
+                    agentType: z.ZodOptional<z.ZodString>;
                     attempt: z.ZodNumber;
                     cached: z.ZodBoolean;
-                    lastProgressAt: z.ZodNumber;
-                    phaseIndex: z.ZodOptional<z.ZodNumber>;
-                    phaseTitle: z.ZodOptional<z.ZodString>;
-                    agentType: z.ZodOptional<z.ZodString>;
+                    durationMs: z.ZodOptional<z.ZodNumber>;
+                    error: z.ZodOptional<z.ZodString>;
+                    index: z.ZodNumber;
                     isolation: z.ZodOptional<z.ZodString>;
-                    queuedAt: z.ZodOptional<z.ZodNumber>;
-                    startedAt: z.ZodOptional<z.ZodNumber>;
+                    label: z.ZodString;
+                    lastProgressAt: z.ZodNumber;
                     lastToolName: z.ZodOptional<z.ZodString>;
                     lastToolSummary: z.ZodOptional<z.ZodString>;
+                    model: z.ZodString;
+                    phaseIndex: z.ZodOptional<z.ZodNumber>;
+                    phaseTitle: z.ZodOptional<z.ZodString>;
                     promptPreview: z.ZodOptional<z.ZodString>;
+                    queuedAt: z.ZodOptional<z.ZodNumber>;
                     resultPreview: z.ZodOptional<z.ZodString>;
-                    error: z.ZodOptional<z.ZodString>;
+                    startedAt: z.ZodOptional<z.ZodNumber>;
+                    state: z.ZodEnum<{
+                        done: "done";
+                        failed: "failed";
+                        queued: "queued";
+                        running: "running";
+                        skipped: "skipped";
+                    }>;
                     tokens: z.ZodOptional<z.ZodNumber>;
                     toolCalls: z.ZodOptional<z.ZodNumber>;
-                    durationMs: z.ZodOptional<z.ZodNumber>;
+                }, z.core.$strip>>;
+                phases: z.ZodArray<z.ZodObject<{
+                    index: z.ZodNumber;
+                    kind: z.ZodOptional<z.ZodString>;
+                    title: z.ZodString;
                 }, z.core.$strip>>;
             }, z.core.$strip>>;
-            usage: z.ZodOptional<z.ZodObject<{
-                totalTokens: z.ZodNumber;
-                toolUses: z.ZodNumber;
-                durationMs: z.ZodNumber;
-            }, z.core.$strip>>;
-            summary: z.ZodOptional<z.ZodString>;
-            error: z.ZodOptional<z.ZodString>;
-            outputFile: z.ZodOptional<z.ZodString>;
+            workflowName: z.ZodOptional<z.ZodString>;
         }, z.core.$strip>], "type">;
-        attach: z.ZodOptional<z.ZodEnum<{
-            open: "open";
-            currentOrLast: "currentOrLast";
-        }>>;
-        providerTurnId: z.ZodOptional<z.ZodString>;
+        key: z.ZodObject<{
+            channel: z.ZodOptional<z.ZodString>;
+            parentRef: z.ZodOptional<z.ZodString>;
+            providerItemId: z.ZodOptional<z.ZodString>;
+        }, z.core.$strip>;
+        kind: z.ZodLiteral<"item.open">;
         noTurnFallback: z.ZodOptional<z.ZodObject<{
             raw: z.ZodObject<{
-                jsonrpc: z.ZodLiteral<"2.0">;
                 id: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>>;
+                jsonrpc: z.ZodLiteral<"2.0">;
                 method: z.ZodString;
                 params: z.ZodOptional<z.ZodType<JsonValue, unknown, z.core.$ZodTypeInternals<JsonValue, unknown>>>;
             }, z.core.$strip>;
             rawType: z.ZodString;
         }, z.core.$strip>>;
+        providerTurnId: z.ZodOptional<z.ZodString>;
     }, z.core.$strip>, z.ZodObject<{
-        kind: z.ZodLiteral<"item.close">;
+        aggregatedOutput: z.ZodOptional<z.ZodString>;
+        approvalStatus: z.ZodOptional<z.ZodLiteral<"denied">>;
+        exitCode: z.ZodOptional<z.ZodNumber>;
+        item: z.ZodDiscriminatedUnion<[z.ZodObject<{
+            aggregatedOutput: z.ZodOptional<z.ZodString>;
+            command: z.ZodString;
+            cwd: z.ZodString;
+            durationMs: z.ZodOptional<z.ZodNumber>;
+            exitCode: z.ZodOptional<z.ZodNumber>;
+            type: z.ZodLiteral<"command">;
+        }, z.core.$strip>, z.ZodObject<{
+            changes: z.ZodArray<z.ZodObject<{
+                diff: z.ZodOptional<z.ZodString>;
+                kind: z.ZodEnum<{
+                    add: "add";
+                    delete: "delete";
+                    update: "update";
+                }>;
+                movePath: z.ZodOptional<z.ZodString>;
+                newText: z.ZodOptional<z.ZodString>;
+                oldText: z.ZodOptional<z.ZodString>;
+                path: z.ZodString;
+            }, z.core.$strip>>;
+            type: z.ZodLiteral<"fileChange">;
+        }, z.core.$strip>, z.ZodObject<{
+            args: z.ZodOptional<z.ZodUnknown>;
+            durationMs: z.ZodOptional<z.ZodNumber>;
+            error: z.ZodOptional<z.ZodString>;
+            result: z.ZodOptional<z.ZodUnknown>;
+            server: z.ZodOptional<z.ZodString>;
+            tool: z.ZodString;
+            type: z.ZodLiteral<"tool">;
+        }, z.core.$strip>, z.ZodObject<{
+            type: z.ZodLiteral<"compaction">;
+        }, z.core.$strip>, z.ZodObject<{
+            text: z.ZodString;
+            type: z.ZodLiteral<"agentMessage">;
+        }, z.core.$strip>, z.ZodObject<{
+            content: z.ZodArray<z.ZodString>;
+            summary: z.ZodArray<z.ZodString>;
+            type: z.ZodLiteral<"reasoning">;
+        }, z.core.$strip>, z.ZodObject<{
+            text: z.ZodString;
+            type: z.ZodLiteral<"plan">;
+        }, z.core.$strip>, z.ZodObject<{
+            queries: z.ZodArray<z.ZodString>;
+            type: z.ZodLiteral<"webSearch">;
+        }, z.core.$strip>, z.ZodObject<{
+            pattern: z.ZodNullable<z.ZodString>;
+            prompt: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+            type: z.ZodLiteral<"webFetch">;
+            url: z.ZodString;
+        }, z.core.$strip>, z.ZodObject<{
+            path: z.ZodString;
+            type: z.ZodLiteral<"imageView">;
+        }, z.core.$strip>, z.ZodObject<{
+            description: z.ZodString;
+            error: z.ZodOptional<z.ZodString>;
+            outputFile: z.ZodOptional<z.ZodString>;
+            skipTranscript: z.ZodBoolean;
+            status: z.ZodEnum<{
+                completed: "completed";
+                failed: "failed";
+                interrupted: "interrupted";
+                pending: "pending";
+            }>;
+            summary: z.ZodOptional<z.ZodString>;
+            taskStatus: z.ZodEnum<{
+                completed: "completed";
+                failed: "failed";
+                killed: "killed";
+                paused: "paused";
+                pending: "pending";
+                running: "running";
+                stopped: "stopped";
+            }>;
+            taskType: z.ZodString;
+            type: z.ZodLiteral<"backgroundTask">;
+            usage: z.ZodOptional<z.ZodObject<{
+                durationMs: z.ZodNumber;
+                toolUses: z.ZodNumber;
+                totalTokens: z.ZodNumber;
+            }, z.core.$strip>>;
+            workflow: z.ZodOptional<z.ZodObject<{
+                agents: z.ZodArray<z.ZodObject<{
+                    agentType: z.ZodOptional<z.ZodString>;
+                    attempt: z.ZodNumber;
+                    cached: z.ZodBoolean;
+                    durationMs: z.ZodOptional<z.ZodNumber>;
+                    error: z.ZodOptional<z.ZodString>;
+                    index: z.ZodNumber;
+                    isolation: z.ZodOptional<z.ZodString>;
+                    label: z.ZodString;
+                    lastProgressAt: z.ZodNumber;
+                    lastToolName: z.ZodOptional<z.ZodString>;
+                    lastToolSummary: z.ZodOptional<z.ZodString>;
+                    model: z.ZodString;
+                    phaseIndex: z.ZodOptional<z.ZodNumber>;
+                    phaseTitle: z.ZodOptional<z.ZodString>;
+                    promptPreview: z.ZodOptional<z.ZodString>;
+                    queuedAt: z.ZodOptional<z.ZodNumber>;
+                    resultPreview: z.ZodOptional<z.ZodString>;
+                    startedAt: z.ZodOptional<z.ZodNumber>;
+                    state: z.ZodEnum<{
+                        done: "done";
+                        failed: "failed";
+                        queued: "queued";
+                        running: "running";
+                        skipped: "skipped";
+                    }>;
+                    tokens: z.ZodOptional<z.ZodNumber>;
+                    toolCalls: z.ZodOptional<z.ZodNumber>;
+                }, z.core.$strip>>;
+                phases: z.ZodArray<z.ZodObject<{
+                    index: z.ZodNumber;
+                    kind: z.ZodOptional<z.ZodString>;
+                    title: z.ZodString;
+                }, z.core.$strip>>;
+            }, z.core.$strip>>;
+            workflowName: z.ZodOptional<z.ZodString>;
+        }, z.core.$strip>], "type">;
         key: z.ZodObject<{
-            providerItemId: z.ZodOptional<z.ZodString>;
             channel: z.ZodOptional<z.ZodString>;
             parentRef: z.ZodOptional<z.ZodString>;
+            providerItemId: z.ZodOptional<z.ZodString>;
         }, z.core.$strip>;
+        kind: z.ZodLiteral<"item.close">;
+        noTurnFallback: z.ZodOptional<z.ZodObject<{
+            raw: z.ZodObject<{
+                id: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>>;
+                jsonrpc: z.ZodLiteral<"2.0">;
+                method: z.ZodString;
+                params: z.ZodOptional<z.ZodType<JsonValue, unknown, z.core.$ZodTypeInternals<JsonValue, unknown>>>;
+            }, z.core.$strip>;
+            rawType: z.ZodString;
+        }, z.core.$strip>>;
+        providerTurnId: z.ZodOptional<z.ZodString>;
+        resultText: z.ZodOptional<z.ZodString>;
         status: z.ZodEnum<{
             completed: "completed";
             failed: "failed";
             interrupted: "interrupted";
             pending: "pending";
         }>;
-        resultText: z.ZodOptional<z.ZodString>;
-        exitCode: z.ZodOptional<z.ZodNumber>;
-        aggregatedOutput: z.ZodOptional<z.ZodString>;
-        approvalStatus: z.ZodOptional<z.ZodLiteral<"denied">>;
-        item: z.ZodDiscriminatedUnion<[z.ZodObject<{
-            type: z.ZodLiteral<"command">;
-            command: z.ZodString;
-            cwd: z.ZodString;
-            aggregatedOutput: z.ZodOptional<z.ZodString>;
-            exitCode: z.ZodOptional<z.ZodNumber>;
-            durationMs: z.ZodOptional<z.ZodNumber>;
-        }, z.core.$strip>, z.ZodObject<{
-            type: z.ZodLiteral<"fileChange">;
-            changes: z.ZodArray<z.ZodObject<{
-                path: z.ZodString;
-                kind: z.ZodEnum<{
-                    add: "add";
-                    delete: "delete";
-                    update: "update";
-                }>;
-                movePath: z.ZodOptional<z.ZodString>;
-                diff: z.ZodOptional<z.ZodString>;
-                oldText: z.ZodOptional<z.ZodString>;
-                newText: z.ZodOptional<z.ZodString>;
-            }, z.core.$strip>>;
-        }, z.core.$strip>, z.ZodObject<{
-            type: z.ZodLiteral<"tool">;
-            tool: z.ZodString;
-            server: z.ZodOptional<z.ZodString>;
-            args: z.ZodOptional<z.ZodUnknown>;
-            result: z.ZodOptional<z.ZodUnknown>;
-            error: z.ZodOptional<z.ZodString>;
-            durationMs: z.ZodOptional<z.ZodNumber>;
-        }, z.core.$strip>, z.ZodObject<{
-            type: z.ZodLiteral<"compaction">;
-        }, z.core.$strip>, z.ZodObject<{
-            type: z.ZodLiteral<"agentMessage">;
-            text: z.ZodString;
-        }, z.core.$strip>, z.ZodObject<{
-            type: z.ZodLiteral<"reasoning">;
-            summary: z.ZodArray<z.ZodString>;
-            content: z.ZodArray<z.ZodString>;
-        }, z.core.$strip>, z.ZodObject<{
-            type: z.ZodLiteral<"plan">;
-            text: z.ZodString;
-        }, z.core.$strip>, z.ZodObject<{
-            type: z.ZodLiteral<"webSearch">;
-            queries: z.ZodArray<z.ZodString>;
-        }, z.core.$strip>, z.ZodObject<{
-            type: z.ZodLiteral<"webFetch">;
-            url: z.ZodString;
-            prompt: z.ZodOptional<z.ZodNullable<z.ZodString>>;
-            pattern: z.ZodNullable<z.ZodString>;
-        }, z.core.$strip>, z.ZodObject<{
-            type: z.ZodLiteral<"imageView">;
-            path: z.ZodString;
-        }, z.core.$strip>, z.ZodObject<{
-            type: z.ZodLiteral<"backgroundTask">;
-            taskType: z.ZodString;
-            description: z.ZodString;
-            status: z.ZodEnum<{
-                completed: "completed";
-                failed: "failed";
-                interrupted: "interrupted";
-                pending: "pending";
-            }>;
-            taskStatus: z.ZodEnum<{
-                completed: "completed";
-                failed: "failed";
-                paused: "paused";
-                pending: "pending";
-                running: "running";
-                killed: "killed";
-                stopped: "stopped";
-            }>;
-            skipTranscript: z.ZodBoolean;
-            workflowName: z.ZodOptional<z.ZodString>;
-            workflow: z.ZodOptional<z.ZodObject<{
-                phases: z.ZodArray<z.ZodObject<{
-                    index: z.ZodNumber;
-                    title: z.ZodString;
-                    kind: z.ZodOptional<z.ZodString>;
-                }, z.core.$strip>>;
-                agents: z.ZodArray<z.ZodObject<{
-                    index: z.ZodNumber;
-                    label: z.ZodString;
-                    state: z.ZodEnum<{
-                        failed: "failed";
-                        running: "running";
-                        queued: "queued";
-                        done: "done";
-                        skipped: "skipped";
-                    }>;
-                    model: z.ZodString;
-                    attempt: z.ZodNumber;
-                    cached: z.ZodBoolean;
-                    lastProgressAt: z.ZodNumber;
-                    phaseIndex: z.ZodOptional<z.ZodNumber>;
-                    phaseTitle: z.ZodOptional<z.ZodString>;
-                    agentType: z.ZodOptional<z.ZodString>;
-                    isolation: z.ZodOptional<z.ZodString>;
-                    queuedAt: z.ZodOptional<z.ZodNumber>;
-                    startedAt: z.ZodOptional<z.ZodNumber>;
-                    lastToolName: z.ZodOptional<z.ZodString>;
-                    lastToolSummary: z.ZodOptional<z.ZodString>;
-                    promptPreview: z.ZodOptional<z.ZodString>;
-                    resultPreview: z.ZodOptional<z.ZodString>;
-                    error: z.ZodOptional<z.ZodString>;
-                    tokens: z.ZodOptional<z.ZodNumber>;
-                    toolCalls: z.ZodOptional<z.ZodNumber>;
-                    durationMs: z.ZodOptional<z.ZodNumber>;
-                }, z.core.$strip>>;
-            }, z.core.$strip>>;
-            usage: z.ZodOptional<z.ZodObject<{
-                totalTokens: z.ZodNumber;
-                toolUses: z.ZodNumber;
-                durationMs: z.ZodNumber;
-            }, z.core.$strip>>;
-            summary: z.ZodOptional<z.ZodString>;
-            error: z.ZodOptional<z.ZodString>;
-            outputFile: z.ZodOptional<z.ZodString>;
-        }, z.core.$strip>], "type">;
-        providerTurnId: z.ZodOptional<z.ZodString>;
+    }, z.core.$strip>, z.ZodObject<{
+        explanation: z.ZodOptional<z.ZodString>;
+        kind: z.ZodLiteral<"turn.plan">;
         noTurnFallback: z.ZodOptional<z.ZodObject<{
             raw: z.ZodObject<{
-                jsonrpc: z.ZodLiteral<"2.0">;
                 id: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>>;
+                jsonrpc: z.ZodLiteral<"2.0">;
                 method: z.ZodString;
                 params: z.ZodOptional<z.ZodType<JsonValue, unknown, z.core.$ZodTypeInternals<JsonValue, unknown>>>;
             }, z.core.$strip>;
             rawType: z.ZodString;
         }, z.core.$strip>>;
-    }, z.core.$strip>, z.ZodObject<{
-        kind: z.ZodLiteral<"turn.plan">;
+        providerTurnId: z.ZodOptional<z.ZodString>;
         steps: z.ZodArray<z.ZodObject<{
-            step: z.ZodString;
             status: z.ZodOptional<z.ZodEnum<{
+                active: "active";
                 completed: "completed";
                 failed: "failed";
-                active: "active";
                 pending: "pending";
             }>>;
+            step: z.ZodString;
         }, z.core.$strip>>;
-        explanation: z.ZodOptional<z.ZodString>;
-        providerTurnId: z.ZodOptional<z.ZodString>;
+    }, z.core.$strip>, z.ZodObject<{
+        flush: z.ZodOptional<z.ZodBoolean>;
+        key: z.ZodObject<{
+            channel: z.ZodOptional<z.ZodString>;
+            parentRef: z.ZodOptional<z.ZodString>;
+            providerItemId: z.ZodOptional<z.ZodString>;
+        }, z.core.$strip>;
+        kind: z.ZodLiteral<"item.progress">;
+        message: z.ZodOptional<z.ZodString>;
         noTurnFallback: z.ZodOptional<z.ZodObject<{
             raw: z.ZodObject<{
-                jsonrpc: z.ZodLiteral<"2.0">;
                 id: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>>;
+                jsonrpc: z.ZodLiteral<"2.0">;
                 method: z.ZodString;
                 params: z.ZodOptional<z.ZodType<JsonValue, unknown, z.core.$ZodTypeInternals<JsonValue, unknown>>>;
             }, z.core.$strip>;
             rawType: z.ZodString;
         }, z.core.$strip>>;
-    }, z.core.$strip>, z.ZodObject<{
-        kind: z.ZodLiteral<"item.progress">;
-        key: z.ZodObject<{
-            providerItemId: z.ZodOptional<z.ZodString>;
-            channel: z.ZodOptional<z.ZodString>;
-            parentRef: z.ZodOptional<z.ZodString>;
-        }, z.core.$strip>;
-        message: z.ZodOptional<z.ZodString>;
+        providerTurnId: z.ZodOptional<z.ZodString>;
         snapshot: z.ZodOptional<z.ZodObject<{
-            type: z.ZodLiteral<"backgroundTask">;
-            taskType: z.ZodString;
             description: z.ZodString;
+            error: z.ZodOptional<z.ZodString>;
+            outputFile: z.ZodOptional<z.ZodString>;
+            skipTranscript: z.ZodBoolean;
             status: z.ZodEnum<{
                 completed: "completed";
                 failed: "failed";
                 interrupted: "interrupted";
                 pending: "pending";
             }>;
+            summary: z.ZodOptional<z.ZodString>;
             taskStatus: z.ZodEnum<{
                 completed: "completed";
                 failed: "failed";
+                killed: "killed";
                 paused: "paused";
                 pending: "pending";
                 running: "running";
-                killed: "killed";
                 stopped: "stopped";
             }>;
-            skipTranscript: z.ZodBoolean;
-            workflowName: z.ZodOptional<z.ZodString>;
+            taskType: z.ZodString;
+            type: z.ZodLiteral<"backgroundTask">;
+            usage: z.ZodOptional<z.ZodObject<{
+                durationMs: z.ZodNumber;
+                toolUses: z.ZodNumber;
+                totalTokens: z.ZodNumber;
+            }, z.core.$strip>>;
             workflow: z.ZodOptional<z.ZodObject<{
-                phases: z.ZodArray<z.ZodObject<{
-                    index: z.ZodNumber;
-                    title: z.ZodString;
-                    kind: z.ZodOptional<z.ZodString>;
-                }, z.core.$strip>>;
                 agents: z.ZodArray<z.ZodObject<{
-                    index: z.ZodNumber;
-                    label: z.ZodString;
-                    state: z.ZodEnum<{
-                        failed: "failed";
-                        running: "running";
-                        queued: "queued";
-                        done: "done";
-                        skipped: "skipped";
-                    }>;
-                    model: z.ZodString;
+                    agentType: z.ZodOptional<z.ZodString>;
                     attempt: z.ZodNumber;
                     cached: z.ZodBoolean;
-                    lastProgressAt: z.ZodNumber;
-                    phaseIndex: z.ZodOptional<z.ZodNumber>;
-                    phaseTitle: z.ZodOptional<z.ZodString>;
-                    agentType: z.ZodOptional<z.ZodString>;
+                    durationMs: z.ZodOptional<z.ZodNumber>;
+                    error: z.ZodOptional<z.ZodString>;
+                    index: z.ZodNumber;
                     isolation: z.ZodOptional<z.ZodString>;
-                    queuedAt: z.ZodOptional<z.ZodNumber>;
-                    startedAt: z.ZodOptional<z.ZodNumber>;
+                    label: z.ZodString;
+                    lastProgressAt: z.ZodNumber;
                     lastToolName: z.ZodOptional<z.ZodString>;
                     lastToolSummary: z.ZodOptional<z.ZodString>;
+                    model: z.ZodString;
+                    phaseIndex: z.ZodOptional<z.ZodNumber>;
+                    phaseTitle: z.ZodOptional<z.ZodString>;
                     promptPreview: z.ZodOptional<z.ZodString>;
+                    queuedAt: z.ZodOptional<z.ZodNumber>;
                     resultPreview: z.ZodOptional<z.ZodString>;
-                    error: z.ZodOptional<z.ZodString>;
+                    startedAt: z.ZodOptional<z.ZodNumber>;
+                    state: z.ZodEnum<{
+                        done: "done";
+                        failed: "failed";
+                        queued: "queued";
+                        running: "running";
+                        skipped: "skipped";
+                    }>;
                     tokens: z.ZodOptional<z.ZodNumber>;
                     toolCalls: z.ZodOptional<z.ZodNumber>;
-                    durationMs: z.ZodOptional<z.ZodNumber>;
+                }, z.core.$strip>>;
+                phases: z.ZodArray<z.ZodObject<{
+                    index: z.ZodNumber;
+                    kind: z.ZodOptional<z.ZodString>;
+                    title: z.ZodString;
                 }, z.core.$strip>>;
             }, z.core.$strip>>;
-            usage: z.ZodOptional<z.ZodObject<{
-                totalTokens: z.ZodNumber;
-                toolUses: z.ZodNumber;
-                durationMs: z.ZodNumber;
-            }, z.core.$strip>>;
-            summary: z.ZodOptional<z.ZodString>;
-            error: z.ZodOptional<z.ZodString>;
-            outputFile: z.ZodOptional<z.ZodString>;
+            workflowName: z.ZodOptional<z.ZodString>;
         }, z.core.$strip>>;
-        flush: z.ZodOptional<z.ZodBoolean>;
-        providerTurnId: z.ZodOptional<z.ZodString>;
+    }, z.core.$strip>, z.ZodObject<{
+        channel: z.ZodEnum<{
+            assistant: "assistant";
+            reasoning: "reasoning";
+        }>;
+        kind: z.ZodLiteral<"message.delta">;
         noTurnFallback: z.ZodOptional<z.ZodObject<{
             raw: z.ZodObject<{
-                jsonrpc: z.ZodLiteral<"2.0">;
                 id: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>>;
+                jsonrpc: z.ZodLiteral<"2.0">;
                 method: z.ZodString;
                 params: z.ZodOptional<z.ZodType<JsonValue, unknown, z.core.$ZodTypeInternals<JsonValue, unknown>>>;
             }, z.core.$strip>;
             rawType: z.ZodString;
         }, z.core.$strip>>;
-    }, z.core.$strip>, z.ZodObject<{
-        kind: z.ZodLiteral<"message.delta">;
-        channel: z.ZodEnum<{
-            reasoning: "reasoning";
-            assistant: "assistant";
-        }>;
+        parentRef: z.ZodOptional<z.ZodString>;
         streamKey: z.ZodString;
         text: z.ZodString;
-        parentRef: z.ZodOptional<z.ZodString>;
+    }, z.core.$strip>, z.ZodObject<{
+        channel: z.ZodEnum<{
+            assistant: "assistant";
+            reasoning: "reasoning";
+        }>;
+        detach: z.ZodOptional<z.ZodBoolean>;
+        kind: z.ZodLiteral<"message.close">;
         noTurnFallback: z.ZodOptional<z.ZodObject<{
             raw: z.ZodObject<{
-                jsonrpc: z.ZodLiteral<"2.0">;
                 id: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>>;
+                jsonrpc: z.ZodLiteral<"2.0">;
                 method: z.ZodString;
                 params: z.ZodOptional<z.ZodType<JsonValue, unknown, z.core.$ZodTypeInternals<JsonValue, unknown>>>;
             }, z.core.$strip>;
             rawType: z.ZodString;
         }, z.core.$strip>>;
-    }, z.core.$strip>, z.ZodObject<{
-        kind: z.ZodLiteral<"message.close">;
-        channel: z.ZodEnum<{
-            reasoning: "reasoning";
-            assistant: "assistant";
-        }>;
+        parentRef: z.ZodOptional<z.ZodString>;
         streamKey: z.ZodOptional<z.ZodString>;
         text: z.ZodOptional<z.ZodString>;
-        detach: z.ZodOptional<z.ZodBoolean>;
-        parentRef: z.ZodOptional<z.ZodString>;
-        noTurnFallback: z.ZodOptional<z.ZodObject<{
-            raw: z.ZodObject<{
-                jsonrpc: z.ZodLiteral<"2.0">;
-                id: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>>;
-                method: z.ZodString;
-                params: z.ZodOptional<z.ZodType<JsonValue, unknown, z.core.$ZodTypeInternals<JsonValue, unknown>>>;
-            }, z.core.$strip>;
-            rawType: z.ZodString;
-        }, z.core.$strip>>;
     }, z.core.$strip>, z.ZodObject<{
-        kind: z.ZodLiteral<"item.textDelta">;
-        key: z.ZodObject<{
-            providerItemId: z.ZodOptional<z.ZodString>;
-            channel: z.ZodOptional<z.ZodString>;
-            parentRef: z.ZodOptional<z.ZodString>;
-        }, z.core.$strip>;
         channel: z.ZodEnum<{
-            plan: "plan";
             agentMessage: "agentMessage";
+            plan: "plan";
             reasoningSummary: "reasoningSummary";
             reasoningText: "reasoningText";
         }>;
-        text: z.ZodString;
-        providerTurnId: z.ZodOptional<z.ZodString>;
+        key: z.ZodObject<{
+            channel: z.ZodOptional<z.ZodString>;
+            parentRef: z.ZodOptional<z.ZodString>;
+            providerItemId: z.ZodOptional<z.ZodString>;
+        }, z.core.$strip>;
+        kind: z.ZodLiteral<"item.textDelta">;
         noTurnFallback: z.ZodOptional<z.ZodObject<{
             raw: z.ZodObject<{
-                jsonrpc: z.ZodLiteral<"2.0">;
                 id: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>>;
+                jsonrpc: z.ZodLiteral<"2.0">;
                 method: z.ZodString;
                 params: z.ZodOptional<z.ZodType<JsonValue, unknown, z.core.$ZodTypeInternals<JsonValue, unknown>>>;
             }, z.core.$strip>;
             rawType: z.ZodString;
         }, z.core.$strip>>;
+        providerTurnId: z.ZodOptional<z.ZodString>;
+        text: z.ZodString;
     }, z.core.$strip>, z.ZodObject<{
-        kind: z.ZodLiteral<"item.outputDelta">;
-        key: z.ZodObject<{
-            providerItemId: z.ZodOptional<z.ZodString>;
-            channel: z.ZodOptional<z.ZodString>;
-            parentRef: z.ZodOptional<z.ZodString>;
-        }, z.core.$strip>;
         channel: z.ZodEnum<{
             command: "command";
             fileChange: "fileChange";
         }>;
-        text: z.ZodString;
-        providerTurnId: z.ZodOptional<z.ZodString>;
-        noTurnFallback: z.ZodOptional<z.ZodObject<{
-            raw: z.ZodObject<{
-                jsonrpc: z.ZodLiteral<"2.0">;
-                id: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>>;
-                method: z.ZodString;
-                params: z.ZodOptional<z.ZodType<JsonValue, unknown, z.core.$ZodTypeInternals<JsonValue, unknown>>>;
-            }, z.core.$strip>;
-            rawType: z.ZodString;
-        }, z.core.$strip>>;
-    }, z.core.$strip>, z.ZodObject<{
-        kind: z.ZodLiteral<"command.outputSnapshot">;
         key: z.ZodObject<{
-            providerItemId: z.ZodOptional<z.ZodString>;
             channel: z.ZodOptional<z.ZodString>;
             parentRef: z.ZodOptional<z.ZodString>;
+            providerItemId: z.ZodOptional<z.ZodString>;
         }, z.core.$strip>;
-        text: z.ZodString;
+        kind: z.ZodLiteral<"item.outputDelta">;
         noTurnFallback: z.ZodOptional<z.ZodObject<{
             raw: z.ZodObject<{
-                jsonrpc: z.ZodLiteral<"2.0">;
                 id: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>>;
+                jsonrpc: z.ZodLiteral<"2.0">;
                 method: z.ZodString;
                 params: z.ZodOptional<z.ZodType<JsonValue, unknown, z.core.$ZodTypeInternals<JsonValue, unknown>>>;
             }, z.core.$strip>;
             rawType: z.ZodString;
         }, z.core.$strip>>;
+        providerTurnId: z.ZodOptional<z.ZodString>;
+        text: z.ZodString;
+    }, z.core.$strip>, z.ZodObject<{
+        key: z.ZodObject<{
+            channel: z.ZodOptional<z.ZodString>;
+            parentRef: z.ZodOptional<z.ZodString>;
+            providerItemId: z.ZodOptional<z.ZodString>;
+        }, z.core.$strip>;
+        kind: z.ZodLiteral<"command.outputSnapshot">;
+        noTurnFallback: z.ZodOptional<z.ZodObject<{
+            raw: z.ZodObject<{
+                id: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>>;
+                jsonrpc: z.ZodLiteral<"2.0">;
+                method: z.ZodString;
+                params: z.ZodOptional<z.ZodType<JsonValue, unknown, z.core.$ZodTypeInternals<JsonValue, unknown>>>;
+            }, z.core.$strip>;
+            rawType: z.ZodString;
+        }, z.core.$strip>>;
+        text: z.ZodString;
     }, z.core.$strip>, z.ZodObject<{
         kind: z.ZodLiteral<"usage.turn">;
+        modelContextWindow: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
         tokens: z.ZodObject<{
-            totalTokens: z.ZodNumber;
-            inputTokens: z.ZodNumber;
             cachedInputTokens: z.ZodNumber;
+            inputTokens: z.ZodNumber;
             outputTokens: z.ZodNumber;
             reasoningOutputTokens: z.ZodNumber;
+            totalTokens: z.ZodNumber;
         }, z.core.$strip>;
-        modelContextWindow: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
     }, z.core.$strip>, z.ZodObject<{
         kind: z.ZodLiteral<"usage.exact">;
-        total: z.ZodObject<{
-            totalTokens: z.ZodNumber;
-            inputTokens: z.ZodNumber;
-            cachedInputTokens: z.ZodNumber;
-            outputTokens: z.ZodNumber;
-            reasoningOutputTokens: z.ZodNumber;
-        }, z.core.$strip>;
         last: z.ZodObject<{
-            totalTokens: z.ZodNumber;
-            inputTokens: z.ZodNumber;
             cachedInputTokens: z.ZodNumber;
+            inputTokens: z.ZodNumber;
             outputTokens: z.ZodNumber;
             reasoningOutputTokens: z.ZodNumber;
+            totalTokens: z.ZodNumber;
         }, z.core.$strip>;
         modelContextWindow: z.ZodNullable<z.ZodNumber>;
         providerTurnId: z.ZodOptional<z.ZodString>;
+        total: z.ZodObject<{
+            cachedInputTokens: z.ZodNumber;
+            inputTokens: z.ZodNumber;
+            outputTokens: z.ZodNumber;
+            reasoningOutputTokens: z.ZodNumber;
+            totalTokens: z.ZodNumber;
+        }, z.core.$strip>;
     }, z.core.$strip>, z.ZodObject<{
-        kind: z.ZodLiteral<"contextWindow">;
-        used: z.ZodNullable<z.ZodNumber>;
-        size: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
-        estimated: z.ZodBoolean;
         attach: z.ZodEnum<{
-            open: "open";
             currentOrLast: "currentOrLast";
+            open: "open";
         }>;
+        estimated: z.ZodBoolean;
+        kind: z.ZodLiteral<"contextWindow">;
+        size: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
+        used: z.ZodNullable<z.ZodNumber>;
     }, z.core.$strip>, z.ZodObject<{
         kind: z.ZodLiteral<"context.compacted">;
-        providerTurnId: z.ZodOptional<z.ZodString>;
         noTurnFallback: z.ZodOptional<z.ZodObject<{
             raw: z.ZodObject<{
-                jsonrpc: z.ZodLiteral<"2.0">;
                 id: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>>;
+                jsonrpc: z.ZodLiteral<"2.0">;
                 method: z.ZodString;
                 params: z.ZodOptional<z.ZodType<JsonValue, unknown, z.core.$ZodTypeInternals<JsonValue, unknown>>>;
             }, z.core.$strip>;
             rawType: z.ZodString;
         }, z.core.$strip>>;
+        providerTurnId: z.ZodOptional<z.ZodString>;
     }, z.core.$strip>, z.ZodObject<{
         kind: z.ZodLiteral<"context.cleared">;
     }, z.core.$strip>, z.ZodObject<{
-        kind: z.ZodLiteral<"turn.diff">;
         diff: z.ZodString;
+        kind: z.ZodLiteral<"turn.diff">;
         providerTurnId: z.ZodOptional<z.ZodString>;
     }, z.core.$strip>, z.ZodObject<{
         kind: z.ZodLiteral<"thread.started">;
@@ -3785,151 +3784,152 @@ declare const threadDeltaNotificationParamsSchema: z.ZodObject<{
         objective: z.ZodString;
         status: z.ZodEnum<{
             active: "active";
-            paused: "paused";
             budgetLimited: "budgetLimited";
             complete: "complete";
+            paused: "paused";
         }>;
+        timeUsedSeconds: z.ZodNumber;
         tokenBudget: z.ZodNullable<z.ZodNumber>;
         tokensUsed: z.ZodNumber;
-        timeUsedSeconds: z.ZodNumber;
     }, z.core.$strip>, z.ZodObject<{
         kind: z.ZodLiteral<"thread.goalCleared">;
     }, z.core.$strip>, z.ZodObject<{
         kind: z.ZodLiteral<"provider.rateLimits">;
         rateLimits: z.ZodObject<{
-            providerId: z.ZodString;
-            status: z.ZodEnum<{
-                unknown: "unknown";
-                allowed: "allowed";
-                warning: "warning";
-                blocked: "blocked";
-            }>;
             kind: z.ZodEnum<{
-                unknown: "unknown";
+                "spend-control": "spend-control";
                 "subscription-window": "subscription-window";
                 credits: "credits";
-                "spend-control": "spend-control";
+                unknown: "unknown";
             }>;
-            windows: z.ZodArray<z.ZodObject<{
-                providerKey: z.ZodNullable<z.ZodString>;
-                label: z.ZodNullable<z.ZodString>;
-                status: z.ZodEnum<{
-                    unknown: "unknown";
-                    allowed: "allowed";
-                    warning: "warning";
-                    blocked: "blocked";
-                }>;
-                resetsAtMs: z.ZodNullable<z.ZodNumber>;
-            }, z.core.$strip>>;
-            reachedReason: z.ZodNullable<z.ZodString>;
+            overageReason: z.ZodNullable<z.ZodString>;
             overageStatus: z.ZodNullable<z.ZodEnum<{
                 allowed: "allowed";
-                warning: "warning";
                 rejected: "rejected";
                 unavailable: "unavailable";
+                warning: "warning";
             }>>;
-            overageReason: z.ZodNullable<z.ZodString>;
+            providerId: z.ZodString;
+            reachedReason: z.ZodNullable<z.ZodString>;
+            status: z.ZodEnum<{
+                allowed: "allowed";
+                blocked: "blocked";
+                unknown: "unknown";
+                warning: "warning";
+            }>;
+            windows: z.ZodArray<z.ZodObject<{
+                label: z.ZodNullable<z.ZodString>;
+                providerKey: z.ZodNullable<z.ZodString>;
+                resetsAtMs: z.ZodNullable<z.ZodNumber>;
+                status: z.ZodEnum<{
+                    allowed: "allowed";
+                    blocked: "blocked";
+                    unknown: "unknown";
+                    warning: "warning";
+                }>;
+            }, z.core.$strip>>;
         }, z.core.$strip>;
     }, z.core.$strip>, z.ZodObject<{
-        kind: z.ZodLiteral<"provider.error">;
-        message: z.ZodString;
-        detail: z.ZodOptional<z.ZodString>;
-        willRetry: z.ZodOptional<z.ZodBoolean>;
         category: z.ZodOptional<z.ZodEnum<{
-            unknown: "unknown";
             "active-turn-not-steerable": "active-turn-not-steerable";
             "bad-request": "bad-request";
+            "budget-exceeded": "budget-exceeded";
             "connection-failed": "connection-failed";
             "context-window-exceeded": "context-window-exceeded";
-            billing: "billing";
-            "budget-exceeded": "budget-exceeded";
-            internal: "internal";
             "max-output-tokens": "max-output-tokens";
             "max-turns": "max-turns";
-            overloaded: "overloaded";
-            policy: "policy";
             "rate-limit": "rate-limit";
-            sandbox: "sandbox";
             "stream-disconnected": "stream-disconnected";
             "structured-output-retries": "structured-output-retries";
             "thread-rollback-failed": "thread-rollback-failed";
             "too-many-failed-attempts": "too-many-failed-attempts";
+            billing: "billing";
+            internal: "internal";
+            overloaded: "overloaded";
+            policy: "policy";
+            sandbox: "sandbox";
             unauthorized: "unauthorized";
+            unknown: "unknown";
         }>>;
+        detail: z.ZodOptional<z.ZodString>;
         errorInfo: z.ZodOptional<z.ZodObject<{
             category: z.ZodEnum<{
-                unknown: "unknown";
                 "active-turn-not-steerable": "active-turn-not-steerable";
                 "bad-request": "bad-request";
+                "budget-exceeded": "budget-exceeded";
                 "connection-failed": "connection-failed";
                 "context-window-exceeded": "context-window-exceeded";
-                billing: "billing";
-                "budget-exceeded": "budget-exceeded";
-                internal: "internal";
                 "max-output-tokens": "max-output-tokens";
                 "max-turns": "max-turns";
-                overloaded: "overloaded";
-                policy: "policy";
                 "rate-limit": "rate-limit";
-                sandbox: "sandbox";
                 "stream-disconnected": "stream-disconnected";
                 "structured-output-retries": "structured-output-retries";
                 "thread-rollback-failed": "thread-rollback-failed";
                 "too-many-failed-attempts": "too-many-failed-attempts";
+                billing: "billing";
+                internal: "internal";
+                overloaded: "overloaded";
+                policy: "policy";
+                sandbox: "sandbox";
                 unauthorized: "unauthorized";
+                unknown: "unknown";
             }>;
-            providerCode: z.ZodNullable<z.ZodString>;
             httpStatusCode: z.ZodNullable<z.ZodNumber>;
+            providerCode: z.ZodNullable<z.ZodString>;
         }, z.core.$strip>>;
-        settlesTurn: z.ZodOptional<z.ZodBoolean>;
+        kind: z.ZodLiteral<"provider.error">;
+        message: z.ZodString;
         providerTurnId: z.ZodOptional<z.ZodString>;
+        settlesTurn: z.ZodOptional<z.ZodBoolean>;
         threadScoped: z.ZodOptional<z.ZodBoolean>;
+        willRetry: z.ZodOptional<z.ZodBoolean>;
     }, z.core.$strip>, z.ZodObject<{
-        kind: z.ZodLiteral<"provider.modelFallback">;
-        originalModel: z.ZodString;
         fallbackModel: z.ZodString;
+        kind: z.ZodLiteral<"provider.modelFallback">;
+        message: z.ZodString;
+        originalModel: z.ZodString;
         reason: z.ZodEnum<{
             provider: "provider";
             refusal: "refusal";
         }>;
-        message: z.ZodString;
     }, z.core.$strip>, z.ZodObject<{
+        category: z.ZodOptional<z.ZodEnum<{
+            "compaction-skipped": "compaction-skipped";
+            config: "config";
+            deprecation: "deprecation";
+            general: "general";
+        }>>;
+        details: z.ZodOptional<z.ZodString>;
         kind: z.ZodLiteral<"provider.warning">;
         summary: z.ZodOptional<z.ZodString>;
-        details: z.ZodOptional<z.ZodString>;
-        category: z.ZodOptional<z.ZodEnum<{
-            deprecation: "deprecation";
-            config: "config";
-            general: "general";
-            "compaction-skipped": "compaction-skipped";
-        }>>;
         vouchedTurn: z.ZodOptional<z.ZodBoolean>;
     }, z.core.$strip>, z.ZodObject<{
         kind: z.ZodLiteral<"unhandled">;
+        onlyIfNoTurn: z.ZodOptional<z.ZodBoolean>;
+        parentRef: z.ZodOptional<z.ZodString>;
+        providerTurnId: z.ZodOptional<z.ZodString>;
         raw: z.ZodObject<{
-            jsonrpc: z.ZodLiteral<"2.0">;
             id: z.ZodOptional<z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>>;
+            jsonrpc: z.ZodLiteral<"2.0">;
             method: z.ZodString;
             params: z.ZodOptional<z.ZodType<JsonValue, unknown, z.core.$ZodTypeInternals<JsonValue, unknown>>>;
         }, z.core.$strip>;
         rawType: z.ZodString;
         vouchedTurn: z.ZodBoolean;
-        onlyIfNoTurn: z.ZodOptional<z.ZodBoolean>;
-        parentRef: z.ZodOptional<z.ZodString>;
-        providerTurnId: z.ZodOptional<z.ZodString>;
     }, z.core.$strip>, z.ZodObject<{
-        kind: z.ZodLiteral<"session.ended">;
-        reason: z.ZodEnum<{
-            interrupted: "interrupted";
-            replaced: "replaced";
-            exited: "exited";
-        }>;
         error: z.ZodOptional<z.ZodObject<{
             message: z.ZodString;
         }, z.core.$strip>>;
+        kind: z.ZodLiteral<"session.ended">;
+        reason: z.ZodEnum<{
+            exited: "exited";
+            interrupted: "interrupted";
+            replaced: "replaced";
+        }>;
     }, z.core.$strip>, z.ZodObject<{
         kind: z.ZodLiteral<"session.reset">;
     }, z.core.$strip>], "kind">>;
+    threadId: z.ZodString;
 }, z.core.$loose>;
 type ThreadDeltaNotificationParams = z.infer<typeof threadDeltaNotificationParamsSchema>;
 
@@ -3954,15 +3954,15 @@ interface SanitizeInheritedChildProcessEnvArgs {
 declare function sanitizeInheritedChildProcessEnv(args: SanitizeInheritedChildProcessEnvArgs): NodeJS.ProcessEnv;
 
 declare const hostDaemonAcpLaunchSpecSchema: z.ZodObject<{
-    displayName: z.ZodString;
-    command: z.ZodString;
     args: z.ZodArray<z.ZodString>;
-    env: z.ZodRecord<z.ZodString, z.ZodString>;
+    command: z.ZodString;
     cwd: z.ZodOptional<z.ZodString>;
+    displayName: z.ZodString;
+    env: z.ZodRecord<z.ZodString, z.ZodString>;
     modelCli: z.ZodOptional<z.ZodPipe<z.ZodObject<{
         listArgs: z.ZodArray<z.ZodString>;
-        selectFlag: z.ZodOptional<z.ZodString>;
         primaryModels: z.ZodArray<z.ZodString>;
+        selectFlag: z.ZodOptional<z.ZodString>;
     }, z.core.$strict>, z.ZodTransform<{
         listArgs: string[];
         primaryModels: string[];
@@ -3972,81 +3972,81 @@ declare const hostDaemonAcpLaunchSpecSchema: z.ZodObject<{
         primaryModels: string[];
         selectFlag?: string | undefined;
     }>>>;
-    reasoningCli: z.ZodOptional<z.ZodObject<{
-        flag: z.ZodString;
-        supportedLevels: z.ZodArray<z.ZodEnum<{
-            none: "none";
-            low: "low";
-            medium: "medium";
-            high: "high";
-            xhigh: "xhigh";
-            ultracode: "ultracode";
-            max: "max";
-            ultra: "ultra";
-        }>>;
-        levelValues: z.ZodOptional<z.ZodRecord<z.ZodEnum<{
-            none: "none";
-            low: "low";
-            medium: "medium";
-            high: "high";
-            xhigh: "xhigh";
-            ultracode: "ultracode";
-            max: "max";
-            ultra: "ultra";
-        }> & z.core.$partial, z.ZodString>>;
-        defaultLevel: z.ZodOptional<z.ZodEnum<{
-            none: "none";
-            low: "low";
-            medium: "medium";
-            high: "high";
-            xhigh: "xhigh";
-            ultracode: "ultracode";
-            max: "max";
-            ultra: "ultra";
-        }>>;
-    }, z.core.$strict>>;
     nativeReasoning: z.ZodOptional<z.ZodObject<{
         configId: z.ZodString;
-        supportedLevels: z.ZodArray<z.ZodEnum<{
-            none: "none";
-            low: "low";
-            medium: "medium";
+        defaultLevel: z.ZodOptional<z.ZodEnum<{
             high: "high";
-            xhigh: "xhigh";
-            ultracode: "ultracode";
+            low: "low";
             max: "max";
+            medium: "medium";
+            none: "none";
             ultra: "ultra";
+            ultracode: "ultracode";
+            xhigh: "xhigh";
         }>>;
         levelValues: z.ZodOptional<z.ZodRecord<z.ZodEnum<{
-            none: "none";
-            low: "low";
-            medium: "medium";
             high: "high";
-            xhigh: "xhigh";
-            ultracode: "ultracode";
+            low: "low";
             max: "max";
+            medium: "medium";
+            none: "none";
             ultra: "ultra";
+            ultracode: "ultracode";
+            xhigh: "xhigh";
         }> & z.core.$partial, z.ZodString>>;
-        defaultLevel: z.ZodOptional<z.ZodEnum<{
-            none: "none";
-            low: "low";
-            medium: "medium";
+        supportedLevels: z.ZodArray<z.ZodEnum<{
             high: "high";
-            xhigh: "xhigh";
-            ultracode: "ultracode";
+            low: "low";
             max: "max";
+            medium: "medium";
+            none: "none";
             ultra: "ultra";
+            ultracode: "ultracode";
+            xhigh: "xhigh";
         }>>;
     }, z.core.$strict>>;
     nativeSkillRoots: z.ZodOptional<z.ZodObject<{
-        user: z.ZodDefault<z.ZodArray<z.ZodString>>;
         project: z.ZodDefault<z.ZodArray<z.ZodString>>;
+        user: z.ZodDefault<z.ZodArray<z.ZodString>>;
     }, z.core.$strict>>;
     permissionCli: z.ZodOptional<z.ZodObject<{
         full: z.ZodOptional<z.ZodArray<z.ZodString>>;
-        workspaceWrite: z.ZodOptional<z.ZodArray<z.ZodString>>;
-        readonly: z.ZodOptional<z.ZodArray<z.ZodString>>;
         insertAfterArgs: z.ZodOptional<z.ZodNumber>;
+        readonly: z.ZodOptional<z.ZodArray<z.ZodString>>;
+        workspaceWrite: z.ZodOptional<z.ZodArray<z.ZodString>>;
+    }, z.core.$strict>>;
+    reasoningCli: z.ZodOptional<z.ZodObject<{
+        defaultLevel: z.ZodOptional<z.ZodEnum<{
+            high: "high";
+            low: "low";
+            max: "max";
+            medium: "medium";
+            none: "none";
+            ultra: "ultra";
+            ultracode: "ultracode";
+            xhigh: "xhigh";
+        }>>;
+        flag: z.ZodString;
+        levelValues: z.ZodOptional<z.ZodRecord<z.ZodEnum<{
+            high: "high";
+            low: "low";
+            max: "max";
+            medium: "medium";
+            none: "none";
+            ultra: "ultra";
+            ultracode: "ultracode";
+            xhigh: "xhigh";
+        }> & z.core.$partial, z.ZodString>>;
+        supportedLevels: z.ZodArray<z.ZodEnum<{
+            high: "high";
+            low: "low";
+            max: "max";
+            medium: "medium";
+            none: "none";
+            ultra: "ultra";
+            ultracode: "ultracode";
+            xhigh: "xhigh";
+        }>>;
     }, z.core.$strict>>;
 }, z.core.$strict>;
 type HostDaemonAcpLaunchSpec = z.infer<typeof hostDaemonAcpLaunchSpecSchema>;
