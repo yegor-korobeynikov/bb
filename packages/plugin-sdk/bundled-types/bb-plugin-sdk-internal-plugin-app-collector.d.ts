@@ -5,7 +5,7 @@
 // Confused by the API, or need a symbol that isn't here? Clone the BB repo
 // and read the real source: https://github.com/get-bb/bb
 
-import { PluginHomepageSectionRegistration, PluginSettingsSectionRegistration, PluginNavPanelRegistration, PluginThreadPanelActionRegistration, PluginNewThreadPanelActionRegistration, ComposerCustomization, PluginPendingInteractionRegistration, PluginSidebarFooterActionRegistration, PluginThreadListRegistration, PluginThreadHeaderActionRegistration, PluginFileOpenerRegistration, PluginMessageDirectiveRegistration, PluginMessageActionRegistration, PluginProviderIconRegistration, PluginContentScriptRegistration, PluginAppDefinition } from '@get-bb/plugin-sdk';
+import { PluginHomepageSectionRegistration, PluginSettingsSectionRegistration, PluginNavPanelRegistration, PluginThreadPanelActionRegistration, PluginNewThreadPanelActionRegistration, ComposerCustomization, PluginPendingInteractionRegistration, PluginSidebarFooterActionRegistration, PluginThreadListRegistration, PluginThreadHeaderActionRegistration, PluginFileOpenerRegistration, PluginSourceCodeRendererRegistration, PluginDiffRendererRegistration, PluginMessageDirectiveRegistration, PluginMessageActionRegistration, PluginProviderIconRegistration, PluginContentScriptRegistration, PluginAppDefinition } from '@get-bb/plugin-sdk';
 
 /** Validated registrations produced by one plugin app setup execution. */
 interface CollectedPluginAppRegistrations {
@@ -20,6 +20,8 @@ interface CollectedPluginAppRegistrations {
     threadLists: PluginThreadListRegistration[];
     threadHeaderActions: PluginThreadHeaderActionRegistration[];
     fileOpeners: PluginFileOpenerRegistration[];
+    sourceCodeRenderers: PluginSourceCodeRendererRegistration[];
+    diffRenderers: PluginDiffRendererRegistration[];
     messageDirectives: PluginMessageDirectiveRegistration[];
     messageActions: PluginMessageActionRegistration[];
     providerIcons: PluginProviderIconRegistration[];

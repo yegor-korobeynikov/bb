@@ -114,7 +114,11 @@ function renderModifiedCard(onRequestFileContents: RequestDiffFileContents) {
   render(
     <DiffFileCard
       entry={buildEntry()}
-      diffViewOptions={{}}
+      presentation={{
+        view: "unified",
+        overflow: "scroll",
+        showLineNumbers: true,
+      }}
       isCollapsed={false}
       onToggleCollapsed={() => {}}
       patchState={{ status: "loaded", patch: MODIFIED_PATCH, truncated: false }}
@@ -263,7 +267,11 @@ describe("DiffFileCard context expansion", () => {
           additions: 2,
           deletions: 0,
         })}
-        diffViewOptions={{}}
+        presentation={{
+        view: "unified",
+        overflow: "scroll",
+        showLineNumbers: true,
+      }}
         isCollapsed={false}
         onToggleCollapsed={() => {}}
         patchState={{ status: "loaded", patch: ADDED_PATCH, truncated: false }}

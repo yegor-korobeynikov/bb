@@ -6,14 +6,13 @@ import {
   isPatchMetadataLine,
   type FileChangeAction,
 } from "@bb/thread-view";
+import type { DiffPresentation } from "@/components/code/code-rendering";
 import { GitDiffCard } from "../../git-diff/GitDiffCard.js";
 import { EventCodeBlock } from "../../ui/event-code-block.js";
 import { TimelineDetailScroll } from "./TimelineDetailScroll.js";
-import type { ThreadTimelineTheme } from "./types.js";
 
 export interface TimelineFileDiffBlockProps {
   change: TimelineFileChange;
-  themeType: ThreadTimelineTheme;
   /**
    * Workspace root path the agent ran in (`environment.path`). When defined,
    * the prefix is stripped from `change.path`/`change.movePath` before the
@@ -27,6 +26,7 @@ export interface TimelineFileDiffBlockProps {
 interface RenderablePatch {
   disableLineNumbers: boolean;
   fileDiff: FileDiffMetadata;
+  patch: string;
 }
 
 interface RenderablePatchText {
@@ -40,11 +40,6 @@ interface RenderedFileChange {
 }
 
 type SyntheticPatchAction = "created" | "deleted";
-
-const DIFF_VIEW_BASE_OPTIONS = {
-  overflow: "scroll",
-  diffStyle: "unified",
-} as const;
 
 const renderedFileChangeCache = new WeakMap<
   TimelineFileChange,
@@ -197,6 +192,7 @@ function parseRenderablePatch(
     return {
       disableLineNumbers: patchText.disableLineNumbers,
       fileDiff,
+      patch: patchText.patch,
     };
   } catch {
     return null;
@@ -237,7 +233,6 @@ function buildRenderedFileChange(
 
 export const TimelineFileDiffBlock = memo(function TimelineFileDiffBlock({
   change,
-  themeType,
   workspaceRootPath,
 }: TimelineFileDiffBlockProps) {
   const renderedChange = useMemo(
@@ -245,16 +240,16 @@ export const TimelineFileDiffBlock = memo(function TimelineFileDiffBlock({
     [change],
   );
   const renderablePatch = renderedChange.renderablePatch;
-  const cardDiffViewOptions = useMemo(
+  const cardPresentation = useMemo<DiffPresentation | null>(
     () =>
       renderablePatch
         ? {
-            ...DIFF_VIEW_BASE_OPTIONS,
-            themeType,
-            disableLineNumbers: renderablePatch.disableLineNumbers,
+            view: "unified",
+            overflow: "scroll",
+            showLineNumbers: !renderablePatch.disableLineNumbers,
           }
         : null,
-    [renderablePatch, themeType],
+    [renderablePatch],
   );
 
   if (renderablePatch === null && renderedChange.plainDiff === null) {
@@ -267,7 +262,7 @@ export const TimelineFileDiffBlock = memo(function TimelineFileDiffBlock({
 
   const diffContentKey = `${renderablePatch ? "p" : "n"}:${renderedChange.plainDiff?.length ?? 0}`;
 
-  if (renderablePatch && cardDiffViewOptions) {
+  if (renderablePatch && cardPresentation) {
     return (
       <TimelineDetailScroll
         size="base"
@@ -279,7 +274,8 @@ export const TimelineFileDiffBlock = memo(function TimelineFileDiffBlock({
         <div data-timeline-file-diff="">
           <GitDiffCard
             fileDiff={renderablePatch.fileDiff}
-            diffViewOptions={cardDiffViewOptions}
+            patchText={renderablePatch.patch}
+            presentation={cardPresentation}
             filePathRoot={workspaceRootPath}
             cardClassName="rounded-none border-0 bg-transparent"
             showStuckHeaderEdge={false}
