@@ -13,6 +13,7 @@ import {
   turnSteerParamsSchema as canonicalTurnSteerParamsSchema,
   skillsConfigureParamsSchema,
   bridgeRequestEnvelopeSchema,
+  experimental_providerMaintenanceParamsSchema,
 } from "@get-bb/plugin-sdk/provider-bridge";
 import { z } from "zod";
 import { claudePermissionModeSchema } from "../interactive-contract.js";
@@ -123,6 +124,14 @@ const claudeCodeCommandSchema = z.discriminatedUnion("method", [
   z.object({
     method: z.literal("model/list"),
     params: z.object({}),
+  }),
+  z.object({
+    method: z.literal("provider/health"),
+    params: experimental_providerMaintenanceParamsSchema,
+  }),
+  z.object({
+    method: z.literal("provider/usage"),
+    params: experimental_providerMaintenanceParamsSchema,
   }),
   z.object({
     method: z.literal("thread/start"),

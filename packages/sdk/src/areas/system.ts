@@ -16,8 +16,8 @@ import type {
   SystemCliSkillsStatusResponse,
   SystemInstallCliSkillsRequest,
   SystemInstallCliSkillsResponse,
-  OnboardingAgentOverview,
   OnboardingTelemetryEvent,
+  SystemProviderStatesResponse,
   SystemProvidersQuery,
   SystemOnboardingReposQuery,
   SystemUsageLimitsQuery,
@@ -72,13 +72,13 @@ export type SystemUpdateExperimentsResult = Experiments;
 export type SystemUpdateGeneralSettingsResult = AppSettings;
 export type SystemUpdateKeyboardSettingsResult = AppKeybindingOverrides;
 export type SystemUsageLimitsResult = ProviderUsageResponse;
-export interface SystemOnboardingArgs extends SystemProvidersQuery {
+export interface SystemProviderStatesArgs extends SystemProvidersQuery {
   signal?: AbortSignal;
 }
 export interface SystemOnboardingReposArgs extends SystemOnboardingReposQuery {
   signal?: AbortSignal;
 }
-export type SystemOnboardingAgentsResult = OnboardingAgentOverview;
+export type SystemProviderStatesResult = SystemProviderStatesResponse;
 export type SystemOnboardingReposResult = DiscoverReposResult;
 export type SystemVersionResult = SystemVersionResponse;
 
@@ -113,10 +113,10 @@ export interface SystemArea {
   ): Promise<SystemUpdateKeyboardSettingsResult>;
   /** Report one onboarding funnel event to anonymous telemetry. */
   onboardingEvent(args: OnboardingTelemetryEvent): Promise<{ ok: true }>;
-  /** Live agent state for onboarding: install, auth, and plan per provider. */
-  onboardingAgents(
-    args?: SystemOnboardingArgs,
-  ): Promise<SystemOnboardingAgentsResult>;
+  /** Live host-local install and authentication state for every provider. */
+  providerStates(
+    args?: SystemProviderStatesArgs,
+  ): Promise<SystemProviderStatesResult>;
   /** Candidate projects discovered on the host, ranked for onboarding. */
   onboardingRepos(
     args?: SystemOnboardingReposArgs,
@@ -224,9 +224,9 @@ export function createSystemArea(args: CreateSdkAreaArgs): SystemArea {
         transport.api.v1.system.onboarding.event.$post({ json: input }),
       );
     },
-    async onboardingAgents(input = {}) {
+    async providerStates(input = {}) {
       return transport.readJson(
-        transport.api.v1.system.onboarding.agents.$get(
+        transport.api.v1.system.providers.state.$get(
           {
             query: {
               environmentId: input.environmentId,

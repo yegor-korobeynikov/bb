@@ -91,6 +91,10 @@ import {
   type TurnSteerParams,
 } from "./commands.js";
 import {
+  getClaudeProviderHealth,
+  getClaudeProviderUsage,
+} from "./provider-maintenance.js";
+import {
   buildReadonlyDenialMessage,
   buildMutableFlagSettings,
   buildSessionOptions,
@@ -423,9 +427,7 @@ function resolvePendingSessionWork(
   resolvePendingInteractiveRequests(threadSession, message);
 }
 
-function createForwardToolCall(
-  getThreadId: () => string,
-): ToolCallForwarder {
+function createForwardToolCall(getThreadId: () => string): ToolCallForwarder {
   return (toolName, args) => {
     const threadId = getThreadId();
     const threadSession = sessions.get(threadId);
@@ -463,7 +465,9 @@ async function closeThreadSession(args: {
   threadSession.closing = true;
   resolvePendingSessionWork(threadSession, args.message);
   const closePromise = Promise.resolve()
-    .then(() => closeClaudeThreadSession(threadSession, args.graceful !== false))
+    .then(() =>
+      closeClaudeThreadSession(threadSession, args.graceful !== false),
+    )
     .finally(() => {
       if (sessions.get(args.threadId) === threadSession) {
         sessions.delete(args.threadId);
@@ -2014,12 +2018,20 @@ async function handleRequest(request: ClaudeCodeJsonRpcRequest): Promise<void> {
           threadGoalClear: false,
           fork: "checkpoint",
           approvalEnforcedBy: "provider",
+          experimentalProviderHealth: true,
+          experimentalProviderUsage: true,
         },
       };
       sendResult(request.id, result);
       break;
     case "model/list":
       sendResult(request.id, await listModelsMemoized());
+      break;
+    case "provider/health":
+      sendResult(request.id, await getClaudeProviderHealth());
+      break;
+    case "provider/usage":
+      sendResult(request.id, await getClaudeProviderUsage());
       break;
     case "thread/start":
       await handleThreadStart(
@@ -2308,8 +2320,6 @@ async function handleThreadFork(
     sessionRestorable: true,
   });
 }
-
-
 
 /**
  * Session-construction params for a start, resume, or fork, with this

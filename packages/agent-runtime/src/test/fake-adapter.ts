@@ -31,7 +31,8 @@ import {
 } from "../provider-adapter.js";
 import { parseAvailableModelList } from "../shared/available-models.js";
 import { classifySessionExecutionSettingsChange } from "../execution-options.js";
-type FakeUserQuestionCapability = ProviderCapabilities["supportsNativeUserQuestion"];
+type FakeUserQuestionCapability =
+  ProviderCapabilities["supportsNativeUserQuestion"];
 
 export interface CreateFakeProviderExecutionContext {
   displayName?: string;
@@ -207,6 +208,9 @@ function buildCommandPlan(command: AdapterCommand): ProviderCommandPlan {
           threadId: command.threadId,
         },
       };
+    case "provider/health":
+    case "provider/usage":
+      return { kind: "noop", reason: `${command.type} unsupported` };
     default: {
       const _exhaustive: never = command;
       throw new Error(`Unhandled fake adapter command: ${String(_exhaustive)}`);
@@ -480,7 +484,8 @@ export function createFakeAdapter(
    *   when the adapter is configured with `supportsNativeUserQuestion: true`.
    * - remaining text is echoed back as `Response to: ...`.
    */
-  const supportsNativeUserQuestion = options.supportsNativeUserQuestion ?? false;
+  const supportsNativeUserQuestion =
+    options.supportsNativeUserQuestion ?? false;
 
   return {
     approvalEnforcedBy: "runtime",

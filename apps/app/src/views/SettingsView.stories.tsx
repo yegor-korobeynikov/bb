@@ -90,8 +90,8 @@ function futureIso(minutesFromNow: number): string {
 
 const usageFixture: {
   codex: ProviderUsage;
-  claudeCode: ProviderUsage;
-  cursor: ProviderUsage;
+  "claude-code": ProviderUsage;
+  "acp-cursor": ProviderUsage;
 } = {
   codex: {
     status: "ok",
@@ -110,7 +110,7 @@ const usageFixture: {
       },
     ],
   },
-  claudeCode: {
+  "claude-code": {
     status: "ok",
     accountEmail: "sawyer@example.com",
     planLabel: "Max (20x)",
@@ -127,7 +127,7 @@ const usageFixture: {
       },
     ],
   },
-  cursor: {
+  "acp-cursor": {
     status: "ok",
     accountEmail: "sawyer@example.com",
     planLabel: "Pro",

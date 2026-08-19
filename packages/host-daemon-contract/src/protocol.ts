@@ -1,3 +1,7 @@
+// Version 136 adds generic provider.health and changes provider.usage from one
+// fixed three-provider result into a provider-targeted bridge query. Older
+// daemons cannot parse either command shape.
+//
 // Version 135 adds the `compaction-skipped` provider warning category. The Pi
 // bridge now reports a refused manual compaction ("Nothing to compact") as
 // that warning plus a completed turn instead of a failed turn. An older daemon
@@ -44,7 +48,7 @@
 //
 // The version mismatch is what triggers the enrolled daemon's automatic update
 // instead of an `invalid-message` reconnect loop.
-export const HOST_DAEMON_PROTOCOL_VERSION = 135 as const;
+export const HOST_DAEMON_PROTOCOL_VERSION = 136 as const;
 
 /**
  * Absolute ceiling for any executable artifact delivered to a host daemon —

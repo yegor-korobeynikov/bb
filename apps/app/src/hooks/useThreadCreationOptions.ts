@@ -28,7 +28,7 @@ import {
 } from "@bb/domain";
 import { selectPrimaryHost, useHosts } from "./queries/host-queries";
 import {
-  useOnboardingAgents,
+  useSystemProviderStates,
   useSystemConfig,
   useSystemExecutionOptions,
 } from "./queries/system-queries";
@@ -196,7 +196,7 @@ export function useThreadCreationOptions(
     initialPermissionMode,
     initialReasoningLevel,
     initialServiceTier,
-    preferConnectedProviderWhenUnset = false,
+    preferReadyProviderWhenUnset = false,
     preferenceProjectId,
     resolveProviderRouting,
     resetKey,
@@ -283,7 +283,7 @@ export function useThreadCreationOptions(
     usesLocalThreadSelections,
   ]);
 
-  const selectedProviderIdBeforeConnectedFallback = usesStoredCreateSelections
+  const selectedProviderIdBeforeReadyFallback = usesStoredCreateSelections
     ? storedProviderId || renderedThreadSelections.selectedProviderId
     : renderedThreadSelections.selectedProviderId;
   const rawServiceTier = usesStoredCreateSelections
@@ -309,23 +309,23 @@ export function useThreadCreationOptions(
         providerId: selectedProviderIdBeforeConnectedFallback,
         scope,
       });
-  const shouldResolveConnectedProvider =
+  const shouldResolveReadyProvider =
     executionOptionsQueryEnabled &&
     scope === "new-thread" &&
-    preferConnectedProviderWhenUnset &&
-    selectedProviderIdBeforeConnectedFallback.length === 0;
-  const connectedAgentsQuery = useOnboardingAgents({
-    enabled: shouldResolveConnectedProvider,
+    preferReadyProviderWhenUnset &&
+    selectedProviderIdBeforeReadyFallback.length === 0;
+  const providerStatesQuery = useSystemProviderStates({
+    enabled: shouldResolveReadyProvider,
     ...executionOptionsRouting,
     poll: false,
   });
-  const connectedProviderId = shouldResolveConnectedProvider
-    ? connectedAgentsQuery.data?.agents.find(
-        (agent) => agent.status === "connected",
+  const readyProviderId = shouldResolveReadyProvider
+    ? providerStatesQuery.data?.providers.find(
+        (provider) => provider.status === "ready",
       )?.providerId
     : undefined;
   const rawSelectedProviderId =
-    selectedProviderIdBeforeConnectedFallback || connectedProviderId || "";
+    selectedProviderIdBeforeReadyFallback || readyProviderId || "";
   // Omission delegates the no-selection fallback to the server, whose product
   // default comes from the same provider catalog that orders the picker.
   const executionOptionsProviderId = executionOptionsQueryEnabled
@@ -345,7 +345,7 @@ export function useThreadCreationOptions(
       (executionOptionsQuery.isPlaceholderData &&
         (executionOptionsQuery.data?.models.length ?? 0) === 0));
   const isResolvingInitialProvider =
-    shouldResolveConnectedProvider && connectedAgentsQuery.isPending;
+    shouldResolveReadyProvider && providerStatesQuery.isPending;
   const modelLoadError =
     executionOptionsQuery.data?.modelLoadError ?? NO_MODEL_LOAD_ERROR;
   const modelLoadFailed =
@@ -655,9 +655,9 @@ export function useThreadCreationOptions(
   const touchedFieldsPendingReset =
     usesLocalThreadSelections && threadResetKeyRef.current !== resetKey;
   const effectiveInitialProviderSource: ExecutionInputFieldSource | undefined =
-    shouldResolveConnectedProvider &&
-    connectedProviderId !== undefined &&
-    effectiveProviderId === connectedProviderId
+    shouldResolveReadyProvider &&
+    readyProviderId !== undefined &&
+    effectiveProviderId === readyProviderId
       ? "client-preference"
       : undefined;
   const executionInputSources = useMemo(

@@ -15,6 +15,10 @@ import type {
   ToolCallResponse,
 } from "@bb/domain";
 import type { HostDaemonAcpLaunchSpec } from "@bb/host-daemon-contract";
+import type {
+  ExperimentalProviderHealthResult,
+  ExperimentalProviderUsageResult,
+} from "@bb/provider-bridge-protocol";
 
 export type AgentRuntimeShellEnvironment = Record<string, string>;
 
@@ -358,6 +362,13 @@ export interface ListModelsArgs {
   cwd?: string;
 }
 
+export interface ProviderMaintenanceArgs {
+  providerId: string;
+  acpLaunchSpec?: HostDaemonAcpLaunchSpec;
+  bridgeLaunch?: AgentRuntimeBridgeLaunch;
+  cwd?: string;
+}
+
 export interface AgentRuntime {
   ensureProvider(args: EnsureProviderArgs): Promise<void>;
 
@@ -395,6 +406,14 @@ export interface AgentRuntime {
     models: AvailableModel[];
     selectedOnlyModels: AvailableModel[];
   }>;
+
+  providerHealth(
+    args: ProviderMaintenanceArgs,
+  ): Promise<ExperimentalProviderHealthResult>;
+
+  providerUsage(
+    args: ProviderMaintenanceArgs,
+  ): Promise<ExperimentalProviderUsageResult>;
 
   listRunningProviders(): string[];
 

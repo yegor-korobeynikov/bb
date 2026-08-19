@@ -60,6 +60,12 @@ export {
   PROVIDER_BRIDGE_PROTOCOL_VERSION,
   initializeParamsSchema,
   modelListParamsSchema,
+  experimental_providerHealthResultSchema,
+  experimental_providerHealthSchema,
+  experimental_providerMaintenanceParamsSchema,
+  experimental_providerUsageResultSchema,
+  experimental_providerUsageSchema,
+  experimental_providerUsageWindowSchema,
   skillsConfigureParamsSchema,
   threadArchiveParamsSchema,
   threadDiscardParamsSchema,
@@ -76,6 +82,12 @@ export {
 } from "@bb/provider-bridge-protocol";
 export type {
   BridgeExecutionOptions,
+  ExperimentalProviderHealth,
+  ExperimentalProviderHealthResult,
+  ExperimentalProviderMaintenanceParams,
+  ExperimentalProviderUsage,
+  ExperimentalProviderUsageResult,
+  ExperimentalProviderUsageWindow,
   InitializeResult,
 } from "@bb/provider-bridge-protocol";
 

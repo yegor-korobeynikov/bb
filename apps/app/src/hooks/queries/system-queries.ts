@@ -16,7 +16,7 @@ import type {
   SystemCliSkillsStatusResponse,
   SystemConfigResponse,
   SystemExecutionOptionsResponse,
-  OnboardingAgentOverview,
+  SystemProviderStatesResponse,
   SystemVersionResponse,
 } from "@bb/server-contract";
 import type {
@@ -34,11 +34,11 @@ import { useSystemRealtimeSubscription } from "@/hooks/useRealtimeSubscription";
 import {
   hostProviderCliStatusQueryKey,
   systemCliSkillsQueryKey,
-  onboardingAgentsQueryKey,
   onboardingReposQueryKey,
   systemConfigQueryKey,
   systemExecutionOptionsQueryKey,
   systemProvidersQueryKey,
+  systemProviderStatesQueryKey,
   systemUsageLimitsQueryKey,
   systemVersionQueryKey,
 } from "./query-keys";
@@ -56,7 +56,7 @@ export interface UseSystemExecutionOptionsArgs {
   providerId?: string;
 }
 
-export interface UseOnboardingAgentsOptions extends QueryOptions {
+export interface UseSystemProviderStatesOptions extends QueryOptions {
   environmentId?: string;
   hostId?: string;
   poll?: boolean;
@@ -523,26 +523,25 @@ export function useHostProviderCliStatus({
   });
 }
 
-/**
- * Live agent state for onboarding. Polled while the step is open so installing
- * or signing in from a terminal updates the list without a manual refresh.
- */
-export function useOnboardingAgents(options: UseOnboardingAgentsOptions = {}) {
+/** Live provider readiness for onboarding and unset composer selection. */
+export function useSystemProviderStates(
+  options: UseSystemProviderStatesOptions = {},
+) {
   const environmentId = options.environmentId ?? null;
   const hostId = options.hostId ?? null;
-  return useQuery<OnboardingAgentOverview>({
-    queryKey: onboardingAgentsQueryKey({ environmentId, hostId }),
+  return useQuery<SystemProviderStatesResponse>({
+    queryKey: systemProviderStatesQueryKey({ environmentId, hostId }),
     queryFn: ({ signal }) =>
-      sdk.system.onboardingAgents({
+      sdk.system.providerStates({
         environmentId: options.environmentId,
         hostId: options.hostId,
         signal,
       }),
     enabled: options.enabled ?? true,
-    // Each read runs CLI health checks, known-agent checks, and up to three
-    // provider usage requests, so this polls slowly and only while the agents
-    // step is actually on screen. An explicit re-check covers the impatient
-    // case. Other readers (the composer's provider default) want one answer.
+    // Each read starts sessionless bridge health checks, so this polls slowly
+    // and only while onboarding's provider step is actually on screen. An
+    // explicit re-check covers the impatient case. Other readers (the root
+    // composer's provider default) want one answer.
     ...(options.poll === false
       ? { staleTime: 60_000 }
       : { refetchInterval: 15_000 }),

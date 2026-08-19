@@ -81,6 +81,10 @@ import {
   type AcpSkillRoot,
 } from "../session-params.js";
 import {
+  getAcpProviderHealth,
+  getAcpProviderUsage,
+} from "./provider-maintenance.js";
+import {
   ACP_PROTOCOL_VERSION,
   type AcpConfigOption,
   acpConfigStateResultSchema,
@@ -2233,6 +2237,8 @@ async function handleRequest(
           threadGoalClear: false,
           fork: "tip",
           approvalEnforcedBy: "runtime",
+          experimentalProviderHealth: true,
+          experimentalProviderUsage: true,
         },
       };
       sendResult(request.id, result);
@@ -2249,6 +2255,30 @@ async function handleRequest(
         ),
       );
       return;
+
+    case "provider/health": {
+      const profile = decodeLaunchProfile(request.params.providerOptions);
+      sendResult(
+        request.id,
+        await getAcpProviderHealth({
+          providerId: request.params.providerId,
+          command: profile?.agentCommand.command ?? null,
+        }),
+      );
+      return;
+    }
+
+    case "provider/usage": {
+      const profile = decodeLaunchProfile(request.params.providerOptions);
+      sendResult(
+        request.id,
+        await getAcpProviderUsage({
+          providerId: request.params.providerId,
+          command: profile?.agentCommand.command ?? null,
+        }),
+      );
+      return;
+    }
 
     case "thread/start":
     case "thread/resume":

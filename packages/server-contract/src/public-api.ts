@@ -154,7 +154,7 @@ import type {
   SystemExecutionOptionsResponse,
   SystemProviderInfo,
   SystemProvidersQuery,
-  OnboardingAgentOverview,
+  SystemProviderStatesResponse,
   OnboardingTelemetryEvent,
   SystemOnboardingReposQuery,
   SystemUsageLimitsQuery,
@@ -1414,13 +1414,13 @@ export const publicApiRoutes = {
       ),
       response: jsonResponse<{ ok: true }>(),
     }),
-    onboardingAgents: defineRoute({
-      path: "/system/onboarding/agents",
+    providerStates: defineRoute({
+      path: "/system/providers/state",
       method: "get",
       request: optionalQueryRequest<EmptyInput, SystemProvidersQuery>(
         systemProvidersQuerySchema,
       ),
-      response: jsonResponse<OnboardingAgentOverview>(),
+      response: jsonResponse<SystemProviderStatesResponse>(),
     }),
     onboardingRepos: defineRoute({
       path: "/system/onboarding/repos",

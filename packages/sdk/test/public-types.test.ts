@@ -301,11 +301,7 @@ type ExpectedPluginsKey =
   | "token"
   | "updateSettings";
 
-type ExpectedPluginCatalogKey =
-  | "install"
-  | "installPlan"
-  | "search"
-  | "status";
+type ExpectedPluginCatalogKey = "install" | "installPlan" | "search" | "status";
 
 type ExpectedPluginMarketplacesKey = "add" | "list" | "refresh" | "remove";
 
@@ -344,7 +340,7 @@ type ExpectedSystemKey =
   | "updateExperiments"
   | "updateGeneralSettings"
   | "updateKeyboardSettings"
-  | "onboardingAgents"
+  | "providerStates"
   | "onboardingEvent"
   | "onboardingRepos"
   | "usageLimits"

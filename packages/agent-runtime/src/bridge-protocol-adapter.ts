@@ -58,8 +58,10 @@ import type { AgentRuntimeSkillRoot } from "./types.js";
  * public {@link ProviderAdapter.capabilities}, and keeps the ladder to bound
  * what the initialize handshake may claim.
  */
-export interface BridgeAdapterCapabilities
-  extends Omit<ProviderCapabilities, "supportsFork" | "supportsSessionRewind"> {
+export interface BridgeAdapterCapabilities extends Omit<
+  ProviderCapabilities,
+  "supportsFork" | "supportsSessionRewind"
+> {
   fork: ProviderFork;
 }
 
@@ -259,6 +261,30 @@ export function createBridgeProtocolAdapter(
                 : {}),
             },
           };
+        case "provider/health":
+          return gate("experimentalProviderHealth", {
+            kind: "request",
+            method: BRIDGE_REQUEST_METHODS.experimentalProviderHealth,
+            params: {
+              providerId: options.id,
+              ...(command.cwd !== undefined ? { cwd: command.cwd } : {}),
+              ...(options.staticProviderOptions !== undefined
+                ? { providerOptions: options.staticProviderOptions }
+                : {}),
+            },
+          });
+        case "provider/usage":
+          return gate("experimentalProviderUsage", {
+            kind: "request",
+            method: BRIDGE_REQUEST_METHODS.experimentalProviderUsage,
+            params: {
+              providerId: options.id,
+              ...(command.cwd !== undefined ? { cwd: command.cwd } : {}),
+              ...(options.staticProviderOptions !== undefined
+                ? { providerOptions: options.staticProviderOptions }
+                : {}),
+            },
+          });
         case "skills/configure":
           return {
             kind: "request",

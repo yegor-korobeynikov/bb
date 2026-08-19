@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import type { OnboardingAgent } from "@bb/server-contract";
+import type { SystemProviderState } from "@bb/server-contract";
 import type { DiscoveredRepo } from "@bb/host-daemon-contract";
 import { Badge } from "@bb/shared-ui/badge";
 import { Button } from "@bb/shared-ui/button";
@@ -20,7 +20,7 @@ import { getProviderIconInfo } from "@/lib/provider-icon";
 import { useLocalPathPicker } from "@/hooks/useLocalPathPicker";
 import { ProjectPathDialog } from "@/components/dialogs/ProjectPathDialog";
 import {
-  useOnboardingAgents,
+  useSystemProviderStates,
   useOnboardingRepos,
 } from "@/hooks/queries/system-queries";
 
@@ -53,7 +53,7 @@ export interface OnboardingFlowProps {
   onEvent?: (event: OnboardingUiEvent) => void;
 
   /** Starts the managed CLI install; resolves when the job is queued. */
-  onInstallAgent: (agent: OnboardingAgent) => void;
+  onInstallAgent: (agent: SystemProviderState) => void;
   /** Set of provider ids with an install running or queued. */
   installing: ReadonlySet<string>;
 }
@@ -109,9 +109,9 @@ function StepDots({ current }: { current: number }) {
 }
 
 function agentStateOf(
-  agents: readonly OnboardingAgent[],
+  agents: readonly SystemProviderState[],
 ): OnboardingAgentState {
-  if (agents.some((agent) => agent.status === "connected")) return "connected";
+  if (agents.some((agent) => agent.status === "ready")) return "connected";
   if (agents.some((agent) => agent.status !== "not_installed"))
     return "signed_out";
   return "none";
@@ -125,8 +125,8 @@ function AgentRows({
   onToggleSignIn,
   onRecheck,
 }: {
-  agents: readonly OnboardingAgent[];
-  onInstall: (agent: OnboardingAgent) => void;
+  agents: readonly SystemProviderState[];
+  onInstall: (agent: SystemProviderState) => void;
   installing: ReadonlySet<string>;
   expandedSignIn: string | null;
   onToggleSignIn: (providerId: string | null) => void;
@@ -136,7 +136,7 @@ function AgentRows({
     <Card>
       {agents.map((agent) => {
         const isInstalling = installing.has(agent.providerId);
-        const connected = agent.status === "connected";
+        const connected = agent.status === "ready";
         const needsAuth =
           !isInstalling &&
           (agent.status === "unauthenticated" || agent.status === "expired");
@@ -149,7 +149,11 @@ function AgentRows({
               ? "Session expired"
               : agent.status === "unauthenticated"
                 ? "Not signed in"
-                : "Not installed";
+                : agent.status === "unsupported_version"
+                  ? "Update required"
+                  : agent.status === "unknown"
+                    ? "Status unavailable"
+                    : "Not installed";
         return (
           <div key={agent.providerId}>
             <div
@@ -222,6 +226,17 @@ function AgentRows({
                   >
                     Install
                   </Button>
+                ) : agent.status === "unsupported_version" &&
+                  agent.canUpdate &&
+                  !isInstalling ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => onInstall(agent)}
+                  >
+                    Update
+                  </Button>
                 ) : null}
               </div>
             </div>
@@ -280,20 +295,20 @@ export function OnboardingFlow({
 
   // Poll only while the agents step is visible; the projects step has no use
   // for it and each read is several host round-trips.
-  const agentsQuery = useOnboardingAgents({ poll: step === 0 });
+  const providerStatesQuery = useSystemProviderStates({ poll: step === 0 });
   // Re-read after a terminal sign-in rather than waiting out the poll. Using the
   // query's own refetch keeps cache writes inside the query layer.
   const recheck = useCallback(() => {
-    void agentsQuery.refetch();
-  }, [agentsQuery]);
+    void providerStatesQuery.refetch();
+  }, [providerStatesQuery]);
   const reposQuery = useOnboardingRepos({ enabled: step === 1 });
 
   const agents = useMemo(
-    () => agentsQuery.data?.agents ?? [],
-    [agentsQuery.data],
+    () => providerStatesQuery.data?.providers ?? [],
+    [providerStatesQuery.data],
   );
   const agentState = agentStateOf(agents);
-  const scanningAgents = agentsQuery.isPending;
+  const scanningAgents = providerStatesQuery.isPending;
 
   // Only a machine with nothing installed is asked to install something.
   const nothingInstalled =
@@ -301,13 +316,14 @@ export function OnboardingFlow({
     agents.length > 0 &&
     agents.every((agent) => agent.status === "not_installed");
   const canContinue =
-    !scanningAgents && agents.some((agent) => agent.status === "connected");
+    !scanningAgents && agents.some((agent) => agent.status === "ready");
 
   useEffect(() => {
     if (startedReported || scanningAgents) return;
     // A failed probe is not evidence of an empty machine; reporting it would
     // inflate `agent_state: none`, the metric this event exists to answer.
-    if (agentsQuery.isError || agentsQuery.data === undefined) return;
+    if (providerStatesQuery.isError || providerStatesQuery.data === undefined)
+      return;
     setStartedReported(true);
     onEvent?.({
       name: "started",
@@ -318,8 +334,8 @@ export function OnboardingFlow({
   }, [
     agentState,
     agents,
-    agentsQuery.data,
-    agentsQuery.isError,
+    providerStatesQuery.data,
+    providerStatesQuery.isError,
     onEvent,
     scanningAgents,
     startedReported,

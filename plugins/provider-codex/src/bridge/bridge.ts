@@ -43,6 +43,7 @@ import {
   BRIDGE_NOTIFICATION_METHODS,
   PROVIDER_BRIDGE_PROTOCOL_VERSION,
   modelListParamsSchema,
+  experimental_providerMaintenanceParamsSchema,
   skillsConfigureParamsSchema,
   threadArchiveParamsSchema,
   threadDiscardParamsSchema,
@@ -100,6 +101,10 @@ import {
   type CodexAppServerExitInfo,
   type CodexAppServerRequestResponder,
 } from "./app-server-connection.js";
+import {
+  getCodexProviderHealth,
+  getCodexProviderUsage,
+} from "./provider-maintenance.js";
 
 // ---------------------------------------------------------------------------
 // Command schema — reply-never-drop (#853)
@@ -116,6 +121,14 @@ const codexBridgeCommandSchema = z.discriminatedUnion("method", [
       .passthrough(),
   }),
   z.object({ method: z.literal("model/list"), params: modelListParamsSchema }),
+  z.object({
+    method: z.literal("provider/health"),
+    params: experimental_providerMaintenanceParamsSchema,
+  }),
+  z.object({
+    method: z.literal("provider/usage"),
+    params: experimental_providerMaintenanceParamsSchema,
+  }),
   z.object({
     method: z.literal("thread/start"),
     params: threadStartParamsSchema,
@@ -1430,6 +1443,8 @@ function handleInitialize(id: string | number): void {
       threadGoalClear: true,
       fork: "checkpoint",
       approvalEnforcedBy: "runtime",
+      experimentalProviderHealth: true,
+      experimentalProviderUsage: true,
     },
   };
   sendResult(id, result);
@@ -1900,6 +1915,12 @@ async function handleRequest(
       break;
     case "model/list":
       await handleModelList(request.id);
+      break;
+    case "provider/health":
+      sendResult(request.id, await getCodexProviderHealth());
+      break;
+    case "provider/usage":
+      sendResult(request.id, await getCodexProviderUsage());
       break;
     case "thread/start":
       await handleThreadConstruction(request.id, request.params, {

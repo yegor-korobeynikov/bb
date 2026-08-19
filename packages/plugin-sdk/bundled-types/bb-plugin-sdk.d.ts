@@ -3339,83 +3339,32 @@ declare const environmentDiffPatchRequestSchema: z$1.ZodObject<{
 type EnvironmentDiffPatchRequest = z$1.infer<typeof environmentDiffPatchRequestSchema>;
 type EnvironmentStatusResponse = z$1.infer<typeof environmentStatusResponseSchema>;
 
-declare const providerUsageResponseSchema: z$1.ZodObject<{
-    claudeCode: z$1.ZodDiscriminatedUnion<[z$1.ZodObject<{
-        accountEmail: z$1.ZodNullable<z$1.ZodString>;
-        planLabel: z$1.ZodNullable<z$1.ZodString>;
-        status: z$1.ZodLiteral<"ok">;
-        windows: z$1.ZodArray<z$1.ZodObject<{
-            cost: z$1.ZodOptional<z$1.ZodObject<{
-                limitUsdCents: z$1.ZodNumber;
-                usedUsdCents: z$1.ZodNumber;
-            }, z$1.core.$strip>>;
-            label: z$1.ZodString;
-            resetsAt: z$1.ZodNullable<z$1.ZodString>;
-            usedPercent: z$1.ZodNumber;
+/** Provider-id keyed usage returned by the public server aggregation route. */
+declare const providerUsageResponseSchema: z$1.ZodRecord<z$1.ZodString, z$1.ZodDiscriminatedUnion<[z$1.ZodObject<{
+    accountEmail: z$1.ZodNullable<z$1.ZodString>;
+    planLabel: z$1.ZodNullable<z$1.ZodString>;
+    status: z$1.ZodLiteral<"ok">;
+    windows: z$1.ZodArray<z$1.ZodObject<{
+        cost: z$1.ZodOptional<z$1.ZodObject<{
+            limitUsdCents: z$1.ZodNumber;
+            usedUsdCents: z$1.ZodNumber;
         }, z$1.core.$strip>>;
-    }, z$1.core.$strip>, z$1.ZodObject<{
-        status: z$1.ZodLiteral<"not_installed">;
-    }, z$1.core.$strip>, z$1.ZodObject<{
-        status: z$1.ZodLiteral<"unauthenticated">;
-    }, z$1.core.$strip>, z$1.ZodObject<{
-        status: z$1.ZodLiteral<"expired">;
-    }, z$1.core.$strip>, z$1.ZodObject<{
-        accountEmail: z$1.ZodDefault<z$1.ZodNullable<z$1.ZodString>>;
-        message: z$1.ZodString;
-        planLabel: z$1.ZodDefault<z$1.ZodNullable<z$1.ZodString>>;
-        status: z$1.ZodLiteral<"error">;
-    }, z$1.core.$strip>], "status">;
-    codex: z$1.ZodDiscriminatedUnion<[z$1.ZodObject<{
-        accountEmail: z$1.ZodNullable<z$1.ZodString>;
-        planLabel: z$1.ZodNullable<z$1.ZodString>;
-        status: z$1.ZodLiteral<"ok">;
-        windows: z$1.ZodArray<z$1.ZodObject<{
-            cost: z$1.ZodOptional<z$1.ZodObject<{
-                limitUsdCents: z$1.ZodNumber;
-                usedUsdCents: z$1.ZodNumber;
-            }, z$1.core.$strip>>;
-            label: z$1.ZodString;
-            resetsAt: z$1.ZodNullable<z$1.ZodString>;
-            usedPercent: z$1.ZodNumber;
-        }, z$1.core.$strip>>;
-    }, z$1.core.$strip>, z$1.ZodObject<{
-        status: z$1.ZodLiteral<"not_installed">;
-    }, z$1.core.$strip>, z$1.ZodObject<{
-        status: z$1.ZodLiteral<"unauthenticated">;
-    }, z$1.core.$strip>, z$1.ZodObject<{
-        status: z$1.ZodLiteral<"expired">;
-    }, z$1.core.$strip>, z$1.ZodObject<{
-        accountEmail: z$1.ZodDefault<z$1.ZodNullable<z$1.ZodString>>;
-        message: z$1.ZodString;
-        planLabel: z$1.ZodDefault<z$1.ZodNullable<z$1.ZodString>>;
-        status: z$1.ZodLiteral<"error">;
-    }, z$1.core.$strip>], "status">;
-    cursor: z$1.ZodDiscriminatedUnion<[z$1.ZodObject<{
-        accountEmail: z$1.ZodNullable<z$1.ZodString>;
-        planLabel: z$1.ZodNullable<z$1.ZodString>;
-        status: z$1.ZodLiteral<"ok">;
-        windows: z$1.ZodArray<z$1.ZodObject<{
-            cost: z$1.ZodOptional<z$1.ZodObject<{
-                limitUsdCents: z$1.ZodNumber;
-                usedUsdCents: z$1.ZodNumber;
-            }, z$1.core.$strip>>;
-            label: z$1.ZodString;
-            resetsAt: z$1.ZodNullable<z$1.ZodString>;
-            usedPercent: z$1.ZodNumber;
-        }, z$1.core.$strip>>;
-    }, z$1.core.$strip>, z$1.ZodObject<{
-        status: z$1.ZodLiteral<"not_installed">;
-    }, z$1.core.$strip>, z$1.ZodObject<{
-        status: z$1.ZodLiteral<"unauthenticated">;
-    }, z$1.core.$strip>, z$1.ZodObject<{
-        status: z$1.ZodLiteral<"expired">;
-    }, z$1.core.$strip>, z$1.ZodObject<{
-        accountEmail: z$1.ZodDefault<z$1.ZodNullable<z$1.ZodString>>;
-        message: z$1.ZodString;
-        planLabel: z$1.ZodDefault<z$1.ZodNullable<z$1.ZodString>>;
-        status: z$1.ZodLiteral<"error">;
-    }, z$1.core.$strip>], "status">;
-}, z$1.core.$strip>;
+        label: z$1.ZodString;
+        resetsAt: z$1.ZodNullable<z$1.ZodString>;
+        usedPercent: z$1.ZodNumber;
+    }, z$1.core.$loose>>;
+}, z$1.core.$loose>, z$1.ZodObject<{
+    status: z$1.ZodLiteral<"not_installed">;
+}, z$1.core.$loose>, z$1.ZodObject<{
+    status: z$1.ZodLiteral<"unauthenticated">;
+}, z$1.core.$loose>, z$1.ZodObject<{
+    status: z$1.ZodLiteral<"expired">;
+}, z$1.core.$loose>, z$1.ZodObject<{
+    accountEmail: z$1.ZodDefault<z$1.ZodNullable<z$1.ZodString>>;
+    message: z$1.ZodString;
+    planLabel: z$1.ZodDefault<z$1.ZodNullable<z$1.ZodString>>;
+    status: z$1.ZodLiteral<"error">;
+}, z$1.core.$loose>], "status">>;
 type ProviderUsageResponse = z$1.infer<typeof providerUsageResponseSchema>;
 declare const discoverReposResultSchema: z$1.ZodObject<{
     repos: z$1.ZodArray<z$1.ZodObject<{
@@ -5822,6 +5771,155 @@ declare const hostDaemonCommandRegistry: {
             }, z$1.core.$strip>>;
         }, z$1.core.$strip>>;
     }, z$1.core.$strip>, "onlineRpc", true>;
+    "provider.health": HostDaemonCommandDescriptor<"provider.health", z$1.ZodObject<{
+        acpLaunchSpec: z$1.ZodOptional<z$1.ZodObject<{
+            args: z$1.ZodArray<z$1.ZodString>;
+            command: z$1.ZodString;
+            cwd: z$1.ZodOptional<z$1.ZodString>;
+            displayName: z$1.ZodString;
+            env: z$1.ZodRecord<z$1.ZodString, z$1.ZodString>;
+            modelCli: z$1.ZodOptional<z$1.ZodPipe<z$1.ZodObject<{
+                listArgs: z$1.ZodArray<z$1.ZodString>;
+                primaryModels: z$1.ZodArray<z$1.ZodString>;
+                selectFlag: z$1.ZodOptional<z$1.ZodString>;
+            }, z$1.core.$strict>, z$1.ZodTransform<{
+                listArgs: string[];
+                primaryModels: string[];
+                selectFlag?: string | undefined;
+            } | undefined, {
+                listArgs: string[];
+                primaryModels: string[];
+                selectFlag?: string | undefined;
+            }>>>;
+            nativeReasoning: z$1.ZodOptional<z$1.ZodObject<{
+                configId: z$1.ZodString;
+                defaultLevel: z$1.ZodOptional<z$1.ZodEnum<{
+                    high: "high";
+                    low: "low";
+                    max: "max";
+                    medium: "medium";
+                    none: "none";
+                    ultra: "ultra";
+                    ultracode: "ultracode";
+                    xhigh: "xhigh";
+                }>>;
+                levelValues: z$1.ZodOptional<z$1.ZodRecord<z$1.ZodEnum<{
+                    high: "high";
+                    low: "low";
+                    max: "max";
+                    medium: "medium";
+                    none: "none";
+                    ultra: "ultra";
+                    ultracode: "ultracode";
+                    xhigh: "xhigh";
+                }> & z$1.core.$partial, z$1.ZodString>>;
+                supportedLevels: z$1.ZodArray<z$1.ZodEnum<{
+                    high: "high";
+                    low: "low";
+                    max: "max";
+                    medium: "medium";
+                    none: "none";
+                    ultra: "ultra";
+                    ultracode: "ultracode";
+                    xhigh: "xhigh";
+                }>>;
+            }, z$1.core.$strict>>;
+            nativeSkillRoots: z$1.ZodOptional<z$1.ZodObject<{
+                project: z$1.ZodDefault<z$1.ZodArray<z$1.ZodString>>;
+                user: z$1.ZodDefault<z$1.ZodArray<z$1.ZodString>>;
+            }, z$1.core.$strict>>;
+            permissionCli: z$1.ZodOptional<z$1.ZodObject<{
+                full: z$1.ZodOptional<z$1.ZodArray<z$1.ZodString>>;
+                insertAfterArgs: z$1.ZodOptional<z$1.ZodNumber>;
+                readonly: z$1.ZodOptional<z$1.ZodArray<z$1.ZodString>>;
+                workspaceWrite: z$1.ZodOptional<z$1.ZodArray<z$1.ZodString>>;
+            }, z$1.core.$strict>>;
+            reasoningCli: z$1.ZodOptional<z$1.ZodObject<{
+                defaultLevel: z$1.ZodOptional<z$1.ZodEnum<{
+                    high: "high";
+                    low: "low";
+                    max: "max";
+                    medium: "medium";
+                    none: "none";
+                    ultra: "ultra";
+                    ultracode: "ultracode";
+                    xhigh: "xhigh";
+                }>>;
+                flag: z$1.ZodString;
+                levelValues: z$1.ZodOptional<z$1.ZodRecord<z$1.ZodEnum<{
+                    high: "high";
+                    low: "low";
+                    max: "max";
+                    medium: "medium";
+                    none: "none";
+                    ultra: "ultra";
+                    ultracode: "ultracode";
+                    xhigh: "xhigh";
+                }> & z$1.core.$partial, z$1.ZodString>>;
+                supportedLevels: z$1.ZodArray<z$1.ZodEnum<{
+                    high: "high";
+                    low: "low";
+                    max: "max";
+                    medium: "medium";
+                    none: "none";
+                    ultra: "ultra";
+                    ultracode: "ultracode";
+                    xhigh: "xhigh";
+                }>>;
+            }, z$1.core.$strict>>;
+        }, z$1.core.$strict>>;
+        bridgeLaunch: z$1.ZodObject<{
+            capabilities: z$1.ZodObject<{
+                fork: z$1.ZodEnum<{
+                    checkpoint: "checkpoint";
+                    none: "none";
+                    tip: "tip";
+                }>;
+                permissionModes: z$1.ZodArray<z$1.ZodEnum<{
+                    "accept-edits": "accept-edits";
+                    auto: "auto";
+                    full: "full";
+                }>>;
+                supportsServiceTier: z$1.ZodBoolean;
+                supportsThreadArchive: z$1.ZodBoolean;
+                supportsThreadRename: z$1.ZodBoolean;
+            }, z$1.core.$strict>;
+            pluginId: z$1.ZodString;
+            source: z$1.ZodDiscriminatedUnion<[z$1.ZodObject<{
+                byteLength: z$1.ZodNumber;
+                digest: z$1.ZodString;
+                kind: z$1.ZodLiteral<"artifact">;
+            }, z$1.core.$strict>, z$1.ZodObject<{
+                id: z$1.ZodString;
+                kind: z$1.ZodLiteral<"daemon-bundled">;
+            }, z$1.core.$strict>], "kind">;
+        }, z$1.core.$strict>;
+        cwd: z$1.ZodOptional<z$1.ZodString>;
+        providerId: z$1.ZodString;
+        type: z$1.ZodLiteral<"provider.health">;
+    }, z$1.core.$strip>, z$1.ZodDiscriminatedUnion<[z$1.ZodObject<{
+        supported: z$1.ZodLiteral<false>;
+    }, z$1.core.$loose>, z$1.ZodObject<{
+        health: z$1.ZodObject<{
+            accountEmail: z$1.ZodNullable<z$1.ZodString>;
+            canInstall: z$1.ZodBoolean;
+            canUpdate: z$1.ZodBoolean;
+            installedVersion: z$1.ZodNullable<z$1.ZodString>;
+            loginCommand: z$1.ZodNullable<z$1.ZodString>;
+            minimumSupportedVersion: z$1.ZodNullable<z$1.ZodString>;
+            planLabel: z$1.ZodNullable<z$1.ZodString>;
+            status: z$1.ZodEnum<{
+                expired: "expired";
+                not_installed: "not_installed";
+                ready: "ready";
+                unauthenticated: "unauthenticated";
+                unknown: "unknown";
+                unsupported_version: "unsupported_version";
+            }>;
+            statusMessage: z$1.ZodNullable<z$1.ZodString>;
+        }, z$1.core.$loose>;
+        supported: z$1.ZodLiteral<true>;
+    }, z$1.core.$loose>], "supported">, "onlineRpc", true>;
     "known_acp_agents.status": HostDaemonCommandDescriptor<"known_acp_agents.status", z$1.ZodObject<{
         agents: z$1.ZodArray<z$1.ZodObject<{
             executableName: z$1.ZodString;
@@ -5837,9 +5935,136 @@ declare const hostDaemonCommandRegistry: {
         }, z$1.core.$strict>>;
     }, z$1.core.$strict>, "onlineRpc", true>;
     "provider.usage": HostDaemonCommandDescriptor<"provider.usage", z$1.ZodObject<{
+        acpLaunchSpec: z$1.ZodOptional<z$1.ZodObject<{
+            args: z$1.ZodArray<z$1.ZodString>;
+            command: z$1.ZodString;
+            cwd: z$1.ZodOptional<z$1.ZodString>;
+            displayName: z$1.ZodString;
+            env: z$1.ZodRecord<z$1.ZodString, z$1.ZodString>;
+            modelCli: z$1.ZodOptional<z$1.ZodPipe<z$1.ZodObject<{
+                listArgs: z$1.ZodArray<z$1.ZodString>;
+                primaryModels: z$1.ZodArray<z$1.ZodString>;
+                selectFlag: z$1.ZodOptional<z$1.ZodString>;
+            }, z$1.core.$strict>, z$1.ZodTransform<{
+                listArgs: string[];
+                primaryModels: string[];
+                selectFlag?: string | undefined;
+            } | undefined, {
+                listArgs: string[];
+                primaryModels: string[];
+                selectFlag?: string | undefined;
+            }>>>;
+            nativeReasoning: z$1.ZodOptional<z$1.ZodObject<{
+                configId: z$1.ZodString;
+                defaultLevel: z$1.ZodOptional<z$1.ZodEnum<{
+                    high: "high";
+                    low: "low";
+                    max: "max";
+                    medium: "medium";
+                    none: "none";
+                    ultra: "ultra";
+                    ultracode: "ultracode";
+                    xhigh: "xhigh";
+                }>>;
+                levelValues: z$1.ZodOptional<z$1.ZodRecord<z$1.ZodEnum<{
+                    high: "high";
+                    low: "low";
+                    max: "max";
+                    medium: "medium";
+                    none: "none";
+                    ultra: "ultra";
+                    ultracode: "ultracode";
+                    xhigh: "xhigh";
+                }> & z$1.core.$partial, z$1.ZodString>>;
+                supportedLevels: z$1.ZodArray<z$1.ZodEnum<{
+                    high: "high";
+                    low: "low";
+                    max: "max";
+                    medium: "medium";
+                    none: "none";
+                    ultra: "ultra";
+                    ultracode: "ultracode";
+                    xhigh: "xhigh";
+                }>>;
+            }, z$1.core.$strict>>;
+            nativeSkillRoots: z$1.ZodOptional<z$1.ZodObject<{
+                project: z$1.ZodDefault<z$1.ZodArray<z$1.ZodString>>;
+                user: z$1.ZodDefault<z$1.ZodArray<z$1.ZodString>>;
+            }, z$1.core.$strict>>;
+            permissionCli: z$1.ZodOptional<z$1.ZodObject<{
+                full: z$1.ZodOptional<z$1.ZodArray<z$1.ZodString>>;
+                insertAfterArgs: z$1.ZodOptional<z$1.ZodNumber>;
+                readonly: z$1.ZodOptional<z$1.ZodArray<z$1.ZodString>>;
+                workspaceWrite: z$1.ZodOptional<z$1.ZodArray<z$1.ZodString>>;
+            }, z$1.core.$strict>>;
+            reasoningCli: z$1.ZodOptional<z$1.ZodObject<{
+                defaultLevel: z$1.ZodOptional<z$1.ZodEnum<{
+                    high: "high";
+                    low: "low";
+                    max: "max";
+                    medium: "medium";
+                    none: "none";
+                    ultra: "ultra";
+                    ultracode: "ultracode";
+                    xhigh: "xhigh";
+                }>>;
+                flag: z$1.ZodString;
+                levelValues: z$1.ZodOptional<z$1.ZodRecord<z$1.ZodEnum<{
+                    high: "high";
+                    low: "low";
+                    max: "max";
+                    medium: "medium";
+                    none: "none";
+                    ultra: "ultra";
+                    ultracode: "ultracode";
+                    xhigh: "xhigh";
+                }> & z$1.core.$partial, z$1.ZodString>>;
+                supportedLevels: z$1.ZodArray<z$1.ZodEnum<{
+                    high: "high";
+                    low: "low";
+                    max: "max";
+                    medium: "medium";
+                    none: "none";
+                    ultra: "ultra";
+                    ultracode: "ultracode";
+                    xhigh: "xhigh";
+                }>>;
+            }, z$1.core.$strict>>;
+        }, z$1.core.$strict>>;
+        bridgeLaunch: z$1.ZodObject<{
+            capabilities: z$1.ZodObject<{
+                fork: z$1.ZodEnum<{
+                    checkpoint: "checkpoint";
+                    none: "none";
+                    tip: "tip";
+                }>;
+                permissionModes: z$1.ZodArray<z$1.ZodEnum<{
+                    "accept-edits": "accept-edits";
+                    auto: "auto";
+                    full: "full";
+                }>>;
+                supportsServiceTier: z$1.ZodBoolean;
+                supportsThreadArchive: z$1.ZodBoolean;
+                supportsThreadRename: z$1.ZodBoolean;
+            }, z$1.core.$strict>;
+            pluginId: z$1.ZodString;
+            source: z$1.ZodDiscriminatedUnion<[z$1.ZodObject<{
+                byteLength: z$1.ZodNumber;
+                digest: z$1.ZodString;
+                kind: z$1.ZodLiteral<"artifact">;
+            }, z$1.core.$strict>, z$1.ZodObject<{
+                id: z$1.ZodString;
+                kind: z$1.ZodLiteral<"daemon-bundled">;
+            }, z$1.core.$strict>], "kind">;
+        }, z$1.core.$strict>;
+        cwd: z$1.ZodOptional<z$1.ZodString>;
+        providerId: z$1.ZodString;
         type: z$1.ZodLiteral<"provider.usage">;
-    }, z$1.core.$strict>, z$1.ZodObject<{
-        claudeCode: z$1.ZodDiscriminatedUnion<[z$1.ZodObject<{
+    }, z$1.core.$strict>, z$1.ZodDiscriminatedUnion<[z$1.ZodObject<{
+        supported: z$1.ZodLiteral<false>;
+    }, z$1.core.$loose>, z$1.ZodObject<{
+        supported: z$1.ZodLiteral<true>;
+        usage: z$1.ZodDiscriminatedUnion<[z$1.ZodObject<{
             accountEmail: z$1.ZodNullable<z$1.ZodString>;
             planLabel: z$1.ZodNullable<z$1.ZodString>;
             status: z$1.ZodLiteral<"ok">;
@@ -5851,70 +6076,20 @@ declare const hostDaemonCommandRegistry: {
                 label: z$1.ZodString;
                 resetsAt: z$1.ZodNullable<z$1.ZodString>;
                 usedPercent: z$1.ZodNumber;
-            }, z$1.core.$strip>>;
-        }, z$1.core.$strip>, z$1.ZodObject<{
+            }, z$1.core.$loose>>;
+        }, z$1.core.$loose>, z$1.ZodObject<{
             status: z$1.ZodLiteral<"not_installed">;
-        }, z$1.core.$strip>, z$1.ZodObject<{
+        }, z$1.core.$loose>, z$1.ZodObject<{
             status: z$1.ZodLiteral<"unauthenticated">;
-        }, z$1.core.$strip>, z$1.ZodObject<{
+        }, z$1.core.$loose>, z$1.ZodObject<{
             status: z$1.ZodLiteral<"expired">;
-        }, z$1.core.$strip>, z$1.ZodObject<{
+        }, z$1.core.$loose>, z$1.ZodObject<{
             accountEmail: z$1.ZodDefault<z$1.ZodNullable<z$1.ZodString>>;
             message: z$1.ZodString;
             planLabel: z$1.ZodDefault<z$1.ZodNullable<z$1.ZodString>>;
             status: z$1.ZodLiteral<"error">;
-        }, z$1.core.$strip>], "status">;
-        codex: z$1.ZodDiscriminatedUnion<[z$1.ZodObject<{
-            accountEmail: z$1.ZodNullable<z$1.ZodString>;
-            planLabel: z$1.ZodNullable<z$1.ZodString>;
-            status: z$1.ZodLiteral<"ok">;
-            windows: z$1.ZodArray<z$1.ZodObject<{
-                cost: z$1.ZodOptional<z$1.ZodObject<{
-                    limitUsdCents: z$1.ZodNumber;
-                    usedUsdCents: z$1.ZodNumber;
-                }, z$1.core.$strip>>;
-                label: z$1.ZodString;
-                resetsAt: z$1.ZodNullable<z$1.ZodString>;
-                usedPercent: z$1.ZodNumber;
-            }, z$1.core.$strip>>;
-        }, z$1.core.$strip>, z$1.ZodObject<{
-            status: z$1.ZodLiteral<"not_installed">;
-        }, z$1.core.$strip>, z$1.ZodObject<{
-            status: z$1.ZodLiteral<"unauthenticated">;
-        }, z$1.core.$strip>, z$1.ZodObject<{
-            status: z$1.ZodLiteral<"expired">;
-        }, z$1.core.$strip>, z$1.ZodObject<{
-            accountEmail: z$1.ZodDefault<z$1.ZodNullable<z$1.ZodString>>;
-            message: z$1.ZodString;
-            planLabel: z$1.ZodDefault<z$1.ZodNullable<z$1.ZodString>>;
-            status: z$1.ZodLiteral<"error">;
-        }, z$1.core.$strip>], "status">;
-        cursor: z$1.ZodDiscriminatedUnion<[z$1.ZodObject<{
-            accountEmail: z$1.ZodNullable<z$1.ZodString>;
-            planLabel: z$1.ZodNullable<z$1.ZodString>;
-            status: z$1.ZodLiteral<"ok">;
-            windows: z$1.ZodArray<z$1.ZodObject<{
-                cost: z$1.ZodOptional<z$1.ZodObject<{
-                    limitUsdCents: z$1.ZodNumber;
-                    usedUsdCents: z$1.ZodNumber;
-                }, z$1.core.$strip>>;
-                label: z$1.ZodString;
-                resetsAt: z$1.ZodNullable<z$1.ZodString>;
-                usedPercent: z$1.ZodNumber;
-            }, z$1.core.$strip>>;
-        }, z$1.core.$strip>, z$1.ZodObject<{
-            status: z$1.ZodLiteral<"not_installed">;
-        }, z$1.core.$strip>, z$1.ZodObject<{
-            status: z$1.ZodLiteral<"unauthenticated">;
-        }, z$1.core.$strip>, z$1.ZodObject<{
-            status: z$1.ZodLiteral<"expired">;
-        }, z$1.core.$strip>, z$1.ZodObject<{
-            accountEmail: z$1.ZodDefault<z$1.ZodNullable<z$1.ZodString>>;
-            message: z$1.ZodString;
-            planLabel: z$1.ZodDefault<z$1.ZodNullable<z$1.ZodString>>;
-            status: z$1.ZodLiteral<"error">;
-        }, z$1.core.$strip>], "status">;
-    }, z$1.core.$strip>, "onlineRpc", true>;
+        }, z$1.core.$loose>], "status">;
+    }, z$1.core.$loose>], "supported">, "onlineRpc", true>;
     "workspace.discover_repos": HostDaemonCommandDescriptor<"workspace.discover_repos", z$1.ZodObject<{
         limit: z$1.ZodNumber;
         maxDepth: z$1.ZodNumber;
@@ -7281,23 +7456,29 @@ declare const systemVoiceTranscriptionResponseSchema: z$1.ZodObject<{
     text: z$1.ZodString;
 }, z$1.core.$strip>;
 type SystemVoiceTranscriptionResponse = z$1.infer<typeof systemVoiceTranscriptionResponseSchema>;
-declare const onboardingAgentOverviewSchema: z$1.ZodObject<{
-    agents: z$1.ZodArray<z$1.ZodObject<{
+declare const systemProviderStatesResponseSchema: z$1.ZodObject<{
+    providers: z$1.ZodArray<z$1.ZodObject<{
         accountEmail: z$1.ZodNullable<z$1.ZodString>;
         canInstall: z$1.ZodBoolean;
+        canUpdate: z$1.ZodBoolean;
         displayName: z$1.ZodString;
+        installedVersion: z$1.ZodNullable<z$1.ZodString>;
         loginCommand: z$1.ZodNullable<z$1.ZodString>;
+        minimumSupportedVersion: z$1.ZodNullable<z$1.ZodString>;
         planLabel: z$1.ZodNullable<z$1.ZodString>;
         providerId: z$1.ZodString;
         status: z$1.ZodEnum<{
-            connected: "connected";
             expired: "expired";
             not_installed: "not_installed";
+            ready: "ready";
             unauthenticated: "unauthenticated";
+            unknown: "unknown";
+            unsupported_version: "unsupported_version";
         }>;
-    }, z$1.core.$strip>>;
+        statusMessage: z$1.ZodNullable<z$1.ZodString>;
+    }, z$1.core.$loose>>;
 }, z$1.core.$strip>;
-type OnboardingAgentOverview = z$1.infer<typeof onboardingAgentOverviewSchema>;
+type SystemProviderStatesResponse = z$1.infer<typeof systemProviderStatesResponseSchema>;
 /** Omission reads the primary machine, matching the usage-limits route. */
 declare const systemOnboardingReposQuerySchema: z$1.ZodObject<{
     hostId: z$1.ZodOptional<z$1.ZodString>;
@@ -13168,13 +13349,13 @@ type SystemUpdateExperimentsResult = Experiments;
 type SystemUpdateGeneralSettingsResult = AppSettings;
 type SystemUpdateKeyboardSettingsResult = AppKeybindingOverrides;
 type SystemUsageLimitsResult = ProviderUsageResponse;
-interface SystemOnboardingArgs extends SystemProvidersQuery {
+interface SystemProviderStatesArgs extends SystemProvidersQuery {
     signal?: AbortSignal;
 }
 interface SystemOnboardingReposArgs extends SystemOnboardingReposQuery {
     signal?: AbortSignal;
 }
-type SystemOnboardingAgentsResult = OnboardingAgentOverview;
+type SystemProviderStatesResult = SystemProviderStatesResponse;
 type SystemOnboardingReposResult = DiscoverReposResult;
 type SystemVersionResult = SystemVersionResponse;
 interface SystemArea {
@@ -13198,8 +13379,8 @@ interface SystemArea {
     onboardingEvent(args: OnboardingTelemetryEvent): Promise<{
         ok: true;
     }>;
-    /** Live agent state for onboarding: install, auth, and plan per provider. */
-    onboardingAgents(args?: SystemOnboardingArgs): Promise<SystemOnboardingAgentsResult>;
+    /** Live host-local install and authentication state for every provider. */
+    providerStates(args?: SystemProviderStatesArgs): Promise<SystemProviderStatesResult>;
     /** Candidate projects discovered on the host, ranked for onboarding. */
     onboardingRepos(args?: SystemOnboardingReposArgs): Promise<SystemOnboardingReposResult>;
     usageLimits(args?: SystemUsageLimitsArgs): Promise<SystemUsageLimitsResult>;

@@ -4305,6 +4305,8 @@ declare const initializeResultSchema: z.ZodObject<{
             provider: "provider";
             runtime: "runtime";
         }>>;
+        experimentalProviderHealth: z.ZodDefault<z.ZodBoolean>;
+        experimentalProviderUsage: z.ZodDefault<z.ZodBoolean>;
         fork: z.ZodDefault<z.ZodEnum<{
             checkpoint: "checkpoint";
             none: "none";
@@ -4386,6 +4388,8 @@ type BridgeExecutionOptions = z.infer<typeof bridgeExecutionOptionsSchema>;
 declare const BRIDGE_REQUEST_METHODS: {
     readonly initialize: "initialize";
     readonly modelList: "model/list";
+    readonly experimentalProviderHealth: "provider/health";
+    readonly experimentalProviderUsage: "provider/usage";
     readonly threadStart: "thread/start";
     readonly threadResume: "thread/resume";
     readonly threadFork: "thread/fork";
@@ -4402,6 +4406,134 @@ declare const BRIDGE_REQUEST_METHODS: {
 declare const modelListParamsSchema: z.ZodObject<{
     cwd: z.ZodOptional<z.ZodString>;
 }, z.core.$loose>;
+/**
+ * Sessionless provider maintenance query. `providerOptions` carries the same
+ * provider-scoped statics as model/list (notably an ACP launch spec), while
+ * `providerId` lets one bridge implementation serve several provider ids.
+ */
+declare const experimental_providerMaintenanceParamsSchema: z.ZodObject<{
+    cwd: z.ZodOptional<z.ZodString>;
+    providerId: z.ZodString;
+    providerOptions: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+}, z.core.$loose>;
+type ExperimentalProviderMaintenanceParams = z.infer<typeof experimental_providerMaintenanceParamsSchema>;
+/**
+ * Cheap, host-local readiness reported by a provider implementation. Network
+ * usage and update checks deliberately live outside this result so choosing a
+ * provider for the composer never waits on them.
+ */
+declare const experimental_providerHealthSchema: z.ZodObject<{
+    accountEmail: z.ZodNullable<z.ZodString>;
+    canInstall: z.ZodBoolean;
+    canUpdate: z.ZodBoolean;
+    installedVersion: z.ZodNullable<z.ZodString>;
+    loginCommand: z.ZodNullable<z.ZodString>;
+    minimumSupportedVersion: z.ZodNullable<z.ZodString>;
+    planLabel: z.ZodNullable<z.ZodString>;
+    status: z.ZodEnum<{
+        expired: "expired";
+        not_installed: "not_installed";
+        ready: "ready";
+        unauthenticated: "unauthenticated";
+        unknown: "unknown";
+        unsupported_version: "unsupported_version";
+    }>;
+    statusMessage: z.ZodNullable<z.ZodString>;
+}, z.core.$loose>;
+type ExperimentalProviderHealth = z.infer<typeof experimental_providerHealthSchema>;
+/** One usage window reported by a provider subscription. */
+declare const experimental_providerUsageWindowSchema: z.ZodObject<{
+    cost: z.ZodOptional<z.ZodObject<{
+        limitUsdCents: z.ZodNumber;
+        usedUsdCents: z.ZodNumber;
+    }, z.core.$strip>>;
+    label: z.ZodString;
+    resetsAt: z.ZodNullable<z.ZodString>;
+    usedPercent: z.ZodNumber;
+}, z.core.$loose>;
+type ExperimentalProviderUsageWindow = z.infer<typeof experimental_providerUsageWindowSchema>;
+/** Live usage for one provider, normalized by that provider's bridge. */
+declare const experimental_providerUsageSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
+    accountEmail: z.ZodNullable<z.ZodString>;
+    planLabel: z.ZodNullable<z.ZodString>;
+    status: z.ZodLiteral<"ok">;
+    windows: z.ZodArray<z.ZodObject<{
+        cost: z.ZodOptional<z.ZodObject<{
+            limitUsdCents: z.ZodNumber;
+            usedUsdCents: z.ZodNumber;
+        }, z.core.$strip>>;
+        label: z.ZodString;
+        resetsAt: z.ZodNullable<z.ZodString>;
+        usedPercent: z.ZodNumber;
+    }, z.core.$loose>>;
+}, z.core.$loose>, z.ZodObject<{
+    status: z.ZodLiteral<"not_installed">;
+}, z.core.$loose>, z.ZodObject<{
+    status: z.ZodLiteral<"unauthenticated">;
+}, z.core.$loose>, z.ZodObject<{
+    status: z.ZodLiteral<"expired">;
+}, z.core.$loose>, z.ZodObject<{
+    accountEmail: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+    message: z.ZodString;
+    planLabel: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+    status: z.ZodLiteral<"error">;
+}, z.core.$loose>], "status">;
+type ExperimentalProviderUsage = z.infer<typeof experimental_providerUsageSchema>;
+declare const experimental_providerHealthResultSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
+    supported: z.ZodLiteral<false>;
+}, z.core.$loose>, z.ZodObject<{
+    health: z.ZodObject<{
+        accountEmail: z.ZodNullable<z.ZodString>;
+        canInstall: z.ZodBoolean;
+        canUpdate: z.ZodBoolean;
+        installedVersion: z.ZodNullable<z.ZodString>;
+        loginCommand: z.ZodNullable<z.ZodString>;
+        minimumSupportedVersion: z.ZodNullable<z.ZodString>;
+        planLabel: z.ZodNullable<z.ZodString>;
+        status: z.ZodEnum<{
+            expired: "expired";
+            not_installed: "not_installed";
+            ready: "ready";
+            unauthenticated: "unauthenticated";
+            unknown: "unknown";
+            unsupported_version: "unsupported_version";
+        }>;
+        statusMessage: z.ZodNullable<z.ZodString>;
+    }, z.core.$loose>;
+    supported: z.ZodLiteral<true>;
+}, z.core.$loose>], "supported">;
+type ExperimentalProviderHealthResult = z.infer<typeof experimental_providerHealthResultSchema>;
+declare const experimental_providerUsageResultSchema: z.ZodDiscriminatedUnion<[z.ZodObject<{
+    supported: z.ZodLiteral<false>;
+}, z.core.$loose>, z.ZodObject<{
+    supported: z.ZodLiteral<true>;
+    usage: z.ZodDiscriminatedUnion<[z.ZodObject<{
+        accountEmail: z.ZodNullable<z.ZodString>;
+        planLabel: z.ZodNullable<z.ZodString>;
+        status: z.ZodLiteral<"ok">;
+        windows: z.ZodArray<z.ZodObject<{
+            cost: z.ZodOptional<z.ZodObject<{
+                limitUsdCents: z.ZodNumber;
+                usedUsdCents: z.ZodNumber;
+            }, z.core.$strip>>;
+            label: z.ZodString;
+            resetsAt: z.ZodNullable<z.ZodString>;
+            usedPercent: z.ZodNumber;
+        }, z.core.$loose>>;
+    }, z.core.$loose>, z.ZodObject<{
+        status: z.ZodLiteral<"not_installed">;
+    }, z.core.$loose>, z.ZodObject<{
+        status: z.ZodLiteral<"unauthenticated">;
+    }, z.core.$loose>, z.ZodObject<{
+        status: z.ZodLiteral<"expired">;
+    }, z.core.$loose>, z.ZodObject<{
+        accountEmail: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+        message: z.ZodString;
+        planLabel: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+        status: z.ZodLiteral<"error">;
+    }, z.core.$loose>], "status">;
+}, z.core.$loose>], "supported">;
+type ExperimentalProviderUsageResult = z.infer<typeof experimental_providerUsageResultSchema>;
 declare const threadStartParamsSchema: z.ZodObject<{
     cwd: z.ZodString;
     disallowedTools: z.ZodOptional<z.ZodArray<z.ZodString>>;
@@ -6475,5 +6607,5 @@ declare const hostDaemonAcpLaunchSpecSchema: z.ZodObject<{
 type HostDaemonAcpLaunchSpec = z.infer<typeof hostDaemonAcpLaunchSpecSchema>;
 declare function normalizeHostDaemonAcpLaunchSpec(spec: HostDaemonAcpLaunchSpec): HostDaemonAcpLaunchSpec;
 
-export { BRIDGE_INBOUND_REQUEST_METHODS, BRIDGE_JSON_RPC_ERRORS, BRIDGE_NOTIFICATION_METHODS, BRIDGE_REQUEST_METHODS, DEFAULT_CLAUDE_CODE_MOCK_CLI_TRAFFIC_CONFIG, DEFAULT_CLAUDE_CODE_MOCK_CLI_TRAFFIC_ENDPOINT, HIGH_REASONING_EFFORT, LOCAL_BASH_TASK_TYPE, LOCAL_WORKFLOW_TASK_TYPE, LOW_REASONING_EFFORT, MAX_REASONING_EFFORT, MEDIUM_REASONING_EFFORT, NONE_REASONING_EFFORT, PROVIDER_BRIDGE_EXPORT_NAME, PROVIDER_BRIDGE_PROTOCOL_VERSION, ProviderRequestDecodeError, ProviderResponseEncodeError, ULTRACODE_REASONING_EFFORT, UNSTAMPED_THREAD_ID, USER_QUESTION_MAX_OPTIONS, USER_QUESTION_MAX_QUESTIONS, XHIGH_REASONING_EFFORT, acpNativeReasoningSchema, acpPermissionCliSchema, acpReasoningCliSchema, backgroundTaskItemStatus, bashArgsSchema, bridgeRequestEnvelopeSchema, buildAcceptedUserMessageEvent, buildEditDiff, buildFileChangeItem, buildGenericToolCallItem, buildShellEnvOverrides, buildToolResultItem, buildUnhandledProviderEvents, claudeCodeMockCliTrafficConfigSchema, claudeTaskToolNameSchema, claudeTaskToolOutputSchema, completeStartedToolItem, createBridgeIo, createBridgeLineHandler, createPendingToolCallTracker, createProviderTurnStateRegistry, createProviderVisibilityMetadata, createScopedItemIdFactory, createStandaloneBuiltinCompactCommandInput, createUnhandledProviderEvent, decodeBridgeJsonRpcResponse, decodeToolCallResponsePayload, dynamicToolSchema, errorEnvelopeSchema, experimental_defineProviderBridge, extractResultText, getRawSdkMessage, getRecordProperty, getStringProperty, getThreadEventScopeTurnId, hostDaemonAcpLaunchSpecSchema, initializeParamsSchema, instructionModeValues, isApprovalPendingInteractionPayload, isApprovalPendingInteractionResolution, isBackgroundAgentTaskType, isClaudeCodeMockCliTrafficEndpoint, isRecord, isSettledBackgroundTaskStatus, isStandaloneBuiltinCompactCommand, isUserQuestionPendingInteractionPayload, isUserQuestionPendingInteractionResolution, jsonRpcEnvelopeSchema, jsonValueSchema, mimeTypeFromExtension, modelListParamsSchema, normalizeHostDaemonAcpLaunchSpec, normalizeProviderCommandOutput, pendingInteractionCommandActionSchema, pendingInteractionFileSystemPermissionsSchema, pendingInteractionMacOsPermissionsSchema, pendingInteractionNetworkPermissionsSchema, pendingInteractionRequestedPermissionProfileSchema, pendingInteractionResolutionSchema, permissionEscalationValues, queueAcceptedUserMessage, reasoningEffortsForLevels, reasoningLevelSchema, reasoningLevelValues, removeCommandMentionsFromPromptInput, requireThreadEventScopeTurnId, resolveProviderTerminalTurn, runBridgeRequest, runtimePermissionScopeValues, sanitizeInheritedChildProcessEnv, sdkMessageEnvelopeSchema, shouldAutoDenyInteractiveRequest, skillsConfigureParamsSchema, textBlockSchema, threadArchiveParamsSchema, threadContextWindowUsageEnvelopeSchema, threadDiscardParamsSchema, threadEventNotificationSchema, threadForkParamsSchema, threadGoalClearParamsSchema, threadIdentityEnvelopeSchema, threadNameSetParamsSchema, threadResumeParamsSchema, threadScope, threadStartParamsSchema, threadStopParamsSchema, threadUnarchiveParamsSchema, toNonNegativeNumber, toOptionalRecord, toOptionalString, toPositiveNumber, turnScope, turnStartParamsSchema, turnSteerParamsSchema, withParentToolCallId, withoutBridgeRuntimeEnv };
-export type { AcceptedUserMessageState, ApprovalPendingInteractionPayload, AvailableModel, BackgroundTaskStatus, BackgroundTaskUsage, BridgeExecutionOptions, BridgeJsonRpcResponse, BridgeToolCallRequest, BuildInteractiveResponseArgs, ClaudeCodeMockCliTrafficConfig, ClaudeTaskToolOutput, ClientTurnRequestId, DecodedInteractiveRequest, DynamicTool, EnsureProviderTurnStartedArgs, HostDaemonAcpLaunchSpec, InitializeResult, InstructionMode, JsonObject, JsonRpcMessage, JsonValue, ModelReasoningEffort, PendingInteractionApprovalDecision, PendingInteractionApprovalSubject, PendingInteractionCommandAction, PendingInteractionGrantablePermissionProfile, PendingInteractionGrantedPermissionProfile, PendingInteractionPayload, PendingInteractionRequestedPermissionProfile, PendingInteractionResolution, PendingInteractionUserQuestionQuestion, PermissionEscalation, PermissionMode, PreparedProviderCommandDispatch, PromptInput, ProviderBridgeContext, ProviderBridgeDefinition, ProviderBridgeEntry, ProviderErrorCategory, ProviderErrorInfo, ProviderInboundRequest, ProviderPostInitializeRequest, ProviderRateLimitState, ProviderRateLimitStatus, ProviderRateLimitWindow, ProviderRawEventCoverage, ProviderRawEventDescription, ProviderRuntimeEvent, ProviderTurnStateRegistry, ProviderVisibilityMetadata, ReasoningLevel, RuntimePermissionPolicy, RuntimePermissionScope, ServiceTier, ThreadEvent, ThreadEventBackgroundTaskItem, ThreadEventContextWindowUsage, ThreadEventItem, ThreadEventItemApprovalStatus, ThreadEventItemStatus, ThreadEventPlanStep, ThreadEventScope, ThreadEventTokenUsage, ThreadEventTokenUsageBreakdown, ThreadEventTurnStatus, ThreadEventUserContent, ThreadEventWebFetchItem, ThreadEventWebSearchItem, UserQuestionPendingInteractionPayload, UserQuestionPendingInteractionResolution, WorkflowAgentSnapshot, WorkflowAgentState, WorkflowPhaseSnapshot, WorkflowProgressSnapshot };
+export { BRIDGE_INBOUND_REQUEST_METHODS, BRIDGE_JSON_RPC_ERRORS, BRIDGE_NOTIFICATION_METHODS, BRIDGE_REQUEST_METHODS, DEFAULT_CLAUDE_CODE_MOCK_CLI_TRAFFIC_CONFIG, DEFAULT_CLAUDE_CODE_MOCK_CLI_TRAFFIC_ENDPOINT, HIGH_REASONING_EFFORT, LOCAL_BASH_TASK_TYPE, LOCAL_WORKFLOW_TASK_TYPE, LOW_REASONING_EFFORT, MAX_REASONING_EFFORT, MEDIUM_REASONING_EFFORT, NONE_REASONING_EFFORT, PROVIDER_BRIDGE_EXPORT_NAME, PROVIDER_BRIDGE_PROTOCOL_VERSION, ProviderRequestDecodeError, ProviderResponseEncodeError, ULTRACODE_REASONING_EFFORT, UNSTAMPED_THREAD_ID, USER_QUESTION_MAX_OPTIONS, USER_QUESTION_MAX_QUESTIONS, XHIGH_REASONING_EFFORT, acpNativeReasoningSchema, acpPermissionCliSchema, acpReasoningCliSchema, backgroundTaskItemStatus, bashArgsSchema, bridgeRequestEnvelopeSchema, buildAcceptedUserMessageEvent, buildEditDiff, buildFileChangeItem, buildGenericToolCallItem, buildShellEnvOverrides, buildToolResultItem, buildUnhandledProviderEvents, claudeCodeMockCliTrafficConfigSchema, claudeTaskToolNameSchema, claudeTaskToolOutputSchema, completeStartedToolItem, createBridgeIo, createBridgeLineHandler, createPendingToolCallTracker, createProviderTurnStateRegistry, createProviderVisibilityMetadata, createScopedItemIdFactory, createStandaloneBuiltinCompactCommandInput, createUnhandledProviderEvent, decodeBridgeJsonRpcResponse, decodeToolCallResponsePayload, dynamicToolSchema, errorEnvelopeSchema, experimental_defineProviderBridge, experimental_providerHealthResultSchema, experimental_providerHealthSchema, experimental_providerMaintenanceParamsSchema, experimental_providerUsageResultSchema, experimental_providerUsageSchema, experimental_providerUsageWindowSchema, extractResultText, getRawSdkMessage, getRecordProperty, getStringProperty, getThreadEventScopeTurnId, hostDaemonAcpLaunchSpecSchema, initializeParamsSchema, instructionModeValues, isApprovalPendingInteractionPayload, isApprovalPendingInteractionResolution, isBackgroundAgentTaskType, isClaudeCodeMockCliTrafficEndpoint, isRecord, isSettledBackgroundTaskStatus, isStandaloneBuiltinCompactCommand, isUserQuestionPendingInteractionPayload, isUserQuestionPendingInteractionResolution, jsonRpcEnvelopeSchema, jsonValueSchema, mimeTypeFromExtension, modelListParamsSchema, normalizeHostDaemonAcpLaunchSpec, normalizeProviderCommandOutput, pendingInteractionCommandActionSchema, pendingInteractionFileSystemPermissionsSchema, pendingInteractionMacOsPermissionsSchema, pendingInteractionNetworkPermissionsSchema, pendingInteractionRequestedPermissionProfileSchema, pendingInteractionResolutionSchema, permissionEscalationValues, queueAcceptedUserMessage, reasoningEffortsForLevels, reasoningLevelSchema, reasoningLevelValues, removeCommandMentionsFromPromptInput, requireThreadEventScopeTurnId, resolveProviderTerminalTurn, runBridgeRequest, runtimePermissionScopeValues, sanitizeInheritedChildProcessEnv, sdkMessageEnvelopeSchema, shouldAutoDenyInteractiveRequest, skillsConfigureParamsSchema, textBlockSchema, threadArchiveParamsSchema, threadContextWindowUsageEnvelopeSchema, threadDiscardParamsSchema, threadEventNotificationSchema, threadForkParamsSchema, threadGoalClearParamsSchema, threadIdentityEnvelopeSchema, threadNameSetParamsSchema, threadResumeParamsSchema, threadScope, threadStartParamsSchema, threadStopParamsSchema, threadUnarchiveParamsSchema, toNonNegativeNumber, toOptionalRecord, toOptionalString, toPositiveNumber, turnScope, turnStartParamsSchema, turnSteerParamsSchema, withParentToolCallId, withoutBridgeRuntimeEnv };
+export type { AcceptedUserMessageState, ApprovalPendingInteractionPayload, AvailableModel, BackgroundTaskStatus, BackgroundTaskUsage, BridgeExecutionOptions, BridgeJsonRpcResponse, BridgeToolCallRequest, BuildInteractiveResponseArgs, ClaudeCodeMockCliTrafficConfig, ClaudeTaskToolOutput, ClientTurnRequestId, DecodedInteractiveRequest, DynamicTool, EnsureProviderTurnStartedArgs, ExperimentalProviderHealth, ExperimentalProviderHealthResult, ExperimentalProviderMaintenanceParams, ExperimentalProviderUsage, ExperimentalProviderUsageResult, ExperimentalProviderUsageWindow, HostDaemonAcpLaunchSpec, InitializeResult, InstructionMode, JsonObject, JsonRpcMessage, JsonValue, ModelReasoningEffort, PendingInteractionApprovalDecision, PendingInteractionApprovalSubject, PendingInteractionCommandAction, PendingInteractionGrantablePermissionProfile, PendingInteractionGrantedPermissionProfile, PendingInteractionPayload, PendingInteractionRequestedPermissionProfile, PendingInteractionResolution, PendingInteractionUserQuestionQuestion, PermissionEscalation, PermissionMode, PreparedProviderCommandDispatch, PromptInput, ProviderBridgeContext, ProviderBridgeDefinition, ProviderBridgeEntry, ProviderErrorCategory, ProviderErrorInfo, ProviderInboundRequest, ProviderPostInitializeRequest, ProviderRateLimitState, ProviderRateLimitStatus, ProviderRateLimitWindow, ProviderRawEventCoverage, ProviderRawEventDescription, ProviderRuntimeEvent, ProviderTurnStateRegistry, ProviderVisibilityMetadata, ReasoningLevel, RuntimePermissionPolicy, RuntimePermissionScope, ServiceTier, ThreadEvent, ThreadEventBackgroundTaskItem, ThreadEventContextWindowUsage, ThreadEventItem, ThreadEventItemApprovalStatus, ThreadEventItemStatus, ThreadEventPlanStep, ThreadEventScope, ThreadEventTokenUsage, ThreadEventTokenUsageBreakdown, ThreadEventTurnStatus, ThreadEventUserContent, ThreadEventWebFetchItem, ThreadEventWebSearchItem, UserQuestionPendingInteractionPayload, UserQuestionPendingInteractionResolution, WorkflowAgentSnapshot, WorkflowAgentState, WorkflowPhaseSnapshot, WorkflowProgressSnapshot };
