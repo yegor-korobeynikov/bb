@@ -54,6 +54,8 @@ export interface OnboardingFlowProps {
 
   /** Starts the managed CLI install; resolves when the job is queued. */
   onInstallAgent: (agent: SystemProviderState) => void;
+  /** Provider ids whose host-side installer is ready to run. */
+  actionableProviderIds: ReadonlySet<string>;
   /** Set of provider ids with an install running or queued. */
   installing: ReadonlySet<string>;
 }
@@ -124,6 +126,7 @@ function AgentRows({
   expandedSignIn,
   onToggleSignIn,
   onRecheck,
+  actionableProviderIds,
 }: {
   agents: readonly SystemProviderState[];
   onInstall: (agent: SystemProviderState) => void;
@@ -131,11 +134,13 @@ function AgentRows({
   expandedSignIn: string | null;
   onToggleSignIn: (providerId: string | null) => void;
   onRecheck: () => void;
+  actionableProviderIds: ReadonlySet<string>;
 }) {
   return (
     <Card>
       {agents.map((agent) => {
         const isInstalling = installing.has(agent.providerId);
+        const hasInstallAction = actionableProviderIds.has(agent.providerId);
         const connected = agent.status === "ready";
         const needsAuth =
           !isInstalling &&
@@ -217,6 +222,7 @@ function AgentRows({
                   </Button>
                 ) : agent.status === "not_installed" &&
                   agent.canInstall &&
+                  hasInstallAction &&
                   !isInstalling ? (
                   <Button
                     variant="outline"
@@ -228,6 +234,7 @@ function AgentRows({
                   </Button>
                 ) : agent.status === "unsupported_version" &&
                   agent.canUpdate &&
+                  hasInstallAction &&
                   !isInstalling ? (
                   <Button
                     variant="outline"
@@ -282,6 +289,7 @@ export function OnboardingFlow({
   onClose,
   onEvent,
   onInstallAgent,
+  actionableProviderIds,
   installing,
 }: OnboardingFlowProps) {
   const [step, setStep] = useState<0 | 1>(0);
@@ -310,13 +318,24 @@ export function OnboardingFlow({
   const agentState = agentStateOf(agents);
   const scanningAgents = providerStatesQuery.isPending;
 
-  // Only a machine with nothing installed is asked to install something.
-  const nothingInstalled =
-    !scanningAgents &&
-    agents.length > 0 &&
-    agents.every((agent) => agent.status === "not_installed");
   const canContinue =
     !scanningAgents && agents.some((agent) => agent.status === "ready");
+  // Until one provider is ready, keep both installed providers that need
+  // attention and providers with a real host-side installer visible. A
+  // provider such as Pi can be present but signed out on a fresh machine; it
+  // must not hide the install choices that can get onboarding unstuck.
+  const needsProviderSetup = !scanningAgents && !canContinue;
+  const visibleAgents = useMemo(
+    () =>
+      agents.filter(
+        (agent) =>
+          agent.status !== "not_installed" ||
+          (needsProviderSetup &&
+            agent.canInstall &&
+            actionableProviderIds.has(agent.providerId)),
+      ),
+    [actionableProviderIds, agents, needsProviderSetup],
+  );
 
   useEffect(() => {
     if (startedReported || scanningAgents) return;
@@ -431,15 +450,15 @@ export function OnboardingFlow({
 
   const title =
     step === 0
-      ? nothingInstalled
-        ? "Install a coding agent"
+      ? needsProviderSetup
+        ? "Connect a coding agent"
         : "bb uses your existing coding agents"
       : "Add your projects";
 
   const description =
     step === 0
-      ? nothingInstalled
-        ? "bb has no inference of its own. It runs coding agent CLIs on your computer and bills usage to their plans. Install one to get started."
+      ? needsProviderSetup
+        ? "bb has no inference of its own. Sign in to an installed coding agent or install one to get started."
         : "It runs the agents below locally, so inference is billed to their plans."
       : "bb works inside your code. Add the folders you want it to work in. You can add more any time.";
 
@@ -473,11 +492,8 @@ export function OnboardingFlow({
               </div>
             ) : (
               <AgentRows
-                agents={
-                  nothingInstalled
-                    ? agents.filter((agent) => agent.canInstall)
-                    : agents.filter((agent) => agent.status !== "not_installed")
-                }
+                agents={visibleAgents}
+                actionableProviderIds={actionableProviderIds}
                 expandedSignIn={expandedSignIn}
                 installing={installing}
                 onInstall={onInstallAgent}
@@ -566,9 +582,7 @@ export function OnboardingFlow({
               {step === 0
                 ? canContinue
                   ? ""
-                  : nothingInstalled
-                    ? "Install an agent to continue"
-                    : "Sign in to at least one agent to continue"
+                  : "Sign in or install an agent to continue"
                 : selected.size > 0
                   ? `${selected.size} project${selected.size > 1 ? "s" : ""} selected`
                   : "You can add projects any time"}

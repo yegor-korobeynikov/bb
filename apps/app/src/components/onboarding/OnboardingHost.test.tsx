@@ -1,10 +1,15 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen } from "@testing-library/react";
 import { defaultAppSettings, defaultExperiments } from "@bb/domain";
+import type { SystemProviderState } from "@bb/server-contract";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { OnboardingFlowProps } from "./OnboardingFlow";
 import { OnboardingHost } from "./OnboardingHost";
 
 const mocks = vi.hoisted(() => ({
+  buildProviderCliIssue: vi.fn(),
+  hasProviderCliAction: vi.fn(),
+  onboardingFlow: vi.fn<(props: OnboardingFlowProps) => void>(),
   useCreateProject: vi.fn(),
   useHostProviderCliStatus: vi.fn(),
   usePrimaryHost: vi.fn(),
@@ -31,16 +36,18 @@ vi.mock("@/hooks/queries/sidebar-navigation-query", () => ({
   useSidebarNavigation: mocks.useSidebarNavigation,
 }));
 vi.mock("@/components/provider-cli/provider-cli-install", () => ({
-  buildProviderCliIssue: vi.fn(),
-  hasProviderCliAction: vi.fn(),
-  providerCliEntries: vi.fn(() => []),
+  buildProviderCliIssue: mocks.buildProviderCliIssue,
+  hasProviderCliAction: mocks.hasProviderCliAction,
   useProviderCliInstallRunner: mocks.useProviderCliInstallRunner,
 }));
 vi.mock("@/components/provider-cli/provider-cli-install-store", () => ({
   providerCliJobKey: vi.fn(() => "job"),
 }));
 vi.mock("./OnboardingFlow", () => ({
-  OnboardingFlow: () => <div>Onboarding flow</div>,
+  OnboardingFlow: (props: OnboardingFlowProps) => {
+    mocks.onboardingFlow(props);
+    return <div>Onboarding flow</div>;
+  },
 }));
 
 beforeEach(() => {
@@ -94,6 +101,68 @@ describe("OnboardingHost", () => {
     expect(mocks.useHostProviderCliStatus).toHaveBeenCalledWith({
       enabled: true,
       hostId: "host-1",
+    });
+  });
+
+  it("exposes only host-backed install actions and can install Cursor", () => {
+    const startInstall = vi.fn();
+    const cursorIssue = {
+      provider: "cursor",
+      status: {},
+      action: { kind: "install" },
+      title: "Cursor CLI not installed",
+      description: "Install Cursor",
+      fingerprint: "cursor:missing:latest",
+    };
+    mocks.useSystemConfig.mockReturnValue({
+      data: {
+        experiments: { ...defaultExperiments, newOnboarding: true },
+        generalSettings: defaultAppSettings,
+      },
+    });
+    mocks.useHostProviderCliStatus.mockReturnValue({
+      data: { codex: {}, claudeCode: {}, cursor: {} },
+    });
+    mocks.buildProviderCliIssue.mockImplementation(
+      (entry: { provider: string }) =>
+        entry.provider === "cursor" ? cursorIssue : null,
+    );
+    mocks.hasProviderCliAction.mockImplementation(
+      (issue: { action: unknown }) => issue.action !== null,
+    );
+    mocks.useProviderCliInstallRunner.mockReturnValue({
+      failuresByJobKey: new Map(),
+      queuedJobKeys: new Set(),
+      runningJobKey: null,
+      startInstall,
+    });
+
+    render(<OnboardingHost />);
+
+    const props = mocks.onboardingFlow.mock.calls.at(-1)?.[0];
+    expect(props).toBeDefined();
+    if (props === undefined) throw new Error("Onboarding flow did not render");
+    expect([...props.actionableProviderIds]).toEqual(["acp-cursor"]);
+
+    const agent: SystemProviderState = {
+      providerId: "plugin-agent",
+      displayName: "Plugin Agent",
+      status: "not_installed",
+      statusMessage: null,
+      accountEmail: null,
+      planLabel: null,
+      installedVersion: null,
+      minimumSupportedVersion: null,
+      canInstall: true,
+      canUpdate: false,
+      loginCommand: null,
+    };
+    props.onInstallAgent(agent);
+    expect(startInstall).not.toHaveBeenCalled();
+    props.onInstallAgent({ ...agent, providerId: "acp-cursor" });
+    expect(startInstall).toHaveBeenCalledWith({
+      hostId: "host-1",
+      issue: cursorIssue,
     });
   });
 });

@@ -393,12 +393,17 @@ function shouldRetrySystemExecutionOptions(
  * execution-options query (no model probe), which is what surfaces that only
  * need to name a provider — the skills library's provider filter — should use.
  */
-export function useSystemProviders(args: { enabled?: boolean } = {}) {
+export function useSystemProviders(
+  args: { enabled?: boolean; hostId?: string } = {},
+) {
   const enabled = args.enabled ?? true;
   useSystemRealtimeSubscription({ enabled });
   return useQuery<ProviderInfo[]>({
-    queryKey: systemProvidersQueryKey(),
-    queryFn: ({ signal }) => sdk.providers.list({ signal }),
+    queryKey: systemProvidersQueryKey({ hostId: args.hostId }),
+    queryFn: ({ signal }) =>
+      args.hostId === undefined
+        ? sdk.providers.list({ signal })
+        : sdk.providers.list({ hostId: args.hostId, signal }),
     enabled,
     staleTime: 60_000,
   });

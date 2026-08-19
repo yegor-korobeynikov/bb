@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { DiscoveredRepo } from "@bb/host-daemon-contract";
 import { useSystemConfig } from "@/hooks/queries/system-queries";
 import { useUpdateGeneralSettings } from "@/hooks/mutations/settings-mutations";
@@ -9,7 +9,7 @@ import { useSidebarNavigation } from "@/hooks/queries/sidebar-navigation-query";
 import {
   buildProviderCliIssue,
   hasProviderCliAction,
-  providerCliEntries,
+  type ProviderCliActionableIssue,
   useProviderCliInstallRunner,
 } from "@/components/provider-cli/provider-cli-install";
 import { providerCliJobKey } from "@/components/provider-cli/provider-cli-install-store";
@@ -100,20 +100,34 @@ export function OnboardingHost() {
       .map(([providerId]) => providerId),
   );
 
+  const installIssuesByProvider = useMemo(() => {
+    const issues = new Map<string, ProviderCliActionableIssue>();
+    const status = cliStatusQuery.data;
+    if (status === undefined) return issues;
+    for (const [providerId, cliKey] of Object.entries(CLI_KEY_BY_PROVIDER)) {
+      const issue = buildProviderCliIssue({
+        provider: cliKey,
+        status: status[cliKey],
+      });
+      if (issue !== null && hasProviderCliAction(issue)) {
+        issues.set(providerId, issue);
+      }
+    }
+    return issues;
+  }, [cliStatusQuery.data]);
+  const actionableProviderIds = useMemo(
+    () => new Set(installIssuesByProvider.keys()),
+    [installIssuesByProvider],
+  );
+
   const installAgent = useCallback(
     (agent: { providerId: string }) => {
-      const cliKey = CLI_KEY_BY_PROVIDER[agent.providerId];
-      if (cliKey === undefined || primaryHostId === null) return;
-      const status = cliStatusQuery.data;
-      if (status === undefined) return;
-      const issue = providerCliEntries(status)
-        .filter((entry) => entry.provider === cliKey)
-        .map(buildProviderCliIssue)
-        .find((candidate) => candidate !== null);
-      if (!issue || !hasProviderCliAction(issue)) return;
+      if (primaryHostId === null) return;
+      const issue = installIssuesByProvider.get(agent.providerId);
+      if (issue === undefined) return;
       installRunner.startInstall({ hostId: primaryHostId, issue });
     },
-    [cliStatusQuery.data, installRunner, primaryHostId],
+    [installIssuesByProvider, installRunner, primaryHostId],
   );
 
   // Stamp when the flow actually opens, so a re-trigger hours into a session
@@ -203,6 +217,7 @@ export function OnboardingHost() {
 
   return (
     <OnboardingFlow
+      actionableProviderIds={actionableProviderIds}
       installing={installingProviders}
       onAddProjects={addProjects}
       onClose={close}

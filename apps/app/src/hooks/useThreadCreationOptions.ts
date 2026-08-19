@@ -306,7 +306,7 @@ export function useThreadCreationOptions(
         environmentId,
         environmentHostId,
         environmentSelectionValue: rawEnvironmentSelectionValue,
-        providerId: selectedProviderIdBeforeConnectedFallback,
+        providerId: selectedProviderIdBeforeReadyFallback,
         scope,
       });
   const shouldResolveReadyProvider =
