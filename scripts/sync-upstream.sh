@@ -4,13 +4,14 @@
 # Branch model this script assumes (see docs/TENDO-FORK-OPS.md):
 #   origin      = get-bb/bb            (upstream, read-only for us)
 #   fork        = yegor-korobeynikov/bb (ours)
-#   main        = pristine mirror of origin/main — never carries fork commits
+#   main (fork) = pristine mirror of origin/main — never carries fork commits.
+#                 No LOCAL main is used or required: origin/main is the mirror.
 #   tendo-main  = the Tendo trunk — all product work lands here
 #
 # What it does, in order:
 #   1. Refuses to run on a dirty tree or in the live daily-driver checkout.
-#   2. Fetches upstream, fast-forwards the local `main` mirror, pushes the
-#      mirror to the fork (so the fork's sync point stays current).
+#   2. Fetches upstream and pushes origin/main straight to the fork's `main`
+#      (so the fork's sync point stays current) — no local branch involved.
 #   3. Runs the RISKY/SAFE triage (check-upstream-updates.sh) so the merge
 #      is walked into with open eyes.
 #   4. MERGES origin/main into tendo-main (merge, not rebase: tendo-main is
@@ -37,15 +38,14 @@ if [ -n "$(git status --porcelain)" ]; then
   exit 1
 fi
 
-MARKER="${BB_DATA_DIR:-$HOME/.bb}/bb-app-runtime.json"
-if [ -f "$MARKER" ]; then
-  ENTRY=$(node -e "try{console.log(JSON.parse(require('fs').readFileSync('$MARKER','utf8')).entryPath||'')}catch{console.log('')}")
-  case "$ENTRY" in
-    "$(pwd)"/*)
-      echo "sync-upstream: a live Tendo instance runs from this checkout — sync from a worktree instead." >&2
-      exit 1
-      ;;
-  esac
+# The guard already answers "is a live instance serving from this checkout?"
+# correctly (path.relative, pid liveness, override). Reuse it rather than
+# re-implementing a weaker string-prefix check here.
+if [ -f scripts/guard-live-build.mjs ]; then
+  if ! node scripts/guard-live-build.mjs >/dev/null 2>&1; then
+    echo "sync-upstream: a live Tendo instance runs from this checkout — sync from a worktree instead." >&2
+    exit 1
+  fi
 fi
 
 CURRENT=$(git branch --show-current)
@@ -59,21 +59,12 @@ fi
 echo "Fetching upstream..."
 git fetch origin main --quiet
 
-echo "Fast-forwarding local mirror 'main'..."
-if git show-ref --verify --quiet refs/heads/main; then
-  # The mirror must never diverge; a non-ff here means someone committed to it.
-  if ! git merge-base --is-ancestor main origin/main; then
-    echo "sync-upstream: local 'main' has commits upstream doesn't — it is not a mirror anymore." >&2
-    echo "Fix (after confirming nothing unique is on it): git branch -f main origin/main" >&2
-    exit 1
-  fi
-  git branch -f main origin/main
-else
-  git branch main origin/main
-fi
-
-echo "Pushing mirror to fork..."
-git push fork main:main --quiet || echo "  (mirror push failed — non-fatal, continuing)"
+echo "Updating the fork's mirror branch from upstream..."
+# No local `main` is involved: origin/main IS the mirror. Pushing the remote-tracking
+# ref straight through avoids both a divergent local branch and the case where `main`
+# is checked out in another worktree (git refuses to force-update it there).
+git push fork "$(git rev-parse origin/main):refs/heads/main" --quiet \
+  || echo "  (mirror push failed — non-fatal, continuing)"
 
 # -- 3. Triage ---------------------------------------------------------------
 

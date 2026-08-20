@@ -70,6 +70,11 @@ the frontend under the running server and drops the user's session.
 - The native module (`better-sqlite3`) is per-checkout, not shared — a
   rebuild in one worktree cannot break another. Node version is pinned in
   `.nvmrc` (24.19.0) and must match the ABI the daily driver runs on.
+- The **turbo cache is shared across worktrees**, so a task marked cached in
+  a fresh worktree may be replaying another worktree's result. When a run's
+  outcome actually matters, force it: `turbo run test --force`.
+- Running two full `turbo run test` passes over the same checkout at once
+  produces timeout flakes in different packages each time. Run one at a time.
 
 ## CI and workflows on the fork
 
@@ -80,8 +85,10 @@ the frontend under the running server and drops the user's session.
   Connect/Web infra with its own secrets.
 - `publish-bb-app.yml` (npm + nightly) and `build-desktop.yml` are
   dispatch/cron driven; scheduled runs are disabled on forks by GitHub
-  default. Manual releases go through `scripts/tendo-release.sh` (see
-  `docs/TENDO-ROLLBACK.md` for the recovery side).
+  default. Releasing from this fork is **not set up yet**: the repo has no
+  `npm-release` environment and none of the macOS signing secrets, and
+  `bb-app` is upstream's npm name. Until that is decided, treat Tendo as
+  build-and-run-locally. Recovery side: `docs/TENDO-ROLLBACK.md`.
 - Desktop auto-update feeds point at this fork's releases
   (`apps/desktop/scripts/desktop-release-channel.mjs`); `TENDO_UPDATE_REPO`
   overrides for testing.

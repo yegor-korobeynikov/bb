@@ -110,7 +110,7 @@ export function renderExistingServerDialogHtml(
 <head>
   <meta charset="utf-8">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">
-  <title>bb is already running</title>
+  <title>Tendo is already running</title>
   <style>
     :root {
       color-scheme: light dark;
@@ -220,7 +220,7 @@ export function openExistingServerDialog(
     parent: args.parentWindow ?? undefined,
     resizable: false,
     show: false,
-    title: "bb is already running",
+    title: "Tendo is already running",
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
