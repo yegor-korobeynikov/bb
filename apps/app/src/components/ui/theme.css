@@ -1027,7 +1027,13 @@ body.sidebar-resizing [data-sidebar="panel"] {
    (tokens.css there is the authored layer; this block is what ships).
    Additive on purpose: nothing consumes these yet, so appending them is
    visually inert — but plugins and native components can start reading
-   them via var() instead of hardcoding values. Keep names --tendo-*. */
+   them via var() instead of hardcoding values. Keep names --tendo-*.
+
+   NOTE: single-value, no light/dark pair. Every other token in this file
+   has a .dark counterpart; these three status colours are the authored
+   canon values and deliberately have no dark variant YET — picking one is
+   a design decision, not a mechanical port. The first consumer will show
+   the light colour in dark theme until that decision is made. */
 :root {
   /* Status dot: filled = real state, outline = idle (never absent). */
   --tendo-status-blocked: #e0532b;

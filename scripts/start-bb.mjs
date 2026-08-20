@@ -3,6 +3,10 @@ import { createRequire } from "node:module";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ensureNativeModules } from "./ensure-native-modules.mjs";
+import {
+  detectLiveInstanceInCheckout,
+  formatRefusal,
+} from "./guard-live-build.mjs";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(scriptDir, "..");
@@ -76,6 +80,16 @@ async function buildBundledPlugins() {
   throw new Error(
     `Bundled plugin build failed with exit code ${result.code ?? 1}`,
   );
+}
+
+// buildRuntimeArtifacts() rewrites apps/app/dist, and it runs BEFORE anything
+// checks the port. Starting a second instance in a checkout that is already
+// serving would clobber the live bundle and only then fail on the port — so
+// refuse here, while it is still harmless.
+const liveInstance = detectLiveInstanceInCheckout(repoRoot);
+if (liveInstance) {
+  process.stderr.write(formatRefusal(repoRoot, liveInstance, "start"));
+  process.exit(1);
 }
 
 await buildRuntimeArtifacts();

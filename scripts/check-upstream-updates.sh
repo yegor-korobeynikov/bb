@@ -43,6 +43,7 @@ OUT=/tmp/bb-upstream-triage.md
   echo
 } > "$OUT"
 
+RISKY_SHAS=()
 for commit in $(git rev-list --reverse tendo-main..origin/main); do
   files=$(git show --name-only --format="" "$commit")
   collision=false
@@ -53,6 +54,7 @@ for commit in $(git rev-list --reverse tendo-main..origin/main); do
     fi
   done
   if [ "$collision" = true ]; then
+    RISKY_SHAS+=("$commit")
     echo "- \`$commit\` $(git log -1 --format=%s "$commit")" >> "$OUT"
     for f in $files; do
       if echo "$OURS_FILES" | grep -qxF "$f"; then
@@ -64,11 +66,14 @@ done
 
 {
   echo
-  echo "## SAFE — everything else ($(git rev-list --count tendo-main..origin/main) total upstream commits)"
+  echo "## SAFE — upstream commits that touch none of our files"
   echo
-  echo "Skim these one-liners; none touch a file we've customized."
+  echo "Skim these one-liners. The RISKY commits above are excluded here, so"
+  echo "this section really is the safe remainder."
   echo
-  git log --reverse --format="- \`%h\` %s" tendo-main..origin/main
+  git log --reverse --format="%H|- \`%h\` %s" tendo-main..origin/main \
+    | grep -v -F -f <(printf '%s\n' "${RISKY_SHAS[@]:-__none__}") \
+    | cut -d'|' -f2-
 } >> "$OUT"
 
 cat "$OUT"

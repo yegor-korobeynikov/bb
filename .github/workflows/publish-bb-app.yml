@@ -3,6 +3,10 @@
 name: Publish bb-app
 
 on:
+  # The nightly schedule belongs to upstream. On this fork it would fire every
+  # night onto blacksmith runners the fork has no access to, re-creating the
+  # forever-queued jobs the runner remap removed — just on a timer. Jobs are
+  # additionally repository-gated below.
   schedule:
     - cron: "0 3 * * *"
       timezone: "America/Los_Angeles"
@@ -50,6 +54,11 @@ env:
 jobs:
   publish:
     name: Publish bb-app
+    # Every other job in this workflow needs `publish`, so gating it here gates
+    # the whole scheduled path. The nightly cron belongs to upstream: on a fork
+    # it fires onto runners the fork cannot reach and queues forever. Manual
+    # dispatch is unaffected, so the fork can still release deliberately.
+    if: ${{ github.event_name != 'schedule' || github.repository == 'get-bb/bb' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: npm-release
