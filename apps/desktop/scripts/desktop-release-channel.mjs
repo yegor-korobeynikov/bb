@@ -30,13 +30,13 @@ export function resolveDesktopBuildPlatform(nodePlatform) {
 export function createDesktopReleaseConfig(channel) {
   if (channel === "nightly") {
     return {
-      appId: "dev.bb.desktop.nightly",
-      applicationName: "bb Nightly",
-      artifactName: "bb-nightly-${version}-${arch}.${ext}",
+      appId: "app.tendo.desktop.nightly",
+      applicationName: "Tendo Nightly",
+      artifactName: "tendo-nightly-${version}-${arch}.${ext}",
       iconFileName: "icon-nightly.png",
       // The Linux binary name must differ from stable so both channels can be
       // installed at once without one shadowing the other on PATH.
-      linuxExecutableName: "bb-nightly",
+      linuxExecutableName: "tendo-nightly",
       macIconPath: "assets/icon-nightly.icns",
       releaseTag: "desktop-nightly",
       updateMetadataFileNames: {
@@ -61,6 +61,11 @@ export function createDesktopReleaseConfig(channel) {
   };
 }
 
+// Tendo ships its own desktop builds, so the auto-update feed has to point at
+// this fork's releases. Left at the upstream repo, an installed Tendo would
+// update itself into bb — a different product wearing our icon.
+// Override with TENDO_UPDATE_REPO ("owner/name") when building from elsewhere.
 export function createDesktopUpdateReleaseBaseUrl(releaseTag) {
-  return `https://github.com/get-bb/bb/releases/download/${releaseTag}/`;
+  const repo = process.env.TENDO_UPDATE_REPO ?? "yegor-korobeynikov/bb";
+  return `https://github.com/${repo}/releases/download/${releaseTag}/`;
 }

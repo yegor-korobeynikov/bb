@@ -844,13 +844,13 @@ jobs:
           VERSION: ${{ needs.nightly-desktop-macos.outputs.version }}
         run: |
           {
-            echo "## bb Nightly desktop"
+            echo "## Tendo Nightly desktop"
             echo
             echo "- version: \`$VERSION\`"
-            echo "- app identity: \`dev.bb.desktop.nightly\`"
+            echo "- app identity: \`app.tendo.desktop.nightly\`"
             echo "- platforms: macOS arm64 (signed), Linux x64 AppImage"
-            echo "- release: https://github.com/get-bb/bb/releases/tag/desktop-nightly"
-            echo "- macOS update feed: https://github.com/get-bb/bb/releases/download/desktop-nightly/desktop-version.json"
-            echo "- Linux update feed: https://github.com/get-bb/bb/releases/download/desktop-nightly/desktop-version-linux.json"
+            echo "- release: https://github.com/yegor-korobeynikov/bb/releases/tag/desktop-nightly"
+            echo "- macOS update feed: https://github.com/yegor-korobeynikov/bb/releases/download/desktop-nightly/desktop-version.json"
+            echo "- Linux update feed: https://github.com/yegor-korobeynikov/bb/releases/download/desktop-nightly/desktop-version-linux.json"
             echo "- retention for workflow artifacts: 14 days"
           } >> "$GITHUB_STEP_SUMMARY"
