@@ -47,11 +47,11 @@ export function createDesktopReleaseConfig(channel) {
   }
 
   return {
-    appId: "dev.bb.desktop",
-    applicationName: "bb",
+    appId: "app.tendo.desktop",
+    applicationName: "Tendo",
     artifactName: "${productName}-${version}-${arch}.${ext}",
     iconFileName: "icon.png",
-    linuxExecutableName: "bb",
+    linuxExecutableName: "tendo",
     macIconPath: "assets/icon.icns",
     releaseTag: "desktop-latest",
     updateMetadataFileNames: {

@@ -1,6 +1,6 @@
 {
-  "appId": "dev.bb.desktop",
-  "productName": "bb",
+  "appId": "app.tendo.desktop",
+  "productName": "Tendo",
   "artifactName": "${productName}-${version}-${arch}.${ext}",
   "afterPack": "scripts/prepare-native-modules.cjs",
   "asar": true,
@@ -33,7 +33,7 @@
     "entitlements": "build/entitlements.mac.plist",
     "entitlementsInherit": "build/entitlements.mac.inherit.plist",
     "gatekeeperAssess": false,
-    "hardenedRuntime": true,
+    "hardenedRuntime": false,
     "icon": "assets/icon.icns",
     "identity": null,
     "notarize": false,
