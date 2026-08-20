@@ -16,7 +16,7 @@ afterEach(() => {
 });
 
 describe("SidebarSectionRow", () => {
-  it("renders the section name before the disclosure without a sidebar icon", () => {
+  it("renders the disclosure before the section name without a sidebar icon", () => {
     const result = render(
       <SidebarSectionRow
         name="Nested work"
@@ -38,7 +38,7 @@ describe("SidebarSectionRow", () => {
     expect(icon).toBeNull();
     expect(
       label.compareDocumentPosition(disclosure) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
+        Node.DOCUMENT_POSITION_PRECEDING,
     ).not.toBe(0);
     expect(row?.style.paddingLeft).toBe("32px");
   });

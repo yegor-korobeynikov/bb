@@ -112,7 +112,7 @@ describe("TopLevelSidebarSection", () => {
     ).not.toBeNull();
   });
 
-  it("renders the disclosure after the section label without a leading icon", () => {
+  it("renders the disclosure before the section label without a leading icon", () => {
     const result = render(
       <TopLevelSidebarSection
         label="Pinned"
@@ -131,7 +131,7 @@ describe("TopLevelSidebarSection", () => {
     expect(icon).toBeNull();
     expect(
       label.compareDocumentPosition(disclosure) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
+        Node.DOCUMENT_POSITION_PRECEDING,
     ).not.toBe(0);
   });
 
