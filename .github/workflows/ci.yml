@@ -41,7 +41,13 @@ jobs:
       # A published version whose packed files or consumer-facing manifest
       # fields changed is a hard failure; an unreachable registry or a failed
       # local pack (exit 2) is infrastructure, not a finding.
+      # Fork note: this guard compares the checkout against what is published
+      # as @get-bb/plugin-sdk on npm — upstream's package, which this fork
+      # neither owns nor publishes. Being behind upstream makes the contents
+      # differ by construction, so on a fork the guard reports a failure that
+      # says nothing about this commit. Upstream-only.
       - name: Check plugin SDK npm version guard
+        if: ${{ github.repository == 'get-bb/bb' }}
         run: |
           # +e so the exit code can be inspected: GitHub's default shell runs
           # with -e, which would abort the step before the exit-2 check.
