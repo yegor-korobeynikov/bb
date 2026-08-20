@@ -6,7 +6,7 @@ import {
 export type DesktopReleaseChannel = "latest" | "nightly";
 
 export interface DesktopReleaseInfo {
-  applicationName: "bb" | "bb Nightly";
+  applicationName: "Tendo" | "Tendo Nightly";
   channel: DesktopReleaseChannel;
   iconFileName: "icon.png" | "icon-nightly.png";
   releaseTag: "desktop-latest" | "desktop-nightly";
@@ -20,11 +20,11 @@ export function createDesktopReleaseInfo(
   const releaseTag = nightly ? "desktop-nightly" : "desktop-latest";
 
   return {
-    applicationName: nightly ? "bb Nightly" : "bb",
+    applicationName: nightly ? "Tendo Nightly" : "Tendo",
     channel,
     iconFileName: nightly ? "icon-nightly.png" : "icon.png",
     releaseTag,
-    updateReleaseBaseUrl: `https://github.com/get-bb/bb/releases/download/${releaseTag}/`,
+    updateReleaseBaseUrl: `https://github.com/yegor-korobeynikov/bb/releases/download/${releaseTag}/`,
   };
 }
 
