@@ -1021,3 +1021,29 @@ body.sidebar-resizing [data-sidebar="panel"] {
   flex-shrink: 0;
   overflow-anchor: auto;
 }
+
+/* --- Tendo design canon ------------------------------------------------
+   Landing zone for tokens authored in the tendo-design-system project
+   (tokens.css there is the authored layer; this block is what ships).
+   Additive on purpose: nothing consumes these yet, so appending them is
+   visually inert — but plugins and native components can start reading
+   them via var() instead of hardcoding values. Keep names --tendo-*. */
+:root {
+  /* Status dot: filled = real state, outline = idle (never absent). */
+  --tendo-status-blocked: #e0532b;
+  --tendo-status-unread: #2c7c8c;
+  --tendo-status-done: #6e7b33;
+  --tendo-status-idle-border: var(--muted-foreground);
+  --tendo-status-dot-size: 5px;
+
+  /* Sidebar row spacing — CDP-measured targets. */
+  --tendo-sidebar-edge-to-dot: 40px;
+  --tendo-sidebar-chevron-to-dot: 20px;
+  --tendo-sidebar-indent-step: 16px;
+
+  /* Typography scale. */
+  --tendo-type-sidebar-weight: 350;
+  --tendo-type-body-weight: 300;
+  --tendo-type-muted-weight: 300;
+  --tendo-type-heading-weight: 600;
+}
