@@ -200,7 +200,7 @@ const QUEUED_MARKDOWN_COMPONENTS: Components = {
   ),
   br: () => " ",
   code: ({ children }) => (
-    <code className="rounded bg-muted/70 px-1.5 py-0.5 font-mono text-xs">
+    <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
       {children}
     </code>
   ),

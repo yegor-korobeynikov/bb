@@ -438,7 +438,7 @@ export function buildThreadMentionComponent({
     const resource = useRawThreadMentionResource(threadId);
     if (resource === null) {
       return inlineCode ? (
-        <code className="rounded bg-muted/70 px-1.5 py-0.5 font-mono text-xs">
+        <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
           {threadId}
         </code>
       ) : (
