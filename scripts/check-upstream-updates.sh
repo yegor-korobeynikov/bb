@@ -24,16 +24,16 @@ cd "$(dirname "$0")/.."
 echo "Fetching origin (get-bb/bb upstream)..."
 git fetch origin main --quiet
 
-BASE=$(git merge-base main origin/main)
-OURS_FILES=$(git diff --name-only "$BASE"..main)
+BASE=$(git merge-base tendo-main origin/main)
+OURS_FILES=$(git diff --name-only "$BASE"..tendo-main)
 
 OUT=/tmp/bb-upstream-triage.md
 {
   echo "# Upstream triage — $(date -u +%Y-%m-%dT%H:%M:%SZ)"
   echo
   echo "Fork point: $BASE"
-  echo "Commits behind origin/main: $(git rev-list --count main..origin/main)"
-  echo "Commits ahead (our own): $(git rev-list --count origin/main..main)"
+  echo "Commits behind origin/main: $(git rev-list --count tendo-main..origin/main)"
+  echo "Commits ahead (our own): $(git rev-list --count origin/main..tendo-main)"
   echo
   echo "## Our customized files (since fork point)"
   echo
@@ -43,7 +43,7 @@ OUT=/tmp/bb-upstream-triage.md
   echo
 } > "$OUT"
 
-for commit in $(git rev-list --reverse main..origin/main); do
+for commit in $(git rev-list --reverse tendo-main..origin/main); do
   files=$(git show --name-only --format="" "$commit")
   collision=false
   for f in $files; do
@@ -64,11 +64,11 @@ done
 
 {
   echo
-  echo "## SAFE — everything else ($(git rev-list --count main..origin/main) total upstream commits)"
+  echo "## SAFE — everything else ($(git rev-list --count tendo-main..origin/main) total upstream commits)"
   echo
   echo "Skim these one-liners; none touch a file we've customized."
   echo
-  git log --reverse --format="- \`%h\` %s" main..origin/main
+  git log --reverse --format="- \`%h\` %s" tendo-main..origin/main
 } >> "$OUT"
 
 cat "$OUT"
