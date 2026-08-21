@@ -89,11 +89,11 @@ export const permissionModeInputSchema = z
       permissionMode === "workspace-write" ? "accept-edits" : permissionMode,
   );
 
-export const legacyRecordedPermissionModeValues = [
+const legacyRecordedPermissionModeValues = [
   "workspace-write",
   "readonly",
 ] as const;
-export const recordedPermissionModeSchema = z.enum([
+const recordedPermissionModeSchema = z.enum([
   ...permissionModeValues,
   ...legacyRecordedPermissionModeValues,
 ]);
@@ -102,88 +102,23 @@ export type RecordedPermissionMode = z.infer<
 >;
 
 export const permissionEscalationValues = ["ask", "deny"] as const;
-export const permissionEscalationSchema = z.enum(permissionEscalationValues);
+const permissionEscalationSchema = z.enum(permissionEscalationValues);
 export type PermissionEscalation = z.infer<typeof permissionEscalationSchema>;
 
-export const DEFAULT_CLAUDE_CODE_MOCK_CLI_TRAFFIC_ENDPOINT =
-  "https://api.anthropic.com";
-
-const LOOPBACK_HOSTNAMES = new Set(["127.0.0.1", "::1", "localhost"]);
-const CLAUDE_CODE_MOCK_CLI_TRAFFIC_TEST_HOSTNAME = "api.anthropic.com";
-
-function normalizeUrlHostname(value: string): string {
-  return value.toLowerCase().replace(/^\[(.*)\]$/u, "$1");
-}
-
-export function isClaudeCodeMockCliTrafficEndpoint(value: string): boolean {
-  let url: URL;
-  try {
-    url = new URL(value);
-  } catch {
-    return false;
-  }
-  const hostname = normalizeUrlHostname(url.hostname);
-  if (url.protocol === "http:" && LOOPBACK_HOSTNAMES.has(hostname)) {
-    return true;
-  }
-  return (
-    url.protocol === "https:" &&
-    hostname === CLAUDE_CODE_MOCK_CLI_TRAFFIC_TEST_HOSTNAME &&
-    url.port === "" &&
-    url.username === "" &&
-    url.password === ""
-  );
-}
-
-export const claudeCodeMockCliTrafficEndpointSchema = z
-  .string()
-  .url()
-  .refine(
-    isClaudeCodeMockCliTrafficEndpoint,
-    "Endpoint must be an http:// loopback URL or https://api.anthropic.com",
-  );
-
-export const claudeCodeMockCliTrafficConfigSchema = z
-  .object({
-    enabled: z.boolean(),
-    endpoint: claudeCodeMockCliTrafficEndpointSchema,
-  })
-  .strict();
-export type ClaudeCodeMockCliTrafficConfig = z.infer<
-  typeof claudeCodeMockCliTrafficConfigSchema
->;
-
-export const DEFAULT_CLAUDE_CODE_MOCK_CLI_TRAFFIC_CONFIG: ClaudeCodeMockCliTrafficConfig =
-  {
-    enabled: false,
-    endpoint: DEFAULT_CLAUDE_CODE_MOCK_CLI_TRAFFIC_ENDPOINT,
-  };
-
-export const promptInputVisibilityValues = ["agent-only"] as const;
-export const promptInputVisibilitySchema = z.enum(promptInputVisibilityValues);
+const promptInputVisibilityValues = ["agent-only"] as const;
+const promptInputVisibilitySchema = z.enum(promptInputVisibilityValues);
 
 const promptInputVisibilityFields = {
   visibility: promptInputVisibilitySchema.optional(),
 };
 
-export const promptMentionPathSourceValues = [
-  "workspace",
-  "thread-storage",
-] as const;
-export const promptMentionPathSourceSchema = z.enum(
-  promptMentionPathSourceValues,
-);
-export type PromptMentionPathSource = z.infer<
-  typeof promptMentionPathSourceSchema
->;
+const promptMentionPathSourceValues = ["workspace", "thread-storage"] as const;
+const promptMentionPathSourceSchema = z.enum(promptMentionPathSourceValues);
 
-export const promptMentionPathEntryKindValues = ["file", "directory"] as const;
-export const promptMentionPathEntryKindSchema = z.enum(
+const promptMentionPathEntryKindValues = ["file", "directory"] as const;
+const promptMentionPathEntryKindSchema = z.enum(
   promptMentionPathEntryKindValues,
 );
-export type PromptMentionPathEntryKind = z.infer<
-  typeof promptMentionPathEntryKindSchema
->;
 
 export const promptMentionCommandTriggerValues = ["/"] as const;
 export const promptMentionCommandTriggerSchema = z.enum(
@@ -193,20 +128,17 @@ export type PromptMentionCommandTrigger = z.infer<
   typeof promptMentionCommandTriggerSchema
 >;
 
-export const promptMentionCommandSourceValues = ["skill", "command"] as const;
-export const promptMentionCommandSourceSchema = z.enum(
+const promptMentionCommandSourceValues = ["skill", "command"] as const;
+const promptMentionCommandSourceSchema = z.enum(
   promptMentionCommandSourceValues,
 );
-export type PromptMentionCommandSource = z.infer<
-  typeof promptMentionCommandSourceSchema
->;
 
-export const promptMentionCommandOriginValues = [
+const promptMentionCommandOriginValues = [
   "builtin",
   "project",
   "user",
 ] as const;
-export const promptMentionCommandOriginSchema = z.enum(
+const promptMentionCommandOriginSchema = z.enum(
   promptMentionCommandOriginValues,
 );
 export type PromptMentionCommandOrigin = z.infer<
@@ -334,7 +266,7 @@ export const promptInputSchema = z.discriminatedUnion("type", [
 ]);
 export type PromptInput = z.infer<typeof promptInputSchema>;
 
-export interface PromptCommandSelector {
+interface PromptCommandSelector {
   trigger: PromptMentionCommandTrigger;
   name: string;
 }
@@ -519,14 +451,14 @@ export function removeCommandMentionsFromPromptInput(
   );
 }
 
-export const threadExecutionSourceSchema = z.enum([
+const threadExecutionSourceSchema = z.enum([
   "client/thread/start",
   "client/turn/requested",
   "client/turn/start",
 ]);
 export type ThreadExecutionSource = z.infer<typeof threadExecutionSourceSchema>;
 
-export const callerExecutionInputSourceValues = [
+const callerExecutionInputSourceValues = [
   "explicit",
   "client-preference",
 ] as const;
@@ -537,7 +469,7 @@ export type CallerExecutionInputSource = z.infer<
   typeof callerExecutionInputSourceSchema
 >;
 
-export const threadExecutionOptionsSchema = z.object({
+const threadExecutionOptionsSchema = z.object({
   model: z.string().optional(),
   serviceTier: serviceTierSchema.optional(),
   reasoningLevel: reasoningLevelSchema.optional(),
@@ -570,16 +502,10 @@ export type RecordedThreadExecutionOptions = z.infer<
 >;
 
 export const runtimePermissionScopeValues = ["workspace", "full"] as const;
-export const runtimePermissionScopeSchema = z.enum(
-  runtimePermissionScopeValues,
-);
+const runtimePermissionScopeSchema = z.enum(runtimePermissionScopeValues);
 export type RuntimePermissionScope = z.infer<
   typeof runtimePermissionScopeSchema
 >;
-
-export const approvalReviewerValues = ["user", "automatic"] as const;
-export const approvalReviewerSchema = z.enum(approvalReviewerValues);
-export type ApprovalReviewer = z.infer<typeof approvalReviewerSchema>;
 
 export const runtimePermissionPolicySchema = z.discriminatedUnion(
   "permissionMode",
@@ -613,9 +539,6 @@ const runtimeThreadExecutionBaseOptionsSchema = z.object({
   serviceTier: serviceTierSchema,
   reasoningLevel: reasoningLevelSchema,
   claudeCodePermissionMode: z.literal("plan").optional(),
-  // Optional for legacy command compatibility; the server fills the current
-  // app setting before dispatching new runtime work.
-  claudeCodeMockCliTraffic: claudeCodeMockCliTrafficConfigSchema.optional(),
   /**
    * Server-owned product policy: whether the provider session may use the
    * Workflows feature. Filled explicitly at the server boundary (per-provider

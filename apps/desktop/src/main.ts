@@ -31,7 +31,6 @@ import {
 } from "@bb/desktop-contract";
 import {
   serverMessageLenientSchema,
-  systemConfigResponseSchema,
   type ClientMessage,
 } from "@bb/server-contract";
 import { z } from "zod";
@@ -115,8 +114,8 @@ import {
   type DesktopUpdateService,
 } from "./desktop-update-check.js";
 import {
+  DESKTOP_RELEASE_CHANNEL,
   DESKTOP_RELEASE_INFO,
-  DESKTOP_UPDATE_CHANNEL,
   resolveDesktopUpdateSupport,
 } from "./desktop-update-provider.js";
 import {
@@ -150,8 +149,8 @@ import {
 } from "./desktop-browser-view.js";
 import { resolveDesktopBrowserAppCommand } from "./desktop-browser-shortcuts.js";
 import { registerDesktopBrowserIpc } from "./desktop-browser-main-ipc.js";
+import { parseDesktopSystemConfig } from "./desktop-system-config.js";
 import { ensurePackagedUserShellPath } from "./desktop-shell-path.js";
-import { clearPackagedSessionHttpCache } from "./desktop-session-cache.js";
 import { resolveDesktopReloadShortcut } from "./desktop-reload-shortcut.js";
 import {
   createLogTailer,
@@ -807,7 +806,7 @@ async function fetchSystemConfig(args: FetchSystemConfigArgs) {
     );
   }
   const payload: unknown = await response.json();
-  return systemConfigResponseSchema.parse(payload);
+  return parseDesktopSystemConfig(payload);
 }
 
 function createSystemConfigSync(serverUrl: string): SystemConfigSync {
@@ -2040,10 +2039,9 @@ async function runDesktopApp(): Promise<void> {
   });
 
   await app.whenReady();
-  await clearPackagedSessionHttpCache({
-    isPackaged: app.isPackaged,
-    session: session.defaultSession,
-  });
+  if (app.isPackaged) {
+    await session.defaultSession.clearCache();
+  }
 
   const paths = createDesktopPathContext();
   const iconPath = resolveDesktopIconPath({
@@ -2170,7 +2168,7 @@ async function runDesktopApp(): Promise<void> {
     platform: desktopPlatform,
   });
   desktopUpdateService = createDesktopUpdateService({
-    channel: DESKTOP_UPDATE_CHANNEL,
+    channel: DESKTOP_RELEASE_CHANNEL,
     currentVersion: desktopVersion,
     enabled:
       desktopUpdateSupport.versionCheck &&

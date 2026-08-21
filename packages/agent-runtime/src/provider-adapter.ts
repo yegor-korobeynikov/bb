@@ -4,7 +4,6 @@ import type {
   DynamicTool,
   InstructionMode,
   PromptInput,
-  ClaudeCodeMockCliTrafficConfig,
   ProviderCapabilities,
   ReasoningLevel,
   RuntimePermissionPolicy,
@@ -18,7 +17,6 @@ import type {
   BuildInteractiveResponseArgs,
   DecodedInteractiveRequest,
   DecodedToolCallRequest,
-  PreparedProviderCommandDispatch,
   ProviderCommandPlan,
   ProviderInteractiveResponse,
   ProviderPostInitializeRequest,
@@ -29,12 +27,7 @@ import type {
 } from "./types.js";
 import type { HostDaemonAcpLaunchSpec } from "@bb/host-daemon-contract";
 
-export interface ProviderTranslationContext {
-  threadId?: string;
-  parentToolCallId?: string;
-}
-
-export interface ProviderAcceptedCommandTranslationArgs {
+interface ProviderAcceptedCommandTranslationArgs {
   command: AdapterCommand;
   providerThreadId?: string;
 }
@@ -67,7 +60,6 @@ export type ProviderExecutionContext = {
   serviceTier?: ServiceTier;
   reasoningLevel?: ReasoningLevel;
   claudeCodePermissionMode?: "plan";
-  claudeCodeMockCliTraffic: ClaudeCodeMockCliTrafficConfig;
   /**
    * Server-owned workflows policy. Filled explicitly at the server boundary
    * and passed through required end-to-end; providers without the concept
@@ -88,11 +80,22 @@ export type AdapterCommand =
       skillRoots: readonly AgentRuntimeSkillRoot[];
     }
   | { type: "model/list"; cwd?: string }
+  | { type: "provider/health"; cwd?: string }
+  | { type: "provider/usage"; cwd?: string }
+  | {
+      type: "provider/installation/status";
+      cwd?: string;
+      requirement?: "thread_rewind";
+    }
+  | {
+      type: "provider/installation/run";
+      action: "install" | "update";
+      cwd?: string;
+    }
   | {
       type: "thread/start";
       threadId: string;
       cwd: string;
-      input?: PromptInput[];
       options: ProviderExecutionContext;
       dynamicTools?: DynamicTool[];
       disallowedTools?: readonly string[];
@@ -176,11 +179,6 @@ export type AdapterCommand =
       providerThreadId: string;
     };
 
-export type TurnStartAdapterCommand = Extract<
-  AdapterCommand,
-  { type: "turn/start" }
->;
-
 export function flattenPromptInputGroups(
   input: PromptInput[],
   inputGroups: PromptInput[][] | undefined,
@@ -193,12 +191,6 @@ export function flattenPromptInputGroups(
       ? group
       : [{ type: "text" as const, text: "\n\n", mentions: [] }, ...group],
   );
-}
-
-export function noPreparedProviderCommandDispatch(
-  _command: TurnStartAdapterCommand,
-): null {
-  return null;
 }
 
 export type ProviderExecutionSettingsChange = "unchanged" | "live" | "session";
@@ -214,7 +206,6 @@ export interface ClassifyProviderExecutionSettingsChangeArgs {
 
 export interface ProviderAdapter {
   id: string;
-  displayName: string;
   capabilities: ProviderCapabilities;
   /**
    * Selects where approval escalation is enforced. `runtime` adapters emit
@@ -224,14 +215,6 @@ export interface ProviderAdapter {
    * reclassified against mutable thread settings.
    */
   approvalEnforcedBy: "runtime" | "provider";
-  /**
-   * Normalizes provider-specific execution options before validation,
-   * comparison, persistence, and command construction. Providers may use this
-   * to collapse accepted no-op values onto their effective setting.
-   */
-  normalizeExecutionOptions?(
-    options: RuntimeThreadExecutionOptions,
-  ): RuntimeThreadExecutionOptions;
   /**
    * Classifies execution-setting drift for this provider. `live` settings are
    * carried by the next turn command; `session` settings require rebuilding
@@ -260,22 +243,11 @@ export interface ProviderAdapter {
    * versions unusable when they do not implement the read.
    */
   buildPostInitializeRequests?(): readonly ProviderPostInitializeRequest[];
-  /**
-   * Called immediately before a turn/start request is sent. Some providers
-   * emit turn/started before the request promise resolves, so adapters that
-   * need command-to-event correlation must prepare that state before dispatch.
-   */
-  prepareTurnStart(
-    command: TurnStartAdapterCommand,
-  ): PreparedProviderCommandDispatch | null;
   parseModelListResult(result: unknown): {
     models: AvailableModel[];
     selectedOnlyModels: AvailableModel[];
   };
-  translateEvent(
-    event: ProviderRuntimeEvent,
-    context?: ProviderTranslationContext,
-  ): ThreadEvent[];
+  translateEvent(event: ProviderRuntimeEvent): ThreadEvent[];
   /**
    * Returns normalized events implied by a successful provider command.
    * Use this for provider protocol gaps where accepted commands do not produce
@@ -284,16 +256,6 @@ export interface ProviderAdapter {
   translateAcceptedCommand(
     args: ProviderAcceptedCommandTranslationArgs,
   ): ThreadEvent[];
-  /** Clears adapter-local turn state after the provider reports no active turn. */
-  clearActiveTurnState?(threadId: string): void;
-  /**
-   * Called when a thread detaches because its provider process exited or the
-   * runtime is shutting down. Returns events reconciling adapter state that
-   * cannot survive the process — e.g. open background tasks settled as
-   * interrupted. Events must carry the real bb threadId; the runtime emits
-   * them before clearing the thread's runtime state.
-   */
-  buildThreadDetachedEvents?(args: { threadId: string }): ThreadEvent[];
   decodeToolCallRequest(
     request: ProviderInboundRequest,
   ): DecodedToolCallRequest | null;

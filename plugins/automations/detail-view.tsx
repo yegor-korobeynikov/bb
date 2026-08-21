@@ -10,8 +10,9 @@ import type {
   PermissionMode,
 } from "./src/rpc-types";
 import { AUTOMATION_PROMPT_MAX_LENGTH } from "./src/rpc-types";
+import { RUN_STATE_PRESENTATION } from "@bb/domain/update-state";
 import { Button } from "@bb/shared-ui/button";
-import { DelayedLoading } from "./delayed-loading.js";
+import { DelayedLoading } from "@bb/shared-ui/delayed-loading";
 import { Icon, type IconName } from "@bb/shared-ui/icon";
 import {
   ResourceActionButton,
@@ -65,7 +66,7 @@ import {
 import { AutomationProviderIcon } from "./lib/provider-icon";
 import { AutomationMetadataItem } from "./metadata";
 
-export interface AutomationRunsViewState {
+interface AutomationRunsViewState {
   runs: readonly AutomationRunResponse[];
   nextCursor: string | null;
   loading: boolean;
@@ -75,7 +76,7 @@ export interface AutomationRunsViewState {
   retry: () => void;
 }
 
-export interface AutomationDetailViewProps {
+interface AutomationDetailViewProps {
   automation: AutomationResponse;
   projectLabel: string;
   runsState: AutomationRunsViewState;
@@ -148,22 +149,10 @@ export function automationIconName(automation: AutomationResponse): IconName {
     : "Calendar";
 }
 
-export function automationScheduleLabel(
-  automation: AutomationResponse,
-): string {
-  return formatScheduleStatusLabel({
-    enabled: automation.enabled,
-    nextRunAt: automation.nextRunAt,
-    trigger: automation.trigger,
-    runCount: automation.runCount,
-    lastRunStatus: automation.lastRunStatus,
-  });
-}
-
 function automationDetailNextRun(
   automation: AutomationResponse,
 ): ReactNode | null {
-  const label = automationDetailScheduleLabel(automation);
+  const label = formatDetailScheduleStatusLabel(automation);
   if (label === null) return null;
   if (!label.startsWith("Next ")) return label;
   return (
@@ -171,18 +160,6 @@ function automationDetailNextRun(
       {label.slice("Next ".length)}
     </AutomationMetadataItem>
   );
-}
-
-function automationDetailScheduleLabel(
-  automation: AutomationResponse,
-): string | null {
-  return formatDetailScheduleStatusLabel({
-    enabled: automation.enabled,
-    nextRunAt: automation.nextRunAt,
-    trigger: automation.trigger,
-    runCount: automation.runCount,
-    lastRunStatus: automation.lastRunStatus,
-  });
 }
 
 function automationBodyLabel(execution: AutomationExecution): string {
@@ -497,7 +474,14 @@ function isSilentRun(run: AutomationRunResponse): boolean {
   );
 }
 
-export const AUTOMATION_RUN_STATUS_VISUALS: Record<
+/**
+ * Glyphs and labels come from the shared run-state vocabulary in `@bb/domain`
+ * — the same map Settings → Updates and `bb updates` read — so the two
+ * surfaces cannot drift. Only the colour classes are local: a run history
+ * colours success green because a succeeded run is its headline, where the
+ * Updates page mutes it because up-to-date is its resting state.
+ */
+const AUTOMATION_RUN_STATUS_VISUALS: Record<
   AutomationRunStatus,
   {
     label: string;
@@ -507,26 +491,22 @@ export const AUTOMATION_RUN_STATUS_VISUALS: Record<
 > = {
   running: {
     label: "Running",
-    icon: "Loading",
+    icon: RUN_STATE_PRESENTATION["in-progress"].icon as IconName,
     className: "animate-spin text-muted-foreground",
   },
   failed: {
-    label: "Failed",
-    icon: "CircleX",
+    label: RUN_STATE_PRESENTATION.failed.label,
+    icon: RUN_STATE_PRESENTATION.failed.icon as IconName,
     className: "text-destructive",
   },
   skipped: {
-    label: "Skipped",
-    // Not CircleDashed: icon.tsx aliases it to the same DashedLineCircleIcon as
-    // Spinner, so a skipped run rendered an identical shape to a running one.
-    // ArrowTurnForward is the only glyph in the map that reads as "passed
-    // over", and it is shape-distinct from check, x, spinner, clock and pause.
-    icon: "ArrowTurnForward",
+    label: RUN_STATE_PRESENTATION.skipped.label,
+    icon: RUN_STATE_PRESENTATION.skipped.icon as IconName,
     className: "text-subtle-foreground",
   },
   succeeded: {
-    label: "Succeeded",
-    icon: "CircleCheck",
+    label: RUN_STATE_PRESENTATION.succeeded.label,
+    icon: RUN_STATE_PRESENTATION.succeeded.icon as IconName,
     className: "text-success",
   },
 };
@@ -951,7 +931,7 @@ export function AutomationDetailView({
             oneShotLifecycle === "expired"
               ? "Expired automation; edit to reschedule"
               : lifecycleLocked
-                ? `${automationScheduleLabel(automation)} automation`
+                ? `${formatScheduleStatusLabel(automation)} automation`
                 : automation.enabled
                   ? "Pause automation"
                   : "Resume automation"

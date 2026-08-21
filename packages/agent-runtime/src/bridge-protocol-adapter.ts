@@ -5,8 +5,9 @@
  * (@bb/provider-bridge-protocol) needs no bespoke adapter: commands map to
  * canonical methods, events arrive as already-translated ThreadEvents, and
  * session-behavior capabilities come from the initialize handshake — captured
- * here per process and consulted for gated methods, so a method a bridge did
- * not advertise is never sent.
+ * here per process and consulted for gated session methods. Sessionless
+ * maintenance methods are gated by the provider registration before a command
+ * reaches this adapter.
  *
  * This adapter never diffs execution options (`classifyExecutionSettingsChange`
  * always reports "live"): options ride every command and the bridge
@@ -19,7 +20,7 @@ import type {
   ThreadEvent,
 } from "@bb/domain";
 import { PROVIDER_FORK_VALUES } from "@bb/domain";
-import { pendingInteractionPayloadSchema, threadEventSchema } from "@bb/domain";
+import { pendingInteractionPayloadSchema } from "@bb/domain";
 import {
   BRIDGE_INBOUND_REQUEST_METHODS,
   BRIDGE_NOTIFICATION_METHODS,
@@ -27,9 +28,12 @@ import {
   bridgeCapabilitiesSchema,
   initializeResultSchema,
   PROVIDER_BRIDGE_PROTOCOL_VERSION,
+  THREAD_DELTA_NOTIFICATION_METHOD,
+  threadDeltaNotificationParamsSchema,
   type BridgeCapabilities,
   type SkillsConfigureRoot,
 } from "@bb/provider-bridge-protocol";
+import { createDeltaAssembler } from "./delta-assembler.js";
 import { z } from "zod";
 import type {
   AdapterCommand,
@@ -47,7 +51,6 @@ import type {
   BuildInteractiveResponseArgs,
 } from "@bb/provider-bridge-protocol/bridge-kit";
 import { decodeNormalizedProviderToolCallRequest } from "@bb/provider-bridge-protocol/bridge-kit";
-import { noPreparedProviderCommandDispatch } from "./provider-adapter.js";
 import { parseAvailableModelList } from "./shared/available-models.js";
 import type { AgentRuntimeSkillRoot } from "./types.js";
 
@@ -58,14 +61,15 @@ import type { AgentRuntimeSkillRoot } from "./types.js";
  * public {@link ProviderAdapter.capabilities}, and keeps the ladder to bound
  * what the initialize handshake may claim.
  */
-export interface BridgeAdapterCapabilities
-  extends Omit<ProviderCapabilities, "supportsFork" | "supportsSessionRewind"> {
+interface BridgeAdapterCapabilities extends Omit<
+  ProviderCapabilities,
+  "supportsFork" | "supportsSessionRewind"
+> {
   fork: ProviderFork;
 }
 
-export interface BridgeProtocolAdapterOptions {
+interface BridgeProtocolAdapterOptions {
   id: string;
-  displayName: string;
   capabilities: BridgeAdapterCapabilities;
   process: { command: string; args: string[]; env?: Record<string, string> };
   /**
@@ -76,10 +80,6 @@ export interface BridgeProtocolAdapterOptions {
    */
   staticProviderOptions?: Record<string, unknown>;
 }
-
-const threadEventNotificationParamsSchema = z
-  .object({ threadId: z.string().min(1), event: threadEventSchema })
-  .passthrough();
 
 const threadIdentityNotificationParamsSchema = z
   .object({
@@ -115,7 +115,18 @@ const interactionRequestParamsSchema = z.object({
   threadId: z.string().min(1).optional(),
   turnId: z.union([z.string().min(1), z.null()]),
   payload: pendingInteractionPayloadSchema,
+  /**
+   * The request's ids are provider-native (a thread/delta bridge holds no bb
+   * ids): translate the turn id and approval-subject item ids through the
+   * delta assembler's maps so the app sees the timeline's own ids.
+   */
+  providerNativeIds: z.boolean().optional(),
 });
+
+/** The provider-native-id marker on a normalized tool-call request. */
+const providerNativeIdsParamsSchema = z
+  .object({ providerNativeIds: z.boolean().optional() })
+  .passthrough();
 
 /**
  * Execution options → canonical wire options. Core execution fields map
@@ -213,6 +224,9 @@ export function createBridgeProtocolAdapter(
   // Last `thread/openWork` value per bb thread. Level-triggered, so a missed
   // intermediate notification cannot strand the runtime on a stale answer.
   const threadIdsWithOpenWork = new Set<string>();
+  // The narrow grammar: bridges emit parsed semantic deltas (`thread/delta`)
+  // and this assembler constructs every canonical timeline event.
+  const deltaAssembler = createDeltaAssembler({ providerId: options.id });
 
   function gate(
     capability: keyof BridgeCapabilities & string,
@@ -226,7 +240,6 @@ export function createBridgeProtocolAdapter(
 
   const adapter: ProviderAdapter = {
     id: options.id,
-    displayName: options.displayName,
     capabilities,
     // The handshake owns approval-policy placement; before it completes the
     // runtime-owned default is the safe reading (every request re-checked).
@@ -259,6 +272,59 @@ export function createBridgeProtocolAdapter(
                 : {}),
             },
           };
+        case "provider/health":
+          return {
+            kind: "request",
+            method: BRIDGE_REQUEST_METHODS.experimentalProviderHealth,
+            params: {
+              providerId: options.id,
+              ...(command.cwd !== undefined ? { cwd: command.cwd } : {}),
+              ...(options.staticProviderOptions !== undefined
+                ? { providerOptions: options.staticProviderOptions }
+                : {}),
+            },
+          };
+        case "provider/usage":
+          return {
+            kind: "request",
+            method: BRIDGE_REQUEST_METHODS.experimentalProviderUsage,
+            params: {
+              providerId: options.id,
+              ...(command.cwd !== undefined ? { cwd: command.cwd } : {}),
+              ...(options.staticProviderOptions !== undefined
+                ? { providerOptions: options.staticProviderOptions }
+                : {}),
+            },
+          };
+        case "provider/installation/status":
+          return {
+            kind: "request",
+            method:
+              BRIDGE_REQUEST_METHODS.experimentalProviderInstallationStatus,
+            params: {
+              providerId: options.id,
+              ...(command.requirement !== undefined
+                ? { requirement: command.requirement }
+                : {}),
+              ...(command.cwd !== undefined ? { cwd: command.cwd } : {}),
+              ...(options.staticProviderOptions !== undefined
+                ? { providerOptions: options.staticProviderOptions }
+                : {}),
+            },
+          };
+        case "provider/installation/run":
+          return {
+            kind: "request",
+            method: BRIDGE_REQUEST_METHODS.experimentalProviderInstallationRun,
+            params: {
+              providerId: options.id,
+              action: command.action,
+              ...(command.cwd !== undefined ? { cwd: command.cwd } : {}),
+              ...(options.staticProviderOptions !== undefined
+                ? { providerOptions: options.staticProviderOptions }
+                : {}),
+            },
+          };
         case "skills/configure":
           return {
             kind: "request",
@@ -272,7 +338,6 @@ export function createBridgeProtocolAdapter(
             params: {
               threadId: command.threadId,
               cwd: command.cwd,
-              ...(command.input !== undefined ? { input: command.input } : {}),
               options: toBridgeWireOptions(
                 command.options,
                 options.staticProviderOptions,
@@ -376,7 +441,16 @@ export function createBridgeProtocolAdapter(
             params: {
               threadId: command.threadId,
               providerThreadId: command.providerThreadId,
-              expectedTurnId: command.expectedTurnId,
+              // Central minting made turn ids runtime-owned: a bridge
+              // receives its provider's own turn id back (the assembler's
+              // reverse map) and does zero id translation. Bridges without
+              // native turn ids (pi, acp) have no mapping, so the bb id
+              // passes through unchanged.
+              expectedTurnId:
+                deltaAssembler.getProviderTurnId(
+                  command.threadId,
+                  command.expectedTurnId,
+                ) ?? command.expectedTurnId,
               input: command.input,
               clientRequestId: command.clientRequestId,
               options: toBridgeWireOptions(
@@ -397,7 +471,14 @@ export function createBridgeProtocolAdapter(
               // a release. Phase 2a threads the daemon's explicit intent
               // through instead.
               intent: command.activeTurnId !== null ? "interrupt" : "release",
-              activeTurnId: command.activeTurnId,
+              // Same reverse mapping as turn/steer's expectedTurnId.
+              activeTurnId:
+                command.activeTurnId === null
+                  ? null
+                  : (deltaAssembler.getProviderTurnId(
+                      command.threadId,
+                      command.activeTurnId,
+                    ) ?? command.activeTurnId),
             },
           };
         case "thread/discard":
@@ -463,15 +544,38 @@ export function createBridgeProtocolAdapter(
           },
           onResult(result) {
             const parsed = initializeResultSchema.safeParse(result);
-            if (parsed.success) {
-              handshake = parsed.data.capabilities;
+            if (!parsed.success) {
+              // A malformed handshake is as fatal as a wrong version: falling
+              // back to the default capabilities would run the bridge on
+              // guesses (and silently mask the shape drift that produced it).
+              // The post-initialize request is `required`, so this throw
+              // aborts the provider spawn as a legible startup error.
+              throw new Error(
+                `Provider bridge "${options.id}" answered initialize with a malformed result (${parsed.error.issues
+                  .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
+                  .join(
+                    "; ",
+                  )}). The bridge and this runtime cannot negotiate a handshake; update or fix the "${options.id}" provider plugin.`,
+              );
             }
+            // The version gates the handshake: a bridge on another major
+            // revision speaks a timeline dialect this runtime does not
+            // (version 1 emitted `thread/event`, which no longer exists), so
+            // failing startup legibly beats a silently empty timeline. The
+            // post-initialize request is `required`, so this throw aborts the
+            // provider spawn and surfaces the message as the startup error.
+            if (
+              parsed.data.protocolVersion !== PROVIDER_BRIDGE_PROTOCOL_VERSION
+            ) {
+              throw new Error(
+                `Provider bridge "${options.id}" speaks Provider Bridge Protocol version ${parsed.data.protocolVersion}, but this runtime requires version ${PROVIDER_BRIDGE_PROTOCOL_VERSION}. Update the "${options.id}" provider plugin to a build published for protocol version ${PROVIDER_BRIDGE_PROTOCOL_VERSION}.`,
+              );
+            }
+            handshake = parsed.data.capabilities;
           },
         },
       ];
     },
-
-    prepareTurnStart: noPreparedProviderCommandDispatch,
 
     /**
      * The bridge is the only side that knows about provider work bb models as
@@ -487,11 +591,17 @@ export function createBridgeProtocolAdapter(
 
     translateEvent(event: ProviderRuntimeEvent): ThreadEvent[] {
       const method = event.method;
-      if (method === BRIDGE_NOTIFICATION_METHODS.threadEvent) {
-        const parsed = threadEventNotificationParamsSchema.safeParse(
+      if (method === THREAD_DELTA_NOTIFICATION_METHOD) {
+        const parsed = threadDeltaNotificationParamsSchema.safeParse(
           event.params,
         );
-        return parsed.success ? [parsed.data.event] : [];
+        if (!parsed.success) {
+          return [];
+        }
+        return deltaAssembler.assemble({
+          threadId: parsed.data.threadId,
+          deltas: parsed.data.deltas,
+        });
       }
       if (method === BRIDGE_NOTIFICATION_METHODS.threadIdentity) {
         const parsed = threadIdentityNotificationParamsSchema.safeParse(
@@ -513,7 +623,11 @@ export function createBridgeProtocolAdapter(
         const parsed = sessionReplacedNotificationParamsSchema.safeParse(
           event.params,
         );
-        if (!parsed.success || parsed.data.providerThreadId === null) {
+        if (
+          !parsed.success ||
+          parsed.data.providerThreadId === null ||
+          !parsed.data.contextLost
+        ) {
           return [];
         }
         return [
@@ -522,9 +636,8 @@ export function createBridgeProtocolAdapter(
             threadId: parsed.data.threadId,
             providerThreadId: parsed.data.providerThreadId,
             category: "general",
-            summary: parsed.data.contextLost
-              ? "Provider session was replaced; provider-side context was lost."
-              : "Provider session was replaced.",
+            summary:
+              "Provider session was replaced; provider-side context was lost.",
             details: parsed.data.reason,
             scope: { kind: "thread" },
           },
@@ -570,8 +683,8 @@ export function createBridgeProtocolAdapter(
       return [];
     },
 
-    // Canonical bridges emit turn/input/accepted and session-lifecycle events
-    // themselves; the adapter synthesizes nothing.
+    // Input acceptance rides `input.accepted` deltas through the assembler;
+    // the adapter synthesizes nothing on command dispatch.
     translateAcceptedCommand: () => [],
 
     decodeToolCallRequest(
@@ -580,11 +693,37 @@ export function createBridgeProtocolAdapter(
       if (typeof request.id !== "string" && typeof request.id !== "number") {
         return null;
       }
-      return decodeNormalizedProviderToolCallRequest(
+      const decoded = decodeNormalizedProviderToolCallRequest(
         request.id,
         request.method,
         request.params,
       );
+      if (decoded === null) {
+        return decoded;
+      }
+      const marker = providerNativeIdsParamsSchema.safeParse(request.params);
+      if (
+        marker.success !== true ||
+        marker.data.providerNativeIds !== true ||
+        decoded.threadId === undefined
+      ) {
+        return decoded;
+      }
+      // Provider-native ids: translate through the assembler's maps so the
+      // runtime routes against the timeline's own turn/item ids. Unknown ids
+      // pass through unchanged (the maps only miss when the id never appeared
+      // on the thread's delta stream).
+      return {
+        ...decoded,
+        turnId:
+          decoded.turnId === null
+            ? null
+            : (deltaAssembler.getBbTurnId(decoded.threadId, decoded.turnId) ??
+              decoded.turnId),
+        callId:
+          deltaAssembler.getBbItemId(decoded.threadId, decoded.callId) ??
+          decoded.callId,
+      };
     },
 
     decodeInteractiveRequest(
@@ -600,13 +739,36 @@ export function createBridgeProtocolAdapter(
       if (!parsed.success) {
         return null;
       }
+      const { providerNativeIds, threadId, ...decoded } = parsed.data;
+      let turnId = decoded.turnId;
+      let payload = decoded.payload;
+      if (providerNativeIds === true && threadId !== undefined) {
+        // Provider-native ids: the approval subject must reference the item
+        // id the app's timeline carries (the server materializes the approval
+        // row under subject.itemId), and the turn id must be the assembler's.
+        turnId =
+          turnId === null
+            ? null
+            : (deltaAssembler.getBbTurnId(threadId, turnId) ?? turnId);
+        if (payload.kind === "approval") {
+          payload = {
+            ...payload,
+            subject: {
+              ...payload.subject,
+              itemId:
+                deltaAssembler.getBbItemId(threadId, payload.subject.itemId) ??
+                payload.subject.itemId,
+            },
+          };
+        }
+      }
       return {
         requestId: request.id,
         method: request.method,
-        providerThreadId: parsed.data.providerThreadId,
-        turnId: parsed.data.turnId,
-        payload: parsed.data.payload,
-        ...(parsed.data.threadId ? { threadId: parsed.data.threadId } : {}),
+        providerThreadId: decoded.providerThreadId,
+        turnId,
+        payload,
+        ...(threadId ? { threadId } : {}),
       };
     },
 

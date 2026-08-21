@@ -24,12 +24,12 @@ import { createProviderRegistryService } from "./services/providers/provider-reg
 import { resolveAcpAgentCapabilitiesForProviderId } from "./services/system/acp-launch-spec.js";
 import { createTelemetryService } from "./services/system/telemetry.js";
 import { TerminalSessionLifecycle } from "./services/terminals/terminal-session-lifecycle.js";
-import { resolveThreadStorageRootPath } from "./services/threads/thread-storage.js";
 import { createLifecycleDedupers } from "./lifecycle-dedupers.js";
 import { MANAGED_ENVIRONMENT_RETIRE_GRACE_MS } from "./constants.js";
 import type { ServerRuntimeConfig } from "./types.js";
 import { NotificationHub } from "./ws/hub.js";
 import { WatchInterestCoordinator } from "./ws/watch-interests.js";
+import { WorkspaceReadCaches } from "./services/environments/workspace-read-cache.js";
 import { HostSharedPortCoordinator } from "./ws/host-shared-ports.js";
 
 interface StartHttpListenerArgs {
@@ -57,11 +57,9 @@ export async function runServer(serverConfig: ServerConfig): Promise<void> {
   const hub = new NotificationHub();
   const watchInterests = new WatchInterestCoordinator({ db, hub });
   const sharedPorts = new HostSharedPortCoordinator({ db, hub });
+  const workspaceReadCaches = new WorkspaceReadCaches({ hub });
   const lifecycleDedupers = createLifecycleDedupers();
   const appUrl = toOptionalString(serverConfig.BB_APP_URL);
-  const threadStorageRootPath = resolveThreadStorageRootPath({
-    dataDir: serverConfig.BB_DATA_DIR,
-  });
 
   const selfDir = dirname(fileURLToPath(import.meta.url));
   const appDir = resolve(selfDir, "../../app");
@@ -70,7 +68,6 @@ export async function runServer(serverConfig: ServerConfig): Promise<void> {
   const staticDir =
     isProduction && existsSync(appDistDir) ? appDistDir : undefined;
   const runtimeConfig: ServerRuntimeConfig = {
-    appSurface: serverConfig.BB_APP_SURFACE,
     appVersion: serverConfig.BB_APP_VERSION,
     builtinSkillsRootPath: resolveBuiltinSkillsRootPath(),
     marketplaceUrl: serverConfig.BB_MARKETPLACE_URL,
@@ -87,7 +84,6 @@ export async function runServer(serverConfig: ServerConfig): Promise<void> {
     openAiApiKey: serverConfig.OPENAI_API_KEY,
     serverPort: serverConfig.BB_SERVER_PORT,
     sharedSkillRoots: { user: [], project: [] },
-    threadStorageRootPath,
     transcriptionModel: serverConfig.BB_TRANSCRIPTION,
   };
 
@@ -184,6 +180,7 @@ export async function runServer(serverConfig: ServerConfig): Promise<void> {
       terminalSessions,
       watchInterests,
       sharedPorts,
+      workspaceReadCaches,
     },
     { staticDir },
   );
@@ -201,7 +198,6 @@ export async function runServer(serverConfig: ServerConfig): Promise<void> {
     pluginHostArtifacts,
     skillTreeRegistry,
     pluginSchedules: pluginService,
-    pluginService,
     telemetry,
     terminalSessions,
   };
@@ -247,6 +243,9 @@ export async function runServer(serverConfig: ServerConfig): Promise<void> {
       // Success or failure, the registry now holds whatever loaded: release
       // the requests waiting for providers rather than stalling them out.
       providerRegistry.markRegistrationsSettled();
+      // Check installed plugins for updates every 6 hours. A check only
+      // records what is available; it never installs or runs plugin code.
+      pluginService.startPeriodicUpdateChecks();
     });
   // Discovery metadata only: a refresh never installs, updates, or runs
   // plugin code, and a failure keeps the last-known-good catalog.
@@ -266,6 +265,7 @@ export async function runServer(serverConfig: ServerConfig): Promise<void> {
       eventLoopStallMonitor.stop();
       clearInterval(sweepInterval);
       pluginCatalogService.stopPeriodicRefresh();
+      await pluginService.stopPeriodicUpdateChecks();
       await pluginService.stop().catch((error: unknown) => {
         logger.warn({ err: error }, "Plugin shutdown failed");
       });
@@ -283,6 +283,21 @@ export async function runServer(serverConfig: ServerConfig): Promise<void> {
     })();
     return shutdownPromise;
   };
+
+  // Plugins run in-process. An error a plugin service raises outside its
+  // start() promise (an unlistened EventEmitter 'error', a throw in a timer
+  // callback, a detached rejection) arrives here, not in the service
+  // supervisor; without this listener Node exits, the process manager
+  // restarts the server, the plugin reloads, and the crash loops. A claimed
+  // error restarts that one service. Anything else keeps Node's default:
+  // the diagnostics monitor in index.ts has already written its report.
+  process.on("uncaughtException", (error: unknown) => {
+    if (pluginService.handleUncaughtException(error)) return;
+    const message =
+      error instanceof Error ? (error.stack ?? error.message) : String(error);
+    process.stderr.write(`${message}\n`);
+    process.exit(1);
+  });
 
   process.once("SIGINT", () => {
     void runShutdown().finally(() => process.exit(0));

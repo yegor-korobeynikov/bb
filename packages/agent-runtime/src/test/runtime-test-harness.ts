@@ -6,7 +6,6 @@ import type {
   DecodedToolCallRequest,
   ProviderCommandPlan,
 } from "@bb/provider-bridge-protocol/bridge-kit";
-import { noPreparedProviderCommandDispatch } from "../provider-adapter.js";
 import { classifySessionExecutionSettingsChange } from "../execution-options.js";
 import { parseAvailableModelList } from "../shared/available-models.js";
 import type { AgentRuntimeExecutionOptions } from "../types.js";
@@ -204,7 +203,6 @@ export function createInvalidInteractiveRequestAdapter(
 export function createWarningEventAdapter(scriptPath: string): ProviderAdapter {
   return {
     id: "warning-fake",
-    displayName: "Warning Fake",
     approvalEnforcedBy: "runtime",
     capabilities: {
       supportsThreadArchive: false,
@@ -251,6 +249,10 @@ export function createWarningEventAdapter(scriptPath: string): ProviderAdapter {
           };
         case "thread/resume":
         case "thread/fork":
+        case "provider/health":
+        case "provider/usage":
+        case "provider/installation/status":
+        case "provider/installation/run":
         case "skills/configure":
         case "turn/steer":
         case "thread/stop":
@@ -262,7 +264,6 @@ export function createWarningEventAdapter(scriptPath: string): ProviderAdapter {
           return unsupportedRuntimeTestCommand(command);
       }
     },
-    prepareTurnStart: noPreparedProviderCommandDispatch,
     translateEvent(event) {
       if (!isRuntimeTestEvent(event)) {
         return [];
@@ -311,16 +312,13 @@ export function createWarningEventAdapter(scriptPath: string): ProviderAdapter {
     decodeToolCallRequest() {
       return null;
     },
-    parseModelListResult(result) {
-      return parseAvailableModelList(result);
-    },
+    parseModelListResult: parseAvailableModelList,
   };
 }
 
 export function createStartedEventAdapter(scriptPath: string): ProviderAdapter {
   return {
     id: "started-fake",
-    displayName: "Started Fake",
     approvalEnforcedBy: "runtime",
     capabilities: {
       supportsThreadArchive: false,
@@ -359,6 +357,10 @@ export function createStartedEventAdapter(scriptPath: string): ProviderAdapter {
           };
         case "thread/resume":
         case "thread/fork":
+        case "provider/health":
+        case "provider/usage":
+        case "provider/installation/status":
+        case "provider/installation/run":
         case "skills/configure":
         case "turn/start":
         case "turn/steer":
@@ -371,7 +373,6 @@ export function createStartedEventAdapter(scriptPath: string): ProviderAdapter {
           return unsupportedRuntimeTestCommand(command);
       }
     },
-    prepareTurnStart: noPreparedProviderCommandDispatch,
     translateEvent(event) {
       if (!isStartedThreadEvent(event)) {
         return [];
@@ -397,9 +398,7 @@ export function createStartedEventAdapter(scriptPath: string): ProviderAdapter {
     decodeToolCallRequest() {
       return null;
     },
-    parseModelListResult(result) {
-      return parseAvailableModelList(result);
-    },
+    parseModelListResult: parseAvailableModelList,
   };
 }
 

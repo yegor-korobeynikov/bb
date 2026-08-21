@@ -15,21 +15,42 @@ import {
 } from "@/lib/route-paths";
 import { getProviderIconInfo } from "@/lib/provider-icon";
 import { useSettingsNavState } from "./settings-nav";
+import type { SettingsNavState } from "./settings-nav";
 
 interface SettingsSidebarProps {
   onResizeMouseDown: (event: ReactMouseEvent<HTMLDivElement>) => void;
   isResizing: boolean;
   showTopReserve: boolean;
   appRoutePath: string;
+  /** Render the body only, inside a compact drawer panel owned by the caller. */
+  mobileHosted?: boolean;
 }
 
-/** Focused Settings navigation using the shared section-sidebar shell. */
-export function SettingsSidebar({
+type SettingsSidebarNavigation = Pick<
+  SettingsNavState,
+  | "activePluginId"
+  | "activeProviderId"
+  | "activeSection"
+  | "pluginEntries"
+  | "providerEntries"
+  | "sections"
+>;
+
+interface SettingsSidebarContentProps extends SettingsSidebarProps {
+  navigation: SettingsSidebarNavigation;
+  testIdPrefix?: string;
+}
+
+/** Shared Settings navigation renderer for production and full-page stories. */
+export function SettingsSidebarContent({
   onResizeMouseDown,
   isResizing,
   showTopReserve,
   appRoutePath,
-}: SettingsSidebarProps) {
+  mobileHosted,
+  navigation,
+  testIdPrefix = "settings",
+}: SettingsSidebarContentProps) {
   const {
     activePluginId,
     activeProviderId,
@@ -37,16 +58,17 @@ export function SettingsSidebar({
     pluginEntries,
     providerEntries,
     sections,
-  } = useSettingsNavState();
+  } = navigation;
 
   return (
     <SectionSidebar
       backLabel="Back to app"
       backTo={appRoutePath}
       isResizing={isResizing}
+      mobileHosted={mobileHosted}
       onResizeMouseDown={onResizeMouseDown}
       showTopReserve={showTopReserve}
-      testIdPrefix="settings"
+      testIdPrefix={testIdPrefix}
     >
       <SectionSidebarLabel>Settings</SectionSidebarLabel>
       <div className="mt-1 space-y-0.5">
@@ -134,5 +156,27 @@ export function SettingsSidebar({
         </>
       ) : null}
     </SectionSidebar>
+  );
+}
+
+/** Focused Settings navigation using the shared section-sidebar shell. */
+export function SettingsSidebar({
+  onResizeMouseDown,
+  isResizing,
+  showTopReserve,
+  appRoutePath,
+  mobileHosted,
+}: SettingsSidebarProps) {
+  const navigation = useSettingsNavState();
+
+  return (
+    <SettingsSidebarContent
+      appRoutePath={appRoutePath}
+      isResizing={isResizing}
+      mobileHosted={mobileHosted}
+      navigation={navigation}
+      onResizeMouseDown={onResizeMouseDown}
+      showTopReserve={showTopReserve}
+    />
   );
 }

@@ -14,18 +14,23 @@
  * grouped the way a bridge consumes it:
  *
  *   1. the bridge entry contract (how a module declares itself a bridge),
- *   2. the protocol — request/notification vocabulary and param schemas,
+ *   2. the protocol — request/notification vocabulary, the `thread/delta`
+ *      grammar, and param schemas,
  *   3. the bridge kit — the authoring helpers (JSON-RPC framing, tool-call and
- *      interaction codecs, id scoping, visibility, translation helpers),
- *   4. the event vocabulary the protocol's payloads are made of.
+ *      interaction codecs, visibility, dialect-parsing helpers),
+ *   4. the domain vocabulary the protocol's payloads reference.
  *
- * On (4): those shapes live in `@bb/domain`, which is bb's persisted-thread
- * vocabulary shared by the server, the app and the runtime — moving it into
- * this package would invert the dependency and make the plugin SDK own the
- * product's core domain. So the SDK names them here instead, and the published
- * bundle inlines them, exactly as the root export already does for
- * `PromptInput` and friends. See `docs/api_to_audit.md` for the audit this
- * owes before the surface stabilizes.
+ * On (4): the protocol owns its own timeline vocabulary (the delta grammar in
+ * section 2) — bridges no longer construct `ThreadEvent`s, so the domain
+ * event vocabulary is NOT re-exported here. What remains from `@bb/domain` is
+ * the command-plane and interaction surface the protocol's params are made of
+ * (PromptInput, permission/interaction payloads, dynamic tools, rate limits,
+ * reasoning levels) plus the enum/status types the delta shapes reference
+ * (item status, turn status, plan steps, usage breakdowns). Those live in
+ * `@bb/domain` — bb's persisted vocabulary shared by the server, the app and
+ * the runtime — so the SDK names them here and the published bundle inlines
+ * them, exactly as the root export already does for `PromptInput` and
+ * friends.
  *
  * Runtime, not stubs: unlike `@get-bb/plugin-sdk` and `@get-bb/plugin-sdk/host`
  * — whose host-artifact members are build-time stubs because their real
@@ -58,8 +63,35 @@ export {
   BRIDGE_NOTIFICATION_METHODS,
   BRIDGE_REQUEST_METHODS,
   PROVIDER_BRIDGE_PROTOCOL_VERSION,
+  THREAD_DELTA_NOTIFICATION_METHOD,
+  deltaBackgroundTaskShapeSchema,
+  deltaFileChangeSchema,
+  deltaItemKeySchema,
+  deltaItemShapeSchema,
+  deltaMessageChannelSchema,
+  deltaNoTurnFallbackSchema,
+  deltaOutputChannelSchema,
+  deltaTextChannelSchema,
+  threadDeltaNotificationParamsSchema,
+  threadDeltaSchema,
   initializeParamsSchema,
   modelListParamsSchema,
+  experimental_providerHealthResultSchema,
+  experimental_providerHealthSchema,
+  experimental_providerInstallationActionKindSchema,
+  experimental_providerInstallationActionSchema,
+  experimental_providerInstallationCommandSchema,
+  experimental_providerInstallationRunParamsSchema,
+  experimental_providerInstallationStatusParamsSchema,
+  experimental_providerInstallationRequirementSchema,
+  experimental_providerInstallationRunResultSchema,
+  experimental_providerInstallationSourceSchema,
+  experimental_providerInstallationStatusSchema,
+  experimental_providerInstallationVerificationSchema,
+  experimental_providerMaintenanceParamsSchema,
+  experimental_providerUsageResultSchema,
+  experimental_providerUsageSchema,
+  experimental_providerUsageWindowSchema,
   skillsConfigureParamsSchema,
   threadArchiveParamsSchema,
   threadDiscardParamsSchema,
@@ -72,11 +104,37 @@ export {
   threadUnarchiveParamsSchema,
   turnStartParamsSchema,
   turnSteerParamsSchema,
-  threadEventNotificationSchema,
 } from "@bb/provider-bridge-protocol";
 export type {
   BridgeExecutionOptions,
+  DeltaBackgroundTaskShape,
+  DeltaFileChange,
+  DeltaItemKey,
+  DeltaItemShape,
+  DeltaMessageChannel,
+  DeltaNoTurnFallback,
+  DeltaOutputChannel,
+  DeltaTextChannel,
+  ExperimentalProviderHealth,
+  ExperimentalProviderHealthResult,
+  ExperimentalProviderInstallationAction,
+  ExperimentalProviderInstallationActionKind,
+  ExperimentalProviderInstallationCommand,
+  ExperimentalProviderInstallationRunParams,
+  ExperimentalProviderInstallationRunResult,
+  ExperimentalProviderInstallationRequirement,
+  ExperimentalProviderInstallationSource,
+  ExperimentalProviderInstallationStatus,
+  ExperimentalProviderInstallationStatusParams,
+  ExperimentalProviderInstallationVerification,
+  ExperimentalProviderMaintenanceParams,
+  ExperimentalProviderUsage,
+  ExperimentalProviderUsageResult,
+  ExperimentalProviderUsageWindow,
   InitializeResult,
+  ThreadDelta,
+  ThreadDeltaKind,
+  ThreadDeltaNotificationParams,
 } from "@bb/provider-bridge-protocol";
 
 // ---------------------------------------------------------------------------
@@ -84,24 +142,14 @@ export type {
 // ---------------------------------------------------------------------------
 
 export {
-  UNSTAMPED_THREAD_ID,
   bashArgsSchema,
   bridgeRequestEnvelopeSchema,
-  buildAcceptedUserMessageEvent,
-  buildEditDiff,
+  buildBridgeToolCallContent as experimental_buildBridgeToolCallContent,
   buildShellEnvOverrides,
-  buildFileChangeItem,
-  buildGenericToolCallItem,
-  buildToolResultItem,
-  buildUnhandledProviderEvents,
-  completeStartedToolItem,
   createBridgeIo,
   createBridgeLineHandler,
   createPendingToolCallTracker,
-  createProviderTurnStateRegistry,
   createProviderVisibilityMetadata,
-  createScopedItemIdFactory,
-  createUnhandledProviderEvent,
   decodeBridgeJsonRpcResponse,
   decodeToolCallResponsePayload,
   errorEnvelopeSchema,
@@ -113,8 +161,6 @@ export {
   jsonRpcEnvelopeSchema,
   mimeTypeFromExtension,
   normalizeProviderCommandOutput,
-  queueAcceptedUserMessage,
-  resolveProviderTerminalTurn,
   runBridgeRequest,
   sdkMessageEnvelopeSchema,
   shouldAutoDenyInteractiveRequest,
@@ -124,18 +170,15 @@ export {
   toNonNegativeNumber,
   toOptionalRecord,
   toOptionalString,
-  withParentToolCallId,
   withoutBridgeRuntimeEnv,
   ProviderRequestDecodeError,
   ProviderResponseEncodeError,
 } from "@bb/provider-bridge-protocol/bridge-kit";
 export type {
-  AcceptedUserMessageState,
   BridgeJsonRpcResponse,
   BridgeToolCallRequest,
   BuildInteractiveResponseArgs,
   DecodedInteractiveRequest,
-  EnsureProviderTurnStartedArgs,
   JsonRpcMessage,
   PreparedProviderCommandDispatch,
   ProviderInboundRequest,
@@ -143,7 +186,6 @@ export type {
   ProviderRawEventCoverage,
   ProviderRawEventDescription,
   ProviderRuntimeEvent,
-  ProviderTurnStateRegistry,
   ProviderVisibilityMetadata,
 } from "@bb/provider-bridge-protocol/bridge-kit";
 
@@ -167,19 +209,16 @@ export {
 export type { HostDaemonAcpLaunchSpec } from "@bb/host-daemon-contract";
 
 // ---------------------------------------------------------------------------
-// 4. The event vocabulary
+// 4. The domain vocabulary the protocol's payloads reference
 // ---------------------------------------------------------------------------
 
 export {
-  DEFAULT_CLAUDE_CODE_MOCK_CLI_TRAFFIC_CONFIG,
-  DEFAULT_CLAUDE_CODE_MOCK_CLI_TRAFFIC_ENDPOINT,
   HIGH_REASONING_EFFORT,
   LOCAL_BASH_TASK_TYPE,
   LOCAL_WORKFLOW_TASK_TYPE,
   LOW_REASONING_EFFORT,
   MAX_REASONING_EFFORT,
   MEDIUM_REASONING_EFFORT,
-  NONE_REASONING_EFFORT,
   ULTRACODE_REASONING_EFFORT,
   USER_QUESTION_MAX_OPTIONS,
   USER_QUESTION_MAX_QUESTIONS,
@@ -188,17 +227,13 @@ export {
   acpPermissionCliSchema,
   acpReasoningCliSchema,
   backgroundTaskItemStatus,
-  claudeCodeMockCliTrafficConfigSchema,
   claudeTaskToolNameSchema,
   claudeTaskToolOutputSchema,
-  createStandaloneBuiltinCompactCommandInput,
   dynamicToolSchema,
-  getThreadEventScopeTurnId,
   instructionModeValues,
   isApprovalPendingInteractionPayload,
   isApprovalPendingInteractionResolution,
   isBackgroundAgentTaskType,
-  isClaudeCodeMockCliTrafficEndpoint,
   isSettledBackgroundTaskStatus,
   isStandaloneBuiltinCompactCommand,
   isUserQuestionPendingInteractionPayload,
@@ -211,22 +246,19 @@ export {
   pendingInteractionRequestedPermissionProfileSchema,
   pendingInteractionResolutionSchema,
   permissionEscalationValues,
+  providerRawEventSchema,
   reasoningEffortsForLevels,
   reasoningLevelSchema,
   reasoningLevelValues,
   removeCommandMentionsFromPromptInput,
-  requireThreadEventScopeTurnId,
   runtimePermissionScopeValues,
-  threadScope,
   toPositiveNumber,
-  turnScope,
 } from "@bb/domain";
 export type {
   ApprovalPendingInteractionPayload,
   AvailableModel,
   BackgroundTaskStatus,
   BackgroundTaskUsage,
-  ClaudeCodeMockCliTrafficConfig,
   ClaudeTaskToolOutput,
   ClientTurnRequestId,
   DynamicTool,
@@ -248,6 +280,7 @@ export type {
   PromptInput,
   ProviderErrorCategory,
   ProviderErrorInfo,
+  ProviderRawEvent,
   ProviderRateLimitState,
   ProviderRateLimitStatus,
   ProviderRateLimitWindow,
@@ -255,20 +288,12 @@ export type {
   RuntimePermissionPolicy,
   RuntimePermissionScope,
   ServiceTier,
-  ThreadEvent,
-  ThreadEventBackgroundTaskItem,
   ThreadEventContextWindowUsage,
-  ThreadEventItem,
-  ThreadEventItemApprovalStatus,
   ThreadEventItemStatus,
   ThreadEventPlanStep,
-  ThreadEventScope,
-  ThreadEventTokenUsage,
   ThreadEventTokenUsageBreakdown,
   ThreadEventTurnStatus,
   ThreadEventUserContent,
-  ThreadEventWebFetchItem,
-  ThreadEventWebSearchItem,
   UserQuestionPendingInteractionPayload,
   UserQuestionPendingInteractionResolution,
   WorkflowAgentSnapshot,

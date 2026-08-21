@@ -1,3 +1,69 @@
+// Version 146 adds the lightweight `host.list_branch_options` RPC so branch
+// pickers can read cached refs while the daemon refreshes remotes in the
+// background. Older daemons cannot parse or serve that command.
+//
+// Version 145 adds provider-owned static options and installation capability
+// metadata to bridge launches, forwards typed installation requirements, and
+// removes the core `known_acp_agents.status` RPC. Older daemons reject the new
+// launch fields and cannot safely interpret the provider-owned behavior.
+//
+// Version 144 moves provider installation status and execution plans into the
+// provider bridge contract. The server now sends provider-scoped
+// `provider.installation.*` commands with bridge launch metadata; older
+// daemons only understand the removed hard-coded `provider_cli.*` commands.
+//
+// Version 143 lets daemons from before session-open's `localApiPort` field
+// reach the protocol-version check by defaulting that field at the server
+// boundary. Without it, those daemons receive `invalid_request` instead of
+// `protocol_version_mismatch`, so their protocol self-updater never runs.
+//
+// Version 142 ships Pi context-window usage after every SDK turn ends, once
+// its assistant response and tool results are both reflected in the session.
+// Older bundled bridges report only after the full agent run ends, leaving the
+// meter stale throughout multi-tool turns.
+//
+// Version 141 extends the consumed-not-queued acceptance rule to the remaining
+// providers. Pi reports `input.accepted` for a turn only once it read the
+// input: a prompt pi queues behind a live run stays unaccepted, and the
+// queue-time settle report that used to accompany it is gone, so it can no
+// longer complete an empty turn for a message pi has not answered. ACP reports
+// acceptance once the `session/prompt` request carrying the input goes out, so
+// a steer the turn drops is no longer reported as accepted. Older daemons emit
+// the queue-time semantics and produce those phantom turns.
+//
+// Version 140 reports each daemon's browser-local editor helper port during
+// session open. The server uses those ports to let a remote browser discover
+// the helper on its own machine instead of assuming every machine uses the
+// primary server host's port.
+//
+// Version 139 keeps a resumed Claude session's provider-owned task-notification
+// result from claiming a newly accepted human input, and delays turn/start
+// acceptance until Claude's SDK prompt iterator consumes the input. Older
+// daemons can still make a sent message appear to complete immediately while
+// its real response continues under a second, unaccepted turn.
+//
+// Version 138 removes the `workspace.discover_repos` command. It existed only
+// for the first-run onboarding flow's project step, which is deleted; no server
+// sends it any more. A newer daemon no longer answers it, so an older server
+// paired with a new daemon would fail that command instead of returning repos.
+// It also adds generic provider.health, changes provider.usage from one
+// fixed three-provider result into a provider-targeted bridge query, and makes
+// provider registration authoritative for whether a bridge implements either
+// method. Older daemons cannot parse the new command shapes and would still
+// gate the requests on initialize results, silently suppressing calls to new
+// bridges that no longer advertise the methods there.
+//
+// Version 137 removes the `claudeCodeMockCliTraffic` runtime option and the
+// Claude Code mock CLI traffic experiment behind it. Current servers no longer
+// send the field, and current bridges no longer accept it.
+//
+// Version 136 carries the narrow-grammar provider bridge protocol (bridge
+// protocol v2): the provider bridge artifacts a server serves to daemons now
+// speak `thread/delta` only — the `thread/event` lane is gone. An old daemon's
+// runtime would ignore the delta notifications and render empty timelines, and
+// old runtimes predate the bridge-handshake version check, so this daemon
+// protocol version is the only gate that forces those daemons to update.
+//
 // Version 135 adds the `compaction-skipped` provider warning category. The Pi
 // bridge now reports a refused manual compaction ("Nothing to compact") as
 // that warning plus a completed turn instead of a failed turn. An older daemon
@@ -44,7 +110,7 @@
 //
 // The version mismatch is what triggers the enrolled daemon's automatic update
 // instead of an `invalid-message` reconnect loop.
-export const HOST_DAEMON_PROTOCOL_VERSION = 135 as const;
+export const HOST_DAEMON_PROTOCOL_VERSION = 146 as const;
 
 /**
  * Absolute ceiling for any executable artifact delivered to a host daemon —

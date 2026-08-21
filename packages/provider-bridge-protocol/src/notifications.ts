@@ -1,35 +1,19 @@
-import { threadEventSchema } from "@bb/domain";
 import { z } from "zod";
 
 /**
- * Bridge → runtime notifications. Everything that is a bb `ThreadEvent`
- * (assistant text, tool calls, token usage, context-window usage, …) rides
- * `thread/event` already translated and already stamped with bridge-minted
- * turn/item ids. The remaining notifications are runtime signals that are not
- * timeline events.
+ * Bridge → runtime notifications. Everything timeline-bound (assistant text,
+ * tool calls, token usage, context-window usage, …) rides `thread/delta`
+ * (see thread-delta.ts) as parsed semantic deltas the runtime's assembler
+ * turns into canonical `ThreadEvent`s. The notifications here are runtime
+ * signals that are not timeline events.
  */
 export const BRIDGE_NOTIFICATION_METHODS = {
-  threadEvent: "thread/event",
   threadIdentity: "thread/identity",
   sessionReplaced: "session/replaced",
   threadOpenWork: "thread/openWork",
   providerRaw: "provider/raw",
   error: "error",
 } as const;
-
-export type BridgeNotificationMethod =
-  (typeof BRIDGE_NOTIFICATION_METHODS)[keyof typeof BRIDGE_NOTIFICATION_METHODS];
-
-export const threadEventNotificationSchema = z
-  .object({
-    threadId: z.string().min(1),
-    event: threadEventSchema,
-  })
-  .passthrough();
-
-export type ThreadEventNotification = z.infer<
-  typeof threadEventNotificationSchema
->;
 
 export const threadIdentityNotificationSchema = z
   .object({
@@ -40,18 +24,14 @@ export const threadIdentityNotificationSchema = z
   })
   .passthrough();
 
-export type ThreadIdentityNotification = z.infer<
-  typeof threadIdentityNotificationSchema
->;
-
 /**
  * A provider session was torn down and rebuilt. Mandatory whenever the bridge
  * replaces a live session for any reason (execution-option change it cannot
  * apply in place, resume fallback, internal recovery). A silent rebuild is a
  * conformance failure: invisible session replacement is how hours of
  * background work died in #1268. The runtime surfaces this in the thread
- * timeline; any events settling in-flight work must be emitted (as
- * `thread/event`) before this notification.
+ * timeline; any deltas settling in-flight work must be emitted (as
+ * `thread/delta`) before this notification.
  */
 export const sessionReplacedNotificationSchema = z
   .object({
@@ -64,10 +44,6 @@ export const sessionReplacedNotificationSchema = z
     contextLost: z.boolean().default(false),
   })
   .passthrough();
-
-export type SessionReplacedNotification = z.infer<
-  typeof sessionReplacedNotificationSchema
->;
 
 /**
  * Whether the thread still owns provider work that outlives its turn and that
@@ -91,10 +67,6 @@ export const threadOpenWorkNotificationSchema = z
   })
   .passthrough();
 
-export type ThreadOpenWorkNotification = z.infer<
-  typeof threadOpenWorkNotificationSchema
->;
-
 /**
  * Droppable diagnostics. The bridge classifies its provider's raw traffic
  * itself: "noise" is understood-and-intentionally-unrendered, "unknown" is
@@ -110,15 +82,9 @@ export const providerRawNotificationSchema = z
   })
   .passthrough();
 
-export type ProviderRawNotification = z.infer<
-  typeof providerRawNotificationSchema
->;
-
 export const errorNotificationSchema = z
   .object({
     threadId: z.string().min(1).optional(),
     message: z.string().min(1),
   })
   .passthrough();
-
-export type ErrorNotification = z.infer<typeof errorNotificationSchema>;

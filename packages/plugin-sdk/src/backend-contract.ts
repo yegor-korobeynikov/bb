@@ -115,9 +115,11 @@ export interface PluginStorage {
   /** Namespaced JSON key-value rows in bb.db; values ≤256KB each. */
   kv: PluginKvStorage;
   /**
-   * Open (or reuse the path of) the plugin's own SQLite database at
-   * <dataDir>/plugins/<id>/data.db — the server's better-sqlite3, WAL mode,
-   * busy_timeout 5000. Handles are host-tracked and closed on
+   * The plugin's own SQLite database at <dataDir>/plugins/<id>/data.db — the
+   * server's better-sqlite3, WAL mode, busy_timeout 5000. Returns the same
+   * open handle for the whole plugin load, so calling it per request is
+   * cheap; a new handle is opened only on the first call or after the
+   * plugin closed the previous one. The host closes handles on
    * dispose/reload; a closed handle throws on use.
    */
   database(): Database.Database;
@@ -224,7 +226,10 @@ export interface PluginBackground {
    * factory completes and should resolve when `signal` aborts
    * (dispose/reload/disable/shutdown). A crash restarts it with capped
    * exponential backoff; throwing NeedsConfigurationError marks the plugin
-   * `needs-configuration` and stops restarting until the next load.
+   * `needs-configuration` and stops restarting until the next load. An
+   * error raised outside the `start` promise (an unlistened EventEmitter
+   * 'error', a throw in a timer callback, a detached rejection) counts as
+   * a crash too: the run is aborted and restarted the same way.
    */
   service(
     name: string,
@@ -468,7 +473,7 @@ export interface PluginAgentConfiguration {
 }
 
 // ---------------------------------------------------------------------------
-// Agent provider declarations (plans/agent-provider-plugin-surface.md §3).
+// Agent provider declarations.
 // ---------------------------------------------------------------------------
 
 /**
@@ -508,10 +513,23 @@ export type PluginProviderComposerAction = "plan" | "goal";
  * live session (picker rendering, route gating, cross-plugin tool
  * composition — including with the host offline). Every boolean is a
  * provider-native fact — the provider implements the feature; the flag only
- * tells external consumers it exists. Everything else is a handshake fact the
- * bridge reports at `initialize`, where it cannot drift from behavior.
+ * tells external consumers it exists. Session-behavior facts remain handshake
+ * capabilities reported by the running bridge. Sessionless maintenance
+ * methods are declared here so callers can decide whether to probe without
+ * starting the bridge first.
  */
 export interface PluginProviderCapabilities {
+  /** The provider bridge implements the sessionless `provider/health`
+   * request. This is host-local readiness, not a network health check. */
+  experimental_providerHealth: boolean;
+  /** The provider exposes subscription usage through the sessionless
+   * `provider/usage` request. False means callers skip the request and usage
+   * settings omit the provider. A shared bridge that declares true may still
+   * report usage unavailable for one provider id or return no windows. */
+  experimental_providerUsage: boolean;
+  /** The provider bridge implements `provider/installation/status` and
+   * `provider/installation/run` for host-local installation management. */
+  experimental_providerInstallation: boolean;
   /** The provider accepts a fast/priority service-tier choice — shows the
    * service-tier toggle in the picker. */
   supportsServiceTier: boolean;
@@ -556,11 +574,11 @@ export interface PluginProviderCapabilities {
  * refused. Registrations are replaced wholesale on plugin reload, like every
  * other plugin surface.
  *
- * A declaration is metadata only. The implementation is the plugin's own
- * provider bridge, named by `bb.providerBridge` in the manifest and built into
- * the artifact BB ships to hosts — declaring a provider without one is
- * refused, because the picker entry would exist and no turn on it could ever
- * run.
+ * A declaration owns the provider's static metadata and bridge options. The
+ * executable implementation is the plugin's own provider bridge, named by
+ * `bb.providerBridge` in the manifest and built into the artifact BB ships to
+ * hosts — declaring a provider without one is refused, because the picker
+ * entry would exist and no turn on it could ever run.
  */
 export interface PluginProviderDeclaration {
   /** Stable provider id: 2–64 characters of lowercase letters, digits, and
@@ -576,6 +594,19 @@ export interface PluginProviderDeclaration {
    * — no leading "/", no ".." segments, no backslashes.
    */
   icon?: string;
+  /**
+   * Provider-owned static options passed opaquely to this plugin's bridge on
+   * every sessionless and session request. Core validates that the value is
+   * JSON, but does not interpret its keys. This is intended for immutable
+   * launch metadata shared by every host (for example an ACP command spec),
+   * not user or machine configuration.
+   */
+  experimental_bridgeOptions?: Readonly<Record<string, JsonValue>>;
+  /**
+   * Whether the provider is always listed or only listed on hosts where its
+   * bridge reports it installed. Defaults to `"always"`.
+   */
+  experimental_visibility?: "always" | "installed";
   /** Pre-session capability facts (see the declaration tests on
    * {@link PluginProviderCapabilities}). */
   capabilities: PluginProviderCapabilities;

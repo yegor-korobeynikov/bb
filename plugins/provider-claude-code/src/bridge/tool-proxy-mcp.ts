@@ -1,5 +1,6 @@
 import {
   type DynamicTool,
+  experimental_buildBridgeToolCallContent,
 } from "@get-bb/plugin-sdk/provider-bridge";
 import type { McpSdkServerConfigWithInstance } from "@anthropic-ai/claude-agent-sdk";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -10,15 +11,21 @@ import {
 
 export const BRIDGE_MCP_SERVER_NAME = "bb-bridge";
 
-export type DynamicToolDefinition = DynamicTool;
+type BridgeToolCallContent =
+  | { type: "text"; text: string }
+  | { type: "image"; data: string; mimeType: string };
 
 export type ToolCallForwarder = (
   toolName: string,
   args: Record<string, unknown>,
-) => Promise<{ content: string; isError?: boolean }>;
+) => Promise<{
+  content: string;
+  contentBlocks?: BridgeToolCallContent[];
+  isError?: boolean;
+}>;
 
 export function buildBridgeMcpServer(
-  dynamicTools: DynamicToolDefinition[],
+  dynamicTools: DynamicTool[],
   forwardToolCall: ToolCallForwarder,
 ): McpSdkServerConfigWithInstance {
   const toolsByName = new Map(dynamicTools.map((def) => [def.name, def]));
@@ -56,16 +63,14 @@ export function buildBridgeMcpServer(
       request.params.arguments ?? {},
     );
     return {
-      content: [{ type: "text" as const, text: result.content }],
+      content: experimental_buildBridgeToolCallContent(result),
       ...(result.isError ? { isError: true } : {}),
     };
   });
   return { type: "sdk", name: BRIDGE_MCP_SERVER_NAME, instance };
 }
 
-export function getAllowedToolNames(
-  dynamicTools: DynamicToolDefinition[],
-): string[] {
+export function getAllowedToolNames(dynamicTools: DynamicTool[]): string[] {
   return dynamicTools.map(
     (def) => `mcp__${BRIDGE_MCP_SERVER_NAME}__${def.name}`,
   );

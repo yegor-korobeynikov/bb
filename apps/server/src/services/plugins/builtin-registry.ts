@@ -72,6 +72,12 @@ export const BUILTIN_PLUGINS = [
     defaultEnabled: true,
     category: "Interface",
   },
+  {
+    name: "pdf-preview",
+    pluginId: "pdf-preview",
+    defaultEnabled: true,
+    category: "Interface",
+  },
   // First-party agent provider plugins: each declares one of the providers
   // the core catalog used to seed. With the seed deleted these declarations
   // are the only source, so disabling one removes its provider.
@@ -108,7 +114,7 @@ export const BUILTIN_PLUGINS = [
   {
     name: "provider-retry",
     pluginId: "provider-retry",
-    defaultEnabled: false,
+    defaultEnabled: true,
     category: "Agent interaction",
   },
   {
@@ -185,12 +191,6 @@ const builtinPluginsModuleDir = path.dirname(fileURLToPath(import.meta.url));
 
 export function builtinPluginSource(name: string): string {
   return `builtin:${name}`;
-}
-
-export function findBundledPlugin(
-  name: string,
-): BundledPluginDefinition | undefined {
-  return BUNDLED_PLUGINS.find((plugin) => plugin.name === name);
 }
 
 /**

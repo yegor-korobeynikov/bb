@@ -6,6 +6,7 @@ import { CronExpressionParser } from "cron-parser";
 import type { Context } from "hono";
 import {
   CUSTOM_THEME_CSS_MAX_LENGTH,
+  derivePluginId,
   formatPluginThemeId,
   type DeclaredCodeTheme,
   type JsonValue,
@@ -74,11 +75,7 @@ import {
   parsePluginSource,
   recoverInterruptedGitPluginPromotion,
 } from "./install-sources.js";
-import {
-  derivePluginId,
-  readPluginManifest,
-  type PluginManifest,
-} from "./manifest.js";
+import { readPluginManifest, type PluginManifest } from "./manifest.js";
 import { listBundledPluginRegistrations } from "./builtin-registry.js";
 import {
   type BbPluginApi,
@@ -134,30 +131,27 @@ import type {
 } from "./plugin-service-internal.js";
 export type {
   PluginAgentToolContribution,
-  PluginApplyUpdateOutcome,
-  PluginApplyUpdateResult,
-  PluginHandlerStats,
-  PluginInstructionContribution,
-  PluginResolvedAgentConfiguration,
-  PluginListEntry,
-  PluginMentionProviderContribution,
   PluginMentionResolveResult,
-  PluginMentionSearchGroup,
-  PluginMentionSearchItem,
-  PluginRuntimeStatus,
-  PluginScheduleEntry,
   PluginServiceDeps,
-  PluginServiceEntry,
-  PluginServiceState,
-  PluginSourceView,
   PluginThreadEventEmitter,
-  PluginUpdateCheckEntry,
   PluginWireLookup,
 } from "./plugin-service-internal.js";
 
 export interface PluginSkillRootContribution {
   pluginId: string;
   rootPath: string;
+}
+
+/**
+ * `fs.watch` is allowed to omit the changed filename. The dev loop still has
+ * to reload in that case; `.` is a non-ignored synthetic path representing an
+ * unknown change somewhere below the watched plugin root.
+ */
+export function dispatchPluginSourceWatchChange(
+  handleChange: (relativePath: string) => void,
+  filename: string | null,
+): void {
+  handleChange(filename === null || filename.length === 0 ? "." : filename);
 }
 
 export interface PluginService {
@@ -174,6 +168,14 @@ export interface PluginService {
   start(): Promise<void>;
   /** Dispose all loaded plugins (server shutdown). */
   stop(): Promise<void>;
+  /**
+   * Route a process-level uncaught exception raised from a background
+   * service's async context (an unlistened EventEmitter 'error', a timer
+   * throw, a detached rejection) back to that service's supervisor, which
+   * aborts and restarts it with backoff. Returns false when no service owns
+   * the error; the caller then keeps Node's default and exits.
+   */
+  handleUncaughtException(error: unknown): boolean;
   list(): PluginListEntry[];
   /** Palettes declared by currently loaded plugins, ordered by plugin id. */
   listThemes(): PluginThemeMeta[];
@@ -240,6 +242,9 @@ export interface PluginService {
   >;
   installPath(path: string): Promise<PluginListEntry>;
   checkForUpdates(id?: string): Promise<PluginUpdateCheckEntry[]>;
+  /** Check every plugin for updates every 6 hours; see PluginUpdates. */
+  startPeriodicUpdateChecks(): void;
+  stopPeriodicUpdateChecks(): Promise<void>;
   listUpdateResults(): PluginUpdateCheckEntry[];
   getSource(id: string): Promise<PluginSourceView | undefined>;
   applyUpdate(id: string): Promise<PluginApplyUpdateOutcome>;
@@ -854,17 +859,16 @@ function normalizePluginAgentToolSelections(args: {
 }
 
 function normalizePluginAgentSelectionIds(args: {
-  field: "skills";
   knownIds: ReadonlySet<string>;
   pluginId: string;
   value: unknown;
 }): string[] {
   if (!Array.isArray(args.value)) {
-    throw new Error(`configure() output.${args.field} must be an array`);
+    throw new Error("configure() output.skills must be an array");
   }
   if (args.value.length > PLUGIN_AGENT_SELECTION_MAX_IDS) {
     throw new Error(
-      `configure() output.${args.field} exceeds the ${PLUGIN_AGENT_SELECTION_MAX_IDS}-id limit`,
+      `configure() output.skills exceeds the ${PLUGIN_AGENT_SELECTION_MAX_IDS}-id limit`,
     );
   }
   const selected: string[] = [];
@@ -873,12 +877,12 @@ function normalizePluginAgentSelectionIds(args: {
     const id = args.value[index];
     if (typeof id !== "string" || id.length === 0) {
       throw new Error(
-        `configure() output.${args.field}[${index}] must be a non-empty string`,
+        `configure() output.skills[${index}] must be a non-empty string`,
       );
     }
     if (seen.has(id)) {
       throw new Error(
-        `configure() output.${args.field} contains duplicate id ${JSON.stringify(id)}`,
+        `configure() output.skills contains duplicate id ${JSON.stringify(id)}`,
       );
     }
     if (!args.knownIds.has(id)) {
@@ -939,7 +943,6 @@ function normalizePluginAgentConfiguration(args: {
     toolIds: toolSelections.toolIds,
     toolParameterOverrides: toolSelections.parameterOverrides,
     skillIds: normalizePluginAgentSelectionIds({
-      field: "skills",
       knownIds: args.knownSkillIds,
       pluginId: args.pluginId,
       value: output.skills,
@@ -988,12 +991,13 @@ export function createPluginService(deps: PluginServiceDeps): PluginService {
     disposeOne,
     emitThreadEvent,
     handlerStats,
+    handleUncaughtException,
     hungServices,
     hostArtifacts,
     identities,
     invokeWrapped,
     isBuiltinPluginId,
-    isPackagedBuiltinAppEntry,
+    isPackagedBuiltinEntry,
     loadAll,
     loaded,
     loadOne,
@@ -1034,6 +1038,7 @@ export function createPluginService(deps: PluginServiceDeps): PluginService {
     withLifecycleLock,
     disposeOne,
     loadOne,
+    statuses,
     validateInstallDir: (args) => managedValidateInstallDir(args),
     checkEngineRange,
     checkPluginSdkRange,
@@ -1074,7 +1079,7 @@ export function createPluginService(deps: PluginServiceDeps): PluginService {
     sourceKind,
     checkEngineRange,
     checkPluginSdkRange,
-    isPackagedBuiltinAppEntry,
+    isPackagedBuiltinEntry,
     registerInstalled,
     assertInstallRegistrationAvailable,
     refuseBuiltinShadow,
@@ -1445,7 +1450,6 @@ export function createPluginService(deps: PluginServiceDeps): PluginService {
         if (!theme) continue;
         return readPluginThemeCodeTheme(
           themeId,
-          plugin.manifest.rootDir,
           theme.codeTheme ?? undefined,
           theme.codeThemePaths,
         );
@@ -1570,9 +1574,7 @@ export function createPluginService(deps: PluginServiceDeps): PluginService {
             bundled.rootDir,
             { recursive: true },
             (_event, filename) => {
-              if (typeof filename === "string" && filename.length > 0) {
-                loop.handleChange(filename);
-              }
+              dispatchPluginSourceWatchChange(loop.handleChange, filename);
             },
           );
           watcher.on("close", () => loop.dispose());
@@ -1589,6 +1591,8 @@ export function createPluginService(deps: PluginServiceDeps): PluginService {
       await syncCliSkill();
       notifyPluginsChanged();
     },
+
+    handleUncaughtException,
 
     list,
 
@@ -1712,6 +1716,9 @@ export function createPluginService(deps: PluginServiceDeps): PluginService {
             recursive: true,
             force: true,
           });
+          logger.info(
+            `plugin ${id} removed from ${row.source}; its settings, secrets, and schedules were deleted`,
+          );
           // Legacy managed installs still own their mutable pre-cache layout.
           // Immutable artifact directories are retained for future GC policy;
           // path: sources are the user's directory and are never deleted.

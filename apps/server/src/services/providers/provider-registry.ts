@@ -17,6 +17,7 @@ import {
   isAcpProviderId,
 } from "./acp-provider-tier.js";
 import type {
+  JsonValue,
   PermissionMode,
   ProviderFork,
   ProviderInfo,
@@ -66,7 +67,7 @@ export const PRODUCT_PROVIDER_ORDER: readonly string[] = [
   "acp-cursor",
 ];
 
-export type ProviderRegistrationSource = { kind: "plugin"; pluginId: string };
+type ProviderRegistrationSource = { kind: "plugin"; pluginId: string };
 
 /**
  * First-party provider ids, each reserved to the official plugin that owns it.
@@ -113,6 +114,9 @@ export function reservedProviderIdProblem(args: {
 export interface ProviderRegistration {
   info: ProviderInfo;
   serverCapabilities: ProviderServerCapabilities;
+  /** Opaque provider-owned statics forwarded to this registration's bridge. */
+  bridgeOptions: Readonly<Record<string, JsonValue>>;
+  visibility: "always" | "installed";
   source: ProviderRegistrationSource;
   /**
    * Immutable byte snapshot of the declared provider icon, read from the
@@ -169,7 +173,14 @@ export interface ProviderRegistryService {
    * plugin leaves no entry behind.
    */
   register(
-    registration: Omit<ProviderRegistration, "source"> & { pluginId: string },
+    registration: Omit<
+      ProviderRegistration,
+      "bridgeOptions" | "source" | "visibility"
+    > & {
+      bridgeOptions?: ProviderRegistration["bridgeOptions"];
+      pluginId: string;
+      visibility?: ProviderRegistration["visibility"];
+    },
   ): { dispose(): void };
   /**
    * Resolves as soon as the requested provider's plugin has registered, or
@@ -205,7 +216,7 @@ export interface ProviderRegistryService {
  * A boot-time turn waits this long for plugins at most; past it the request
  * proceeds against whatever registered, which is the pre-gate behavior.
  */
-export const REGISTRATIONS_SETTLED_TIMEOUT_MS = 30_000;
+const REGISTRATIONS_SETTLED_TIMEOUT_MS = 30_000;
 
 /**
  * The dynamic ACP tier is resolved from config at request time, so the
@@ -213,7 +224,7 @@ export const REGISTRATIONS_SETTLED_TIMEOUT_MS = 30_000;
  * omitted resolver answers "no ACP agent declares anything", which is what
  * tests and pre-config construction want.
  */
-export interface ProviderRegistryDeps {
+interface ProviderRegistryDeps {
   resolveAcpAgentCapabilities?: (
     providerId: string,
   ) => { supportsManualCompaction: boolean } | null;
@@ -385,6 +396,8 @@ export function createProviderRegistryService(
       const entry: ProviderRegistration = {
         info: registration.info,
         serverCapabilities: registration.serverCapabilities,
+        bridgeOptions: registration.bridgeOptions ?? {},
+        visibility: registration.visibility ?? "always",
         source: { kind: "plugin", pluginId: registration.pluginId },
         ...(registration.icon === undefined ? {} : { icon: registration.icon }),
       };

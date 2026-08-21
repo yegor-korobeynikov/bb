@@ -1,5 +1,9 @@
 import { useState } from "react";
-import { useBbNavigate, useRpc } from "@get-bb/plugin-sdk/app";
+import {
+  experimental_UrlLink as UrlLink,
+  useBbNavigate,
+  useRpc,
+} from "@get-bb/plugin-sdk/app";
 import type { DelegationRpcContract } from "../../delegate/contract.js";
 import type {
   Preset,
@@ -40,7 +44,7 @@ function ThreadPullRequestPill({
   if (pullRequest) {
     const meta = PR_STATE_META[pullRequest.state];
     return (
-      <a
+      <UrlLink
         href={pullRequest.url}
         target="_blank"
         rel="noopener noreferrer"
@@ -52,7 +56,7 @@ function ThreadPullRequestPill({
       >
         <Icon name={meta.icon} className={cn("size-3", meta.textClassName)} />#
         {pullRequest.number}
-      </a>
+      </UrlLink>
     );
   }
   if (unavailable) {
@@ -133,7 +137,7 @@ function storeLastPresetId(presetId: string): void {
   }
 }
 
-export interface DispatchControlProps {
+interface DispatchControlProps {
   taskId: string;
   presets: Preset[] | undefined;
   onError: (message: string) => void;
@@ -275,7 +279,7 @@ export function DispatchControl({
   );
 }
 
-export interface ThreadsSectionProps {
+interface ThreadsSectionProps {
   threads: TaskThread[];
   /** Undefined while the PR lookup is in flight (cards render without pills). */
   pullRequests: TaskPullRequest[] | undefined;

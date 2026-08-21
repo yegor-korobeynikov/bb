@@ -1,5 +1,4 @@
 import type { ThreadEvent } from "@bb/domain";
-import { DEFAULT_CLAUDE_CODE_MOCK_CLI_TRAFFIC_CONFIG } from "@bb/domain";
 import { describe, expect, it } from "vitest";
 import { createBridgeProtocolAdapter } from "./bridge-protocol-adapter.js";
 import type { ProviderExecutionContext } from "./provider-adapter.js";
@@ -7,7 +6,6 @@ import type { ProviderExecutionContext } from "./provider-adapter.js";
 function makeAdapter() {
   return createBridgeProtocolAdapter({
     id: "fake-bridge",
-    displayName: "Fake Bridge",
     capabilities: {
       supportsThreadArchive: false,
       supportsThreadRename: false,
@@ -26,7 +24,7 @@ function completeHandshake(
 ): void {
   const requests = adapter.buildPostInitializeRequests?.() ?? [];
   expect(requests).toHaveLength(1);
-  requests[0]?.onResult({ protocolVersion: 1, capabilities });
+  requests[0]?.onResult({ protocolVersion: 2, capabilities });
 }
 
 const fullModeOptions: ProviderExecutionContext = {
@@ -34,9 +32,38 @@ const fullModeOptions: ProviderExecutionContext = {
   permissionScope: "full",
   approvalReviewer: null,
   permissionEscalation: null,
-  claudeCodeMockCliTraffic: DEFAULT_CLAUDE_CODE_MOCK_CLI_TRAFFIC_CONFIG,
   workflowsEnabled: false,
 };
+
+describe("handshake version gate", () => {
+  // The bump to version 2 removed thread/event; a version-1 bridge would
+  // connect and then produce a silently empty timeline. The required
+  // post-initialize request throws instead, which aborts the spawn with a
+  // legible startup error naming both versions and the plugin to update.
+  it("rejects a bridge on another protocol version with a legible error", () => {
+    const adapter = makeAdapter();
+    const requests = adapter.buildPostInitializeRequests?.() ?? [];
+    expect(requests).toHaveLength(1);
+    expect(requests[0]?.required).toBe(true);
+    expect(() =>
+      requests[0]?.onResult({ protocolVersion: 1, capabilities: {} }),
+    ).toThrowError(
+      /speaks Provider Bridge Protocol version 1.*requires version 2.*fake-bridge/s,
+    );
+  });
+
+  it("rejects a malformed initialize result instead of defaulting capabilities", () => {
+    const adapter = makeAdapter();
+    const requests = adapter.buildPostInitializeRequests?.() ?? [];
+    expect(requests).toHaveLength(1);
+    // A bridge that answers initialize with garbage must be a legible startup
+    // failure, not a session silently running on default capabilities.
+    expect(() => requests[0]?.onResult({ nonsense: true })).toThrowError(
+      /malformed result.*fake-bridge/s,
+    );
+    expect(() => requests[0]?.onResult(null)).toThrowError(/malformed result/);
+  });
+});
 
 describe("handshake gating", () => {
   it("never sends capability-gated methods a bridge did not advertise", () => {
@@ -80,6 +107,47 @@ describe("handshake gating", () => {
     expect(adapter.approvalEnforcedBy).toBe("runtime");
     completeHandshake(adapter, { approvalEnforcedBy: "provider" });
     expect(adapter.approvalEnforcedBy).toBe("provider");
+  });
+
+  it("routes declared sessionless maintenance methods with provider context", () => {
+    const adapter = makeAdapter();
+    expect(
+      adapter.buildCommandPlan({ type: "provider/health", cwd: "/workspace" }),
+    ).toEqual({
+      kind: "request",
+      method: "provider/health",
+      params: { providerId: "fake-bridge", cwd: "/workspace" },
+    });
+    expect(adapter.buildCommandPlan({ type: "provider/usage" })).toEqual({
+      kind: "request",
+      method: "provider/usage",
+      params: { providerId: "fake-bridge" },
+    });
+    expect(
+      adapter.buildCommandPlan({
+        type: "provider/installation/status",
+        cwd: "/workspace",
+        requirement: "thread_rewind",
+      }),
+    ).toEqual({
+      kind: "request",
+      method: "provider/installation/status",
+      params: {
+        providerId: "fake-bridge",
+        cwd: "/workspace",
+        requirement: "thread_rewind",
+      },
+    });
+    expect(
+      adapter.buildCommandPlan({
+        type: "provider/installation/run",
+        action: "update",
+      }),
+    ).toEqual({
+      kind: "request",
+      method: "provider/installation/run",
+      params: { providerId: "fake-bridge", action: "update" },
+    });
   });
 });
 
@@ -183,8 +251,6 @@ describe("options mapping", () => {
           providerOptions: {
             workflowsEnabled: true,
             memoryEnabled: false,
-            claudeCodeMockCliTraffic:
-              DEFAULT_CLAUDE_CODE_MOCK_CLI_TRAFFIC_CONFIG,
           },
         },
       },
@@ -253,23 +319,16 @@ describe("translateEvent", () => {
     scope: { kind: "turn", turnId: "bturn_1" },
   };
 
-  it("passes valid thread/event payloads through and drops invalid ones", () => {
+  // The narrow-grammar cutover removed the `thread/event` lane entirely: a
+  // version-1 bridge still emitting it must be ignored like any unknown
+  // notification (its handshake is rejected before real traffic anyway).
+  it("ignores the retired thread/event notification", () => {
     const adapter = makeAdapter();
     expect(
       adapter.translateEvent({
         jsonrpc: "2.0",
         method: "thread/event",
         params: { threadId: "thr_1", event: validEvent },
-      }),
-    ).toStrictEqual([validEvent]);
-    expect(
-      adapter.translateEvent({
-        jsonrpc: "2.0",
-        method: "thread/event",
-        params: {
-          threadId: "thr_1",
-          event: { type: "not/a/real/event", threadId: "thr_1" },
-        },
       }),
     ).toStrictEqual([]);
   });
@@ -305,8 +364,21 @@ describe("translateEvent", () => {
     expect(adapter.hasOpenThreadWork?.(work)).toBe(false);
   });
 
-  it("surfaces session/replaced as a visible warning with the context fate", () => {
+  it("only surfaces session/replaced when provider context was lost", () => {
     const adapter = makeAdapter();
+    expect(
+      adapter.translateEvent({
+        jsonrpc: "2.0",
+        method: "session/replaced",
+        params: {
+          threadId: "thr_1",
+          providerThreadId: "p_2",
+          reason: "authentication recovery required a new process",
+          contextLost: false,
+        },
+      }),
+    ).toStrictEqual([]);
+
     const events = adapter.translateEvent({
       jsonrpc: "2.0",
       method: "session/replaced",
@@ -388,5 +460,167 @@ describe("inbound request decoding", () => {
       turnId: "bturn_1",
       payload: { kind: "approval" },
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Provider-native id translation (thread/delta bridges)
+// ---------------------------------------------------------------------------
+
+function feedDeltas(
+  adapter: ReturnType<typeof makeAdapter>,
+  threadId: string,
+  deltas: unknown[],
+): ThreadEvent[] {
+  return adapter.translateEvent({
+    jsonrpc: "2.0",
+    method: "thread/delta",
+    params: { threadId, deltas },
+  });
+}
+
+describe("provider-native id translation", () => {
+  it("reverse-maps steer/interrupt turn ids to provider-native ids", () => {
+    const adapter = makeAdapter();
+    const [started] = feedDeltas(adapter, "t_1", [
+      { kind: "turn.open", providerTurnId: "codex-turn-1" },
+    ]);
+    const bbTurnId =
+      started?.type === "turn/started" && started.scope.kind === "turn"
+        ? started.scope.turnId
+        : "";
+    expect(bbTurnId).not.toBe("");
+
+    const steer = adapter.buildCommandPlan({
+      type: "turn/steer",
+      threadId: "t_1",
+      providerThreadId: "p_1",
+      expectedTurnId: bbTurnId,
+      input: [],
+      clientRequestId: "creq_abcdefghjk",
+      options: fullModeOptions,
+    });
+    expect(steer).toMatchObject({
+      params: { expectedTurnId: "codex-turn-1" },
+    });
+
+    const stop = adapter.buildCommandPlan({
+      type: "thread/stop",
+      threadId: "t_1",
+      providerThreadId: "p_1",
+      activeTurnId: bbTurnId,
+    });
+    expect(stop).toMatchObject({
+      params: { intent: "interrupt", activeTurnId: "codex-turn-1" },
+    });
+
+    // No mapping (bridges without native turn ids, pi/acp): the bb id
+    // passes through.
+    const passthrough = adapter.buildCommandPlan({
+      type: "turn/steer",
+      threadId: "t_1",
+      providerThreadId: "p_1",
+      expectedTurnId: "unmapped-turn",
+      input: [],
+      clientRequestId: "creq_abcdefghjk",
+      options: fullModeOptions,
+    });
+    expect(passthrough).toMatchObject({
+      params: { expectedTurnId: "unmapped-turn" },
+    });
+  });
+
+  it("maps providerNativeIds interaction requests onto assembler-minted ids", () => {
+    const adapter = makeAdapter();
+    const events = feedDeltas(adapter, "t_1", [
+      { kind: "turn.open", providerTurnId: "codex-turn-1" },
+      {
+        kind: "item.open",
+        key: { providerItemId: "cmd-1" },
+        item: { type: "command", command: "git status", cwd: "/repo" },
+        providerTurnId: "codex-turn-1",
+      },
+    ]);
+    const bbItemId =
+      events[1]?.type === "item/started" ? events[1].item.id : "";
+    const bbTurnId =
+      events[0]?.type === "turn/started" && events[0].scope.kind === "turn"
+        ? events[0].scope.turnId
+        : "";
+
+    const params = {
+      providerThreadId: "p_1",
+      threadId: "t_1",
+      turnId: "codex-turn-1",
+      providerNativeIds: true,
+      payload: {
+        kind: "approval",
+        subject: {
+          kind: "command",
+          itemId: "cmd-1",
+          command: "git status",
+          cwd: null,
+          actions: [],
+          sessionGrant: null,
+        },
+        reason: null,
+        availableDecisions: ["allow_once", "deny"],
+      },
+    };
+    const decoded = adapter.decodeInteractiveRequest?.({
+      id: 11,
+      method: "interaction/request",
+      params,
+    });
+    expect(decoded).toMatchObject({
+      turnId: bbTurnId,
+      payload: { subject: { itemId: bbItemId } },
+    });
+
+    // Without the marker the ids pass through untouched (acp keeps its
+    // provider-native approval subject ids — app-visible behavior unchanged).
+    const unmarked = adapter.decodeInteractiveRequest?.({
+      id: 12,
+      method: "interaction/request",
+      params: { ...params, providerNativeIds: undefined },
+    });
+    expect(unmarked).toMatchObject({
+      turnId: "codex-turn-1",
+      payload: { subject: { itemId: "cmd-1" } },
+    });
+  });
+
+  it("maps providerNativeIds tool-call requests onto assembler-minted ids", () => {
+    const adapter = makeAdapter();
+    const events = feedDeltas(adapter, "t_1", [
+      { kind: "turn.open", providerTurnId: "codex-turn-1" },
+      {
+        kind: "item.open",
+        key: { providerItemId: "dyn-1" },
+        item: { type: "tool", tool: "bb_test_ping" },
+        providerTurnId: "codex-turn-1",
+      },
+    ]);
+    const bbItemId =
+      events[1]?.type === "item/started" ? events[1].item.id : "";
+    const bbTurnId =
+      events[0]?.type === "turn/started" && events[0].scope.kind === "turn"
+        ? events[0].scope.turnId
+        : "";
+
+    const decoded = adapter.decodeToolCallRequest({
+      id: 13,
+      method: "item/tool/call",
+      params: {
+        providerThreadId: "p_1",
+        threadId: "t_1",
+        turnId: "codex-turn-1",
+        callId: "dyn-1",
+        tool: "bb_test_ping",
+        arguments: {},
+        providerNativeIds: true,
+      },
+    });
+    expect(decoded).toMatchObject({ turnId: bbTurnId, callId: bbItemId });
   });
 });

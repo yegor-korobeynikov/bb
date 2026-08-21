@@ -1,14 +1,6 @@
-import {
-  environments,
-  events,
-  getAppSettings,
-  getExperiments,
-  threads,
-} from "@bb/db";
+import { environments, events, getAppSettings, threads } from "@bb/db";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import {
-  DEFAULT_CLAUDE_CODE_MOCK_CLI_TRAFFIC_ENDPOINT,
-  type ClaudeCodeMockCliTrafficConfig,
   PromptInput,
   ProjectExecutionDefaults,
   PermissionEscalation,
@@ -17,7 +9,6 @@ import {
   Thread,
   ClientTurnRequestId,
   EnvironmentStatus,
-  WorkspaceProvisionType,
   promptInputHasCommandMention,
 } from "@bb/domain";
 import {
@@ -54,21 +45,13 @@ import {
   resolveBridgeLaunchForProviderId,
 } from "../system/provider-bridge-launch.js";
 
-export type ExecutionOptionsRequest = ExistingThreadExecutionInputRequest;
+type ExecutionOptionsRequest = ExistingThreadExecutionInputRequest;
 
 export interface ThreadStopCommandArgs {
   environmentId: string;
   hostId: string;
   intent: ThreadStopIntent;
   threadId: string;
-}
-
-interface ThreadStartCommandEnvironment {
-  hostId: string;
-  id: string;
-  path: string | null;
-  status: EnvironmentStatus;
-  workspaceProvisionType: WorkspaceProvisionType;
 }
 
 interface ThreadHostCommandEnvironment {
@@ -83,7 +66,7 @@ interface ThreadUnarchiveCommandEnvironment {
 }
 
 export interface ThreadStartCommandArgs {
-  environment: ThreadStartCommandEnvironment;
+  environment: ThreadRuntimeCommandEnvironment;
   execution: ResolvedThreadExecutionOptions;
   // Non-null ⇒ clone the parent's provider session at its branch point (native
   // fork) instead of starting fresh. null ⇒ a normal start.
@@ -99,7 +82,6 @@ export interface ThreadStartCommandArgs {
 }
 
 interface PreparedTurnSubmitCommandBuildArgs {
-  claudeCodeMockCliTraffic: ClaudeCodeMockCliTrafficConfig;
   deps: Pick<
     AppDeps,
     "config" | "db" | "providerRegistry" | "pluginHostArtifacts"
@@ -138,7 +120,6 @@ export type PreparedTurnSubmitCommandPayload = Omit<
 >;
 
 interface RuntimeExecutionOptionsArgs {
-  claudeCodeMockCliTraffic: ClaudeCodeMockCliTrafficConfig;
   deps: Pick<AppDeps, "db" | "providerRegistry">;
   execution: ResolvedThreadExecutionOptions;
   hostId: string;
@@ -156,11 +137,6 @@ interface BuildExecutionOptionsArgs {
   projectDefaults?: ProjectExecutionDefaults | null;
   threadId: string;
 }
-
-type BuildExecutionOptionsSource =
-  | "client/thread/start"
-  | "client/turn/requested"
-  | "client/turn/start";
 
 interface DispatchThreadRenameCommandArgs {
   environment: ThreadHostCommandEnvironment;
@@ -201,15 +177,6 @@ function providerSupportsThreadArchiveForwarding(
     return false;
   }
   return registration.info.capabilities.supportsThreadArchive;
-}
-
-function resolveClaudeCodeMockCliTrafficConfig(
-  deps: Pick<AppDeps, "db">,
-): ClaudeCodeMockCliTrafficConfig {
-  return {
-    enabled: getExperiments(deps.db).claudeCodeMockCliTraffic,
-    endpoint: DEFAULT_CLAUDE_CODE_MOCK_CLI_TRAFFIC_ENDPOINT,
-  };
 }
 
 function resolveProviderMemoryEnabled(
@@ -272,7 +239,6 @@ function toRuntimeExecutionOptions(
     ...(claudeCodePermissionMode !== undefined
       ? { claudeCodePermissionMode }
       : {}),
-    claudeCodeMockCliTraffic: args.claudeCodeMockCliTraffic,
     workflowsEnabled: args.workflowsEnabled,
     memoryEnabled: args.memoryEnabled,
     providerSubagentsEnabled: args.providerSubagentsEnabled,
@@ -308,14 +274,13 @@ export async function buildExecutionOptions(
   deps: Pick<AppDeps, "db" | "hub" | "providerRegistry">,
   request: ExecutionOptionsRequest,
   args: BuildExecutionOptionsArgs,
-  source: BuildExecutionOptionsSource,
 ): Promise<ResolvedThreadExecutionOptions> {
   const plan = await resolveExistingThreadExecutionPlan(deps, {
     ...(args.projectDefaults !== undefined
       ? { projectDefaults: args.projectDefaults }
       : {}),
     ...(args.hostId !== undefined ? { hostId: args.hostId } : {}),
-    executionSource: source,
+    executionSource: "client/turn/requested",
     input: buildExistingThreadExecutionInput(request),
     threadId: args.threadId,
   });
@@ -361,7 +326,6 @@ export async function buildThreadStartCommand(
       ...args,
       deps,
       hostId: args.environment.hostId,
-      claudeCodeMockCliTraffic: resolveClaudeCodeMockCliTrafficConfig(deps),
       memoryEnabled: resolveProviderMemoryEnabled(deps, args.providerId),
       providerSubagentsEnabled: resolveProviderSubagentsEnabled(
         deps,
@@ -402,7 +366,6 @@ function buildPreparedTurnSubmitCommandPayload(
       : {}),
     options: toRuntimeExecutionOptions({
       ...args,
-      claudeCodeMockCliTraffic: args.claudeCodeMockCliTraffic,
       input: args.input,
       providerId: args.runtimeContext.providerId,
       memoryEnabled: resolveProviderMemoryEnabled(
@@ -461,7 +424,6 @@ export async function prepareTurnSubmitCommandPayload(
     model: args.execution.model,
   });
   return buildPreparedTurnSubmitCommandPayload({
-    claudeCodeMockCliTraffic: resolveClaudeCodeMockCliTrafficConfig(deps),
     deps,
     environmentId: args.environment.id,
     hostId: args.environment.hostId,

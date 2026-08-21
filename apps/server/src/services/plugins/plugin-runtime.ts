@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import { createHash, randomUUID } from "node:crypto";
 import {
   createReadStream,
@@ -310,7 +311,7 @@ function releaseMutableRoots(rootUrls: Iterable<string>): void {
 }
 
 /** Which build target a dev build problem belongs to. */
-export type PluginDevBuildKind = "frontend" | "host";
+type PluginDevBuildKind = "frontend" | "host";
 
 const DEV_BUILD_PROBLEM_LABELS: Record<PluginDevBuildKind, string> = {
   frontend: "frontend bundle build failed",
@@ -324,13 +325,44 @@ const SERVICE_RESTART_MAX_MS = 60_000;
 /** A crash after this much healthy runtime resets the backoff sequence. */
 const SERVICE_HEALTHY_RESET_MS = 5 * 60_000;
 
-export interface PluginRuntimeContext {
+/** One run of a background service, from runService to its settlement. */
+interface ServiceInstance {
+  id: string;
+  service: ServiceRuntime;
+  controller: AbortController;
+  /** Set once an uncaught exception from this run has been claimed. */
+  uncaughtError: { error: unknown } | undefined;
+}
+
+interface PluginRuntimeContext {
   deps: PluginServiceDeps;
   nextCronRunAt: (cron: string, now: number) => number;
   settledWithin: (
     promise: Promise<unknown>,
     timeoutMs: number,
   ) => Promise<boolean>;
+}
+
+/**
+ * Keyed promise-chain mutex: calls for the same key run strictly serialized,
+ * calls for different keys run independently. The chain entry is dropped once
+ * its last task settles.
+ */
+function createKeyedLock() {
+  const chains = new Map<string, Promise<void>>();
+  return <T>(key: string, fn: () => Promise<T>): Promise<T> => {
+    const previous = chains.get(key) ?? Promise.resolve();
+    const result = previous.then(fn);
+    const tail = result.then(
+      () => {},
+      () => {},
+    );
+    chains.set(key, tail);
+    void tail.then(() => {
+      if (chains.get(key) === tail) chains.delete(key);
+    });
+    return result;
+  };
 }
 
 export function createPluginRuntime(context: PluginRuntimeContext) {
@@ -356,61 +388,15 @@ export function createPluginRuntime(context: PluginRuntimeContext) {
   // stopServices finishes, so without this a concurrent reload/enable/
   // install could enter loadOne mid-dispose (no loaded entry, no hung
   // marker yet) and double-start the plugin's services.
-  const lifecycleChains = new Map<string, Promise<void>>();
-  const artifactChains = new Map<string, Promise<void>>();
-  const pluginOperationChains = new Map<string, Promise<void>>();
+  const withLifecycleLock = createKeyedLock();
+  const withArtifactLock = createKeyedLock();
+  const withPluginOperationLock = createKeyedLock();
   const REGISTRATION_MUTATION_KEY = "plugin-registration-mutations";
   const disposingPluginIds = new Set<string>();
   const builtinSourceWatchers: FSWatcher[] = [];
   /** Mutable roots this runtime registered, released when it stops. */
   const ownedRootUrls = new Set<string>();
 
-  function withLifecycleLock<T>(id: string, fn: () => Promise<T>): Promise<T> {
-    const previous = lifecycleChains.get(id) ?? Promise.resolve();
-    const result = previous.then(fn);
-    const tail = result.then(
-      () => {},
-      () => {},
-    );
-    lifecycleChains.set(id, tail);
-    void tail.then(() => {
-      if (lifecycleChains.get(id) === tail) lifecycleChains.delete(id);
-    });
-    return result;
-  }
-
-  function withArtifactLock<T>(key: string, fn: () => Promise<T>): Promise<T> {
-    const previous = artifactChains.get(key) ?? Promise.resolve();
-    const result = previous.then(fn);
-    const tail = result.then(
-      () => {},
-      () => {},
-    );
-    artifactChains.set(key, tail);
-    void tail.then(() => {
-      if (artifactChains.get(key) === tail) artifactChains.delete(key);
-    });
-    return result;
-  }
-
-  function withPluginOperationLock<T>(
-    id: string,
-    fn: () => Promise<T>,
-  ): Promise<T> {
-    const previous = pluginOperationChains.get(id) ?? Promise.resolve();
-    const result = previous.then(fn);
-    const tail = result.then(
-      () => {},
-      () => {},
-    );
-    pluginOperationChains.set(id, tail);
-    void tail.then(() => {
-      if (pluginOperationChains.get(id) === tail) {
-        pluginOperationChains.delete(id);
-      }
-    });
-    return result;
-  }
   const statuses = new Map<
     string,
     { status: PluginRuntimeStatus; detail: string | null }
@@ -553,22 +539,94 @@ export function createPluginRuntime(context: PluginRuntimeContext) {
     return undefined;
   }
 
+  /**
+   * The service instance whose async context is executing. Plugins run
+   * in-process, so an error a service raises outside its start() promise
+   * (an unlistened EventEmitter 'error', a throw in a timer callback, a
+   * detached rejection) reaches the process as an uncaught exception, not
+   * the promise chain runService watches. The store follows every timer,
+   * socket callback, and promise the service creates, so
+   * handleUncaughtException can hand the error back to the supervisor.
+   */
+  const serviceContext = new AsyncLocalStorage<ServiceInstance>();
+
   /** Start (or restart) one background service instance. */
   function runService(id: string, service: ServiceRuntime): void {
     const controller = new AbortController();
     service.controller = controller;
     service.state = "running";
     service.startedAt = Date.now();
+    const instance: ServiceInstance = {
+      id,
+      service,
+      controller,
+      uncaughtError: undefined,
+    };
     // The async wrapper normalizes sync throws from start() into rejections.
-    const current = (async () => {
+    const current = serviceContext.run(instance, async () => {
       await service.record.start(controller.signal);
-    })();
+    });
     service.current = current;
     current.then(
-      () => onServiceSettled(id, service, { crashed: false }),
+      () =>
+        instance.uncaughtError === undefined
+          ? onServiceSettled(id, service, { crashed: false })
+          : onServiceSettled(id, service, {
+              crashed: true,
+              error: instance.uncaughtError.error,
+            }),
       (error: unknown) =>
-        onServiceSettled(id, service, { crashed: true, error }),
+        onServiceSettled(id, service, {
+          crashed: true,
+          // The out-of-band error came first; a rejection after the abort
+          // is its consequence.
+          error: instance.uncaughtError?.error ?? error,
+        }),
     );
+  }
+
+  /**
+   * Claims an uncaught exception raised from a service's async context.
+   * Returns false when no service owns it, so the caller keeps Node's
+   * default and exits. A live instance is aborted; its settlement then
+   * takes the crash path (backoff + restart) with this error as the cause.
+   */
+  function handleUncaughtException(error: unknown): boolean {
+    const instance = serviceContext.getStore();
+    if (instance === undefined) return false;
+    const { id, service, controller } = instance;
+    const name = service.record.name;
+    const message = error instanceof Error ? error.message : String(error);
+    if (service.controller !== controller || service.disposed) {
+      // A previous run (restarted or disposed) left a timer or emitter behind.
+      logger.warn(
+        `[plugin:${id}] service ${name} raised an uncaught exception from a stopped run: ${message}`,
+      );
+      return true;
+    }
+    if (instance.uncaughtError !== undefined) return true;
+    instance.uncaughtError = { error };
+    logger.warn(
+      { err: error },
+      `[plugin:${id}] service ${name} raised an uncaught exception outside start(): ${message} — aborting it`,
+    );
+    const current = service.current;
+    controller.abort();
+    if (current === null) return true;
+    void settledWithin(current, serviceStopTimeoutMs).then((settled) => {
+      if (settled || service.controller !== controller || service.disposed) {
+        return;
+      }
+      setStatus(
+        id,
+        "degraded",
+        `service ${name} did not stop after an uncaught exception`,
+      );
+      logger.warn(
+        `[plugin:${id}] service ${name} did not stop within ${serviceStopTimeoutMs}ms of its uncaught exception — plugin degraded until it does`,
+      );
+    });
+    return true;
   }
 
   function onServiceSettled(
@@ -764,15 +822,6 @@ export function createPluginRuntime(context: PluginRuntimeContext) {
     if (pending.size === 0) pendingInvocations.delete(id);
   }
 
-  async function invokeThreadEventHandler<E extends PluginThreadEventName>(
-    id: string,
-    event: E,
-    handler: (payload: PluginThreadEventPayloads[E]) => void | Promise<void>,
-    payload: PluginThreadEventPayloads[E],
-  ): Promise<void> {
-    await invokeWrapped(id, `${event} handler`, () => handler(payload));
-  }
-
   /**
    * Fire-and-forget dispatch: the lifecycle seam returns immediately; the
    * payload is assembled and handlers run on the next macrotask, after the
@@ -797,7 +846,7 @@ export function createPluginRuntime(context: PluginRuntimeContext) {
       }
       for (const [id, plugin] of loaded) {
         for (const handler of [...plugin.handle.threadEventHandlers[event]]) {
-          void invokeThreadEventHandler(id, event, handler, payload);
+          void invokeWrapped(id, `${event} handler`, () => handler(payload));
         }
       }
     });
@@ -870,40 +919,20 @@ export function createPluginRuntime(context: PluginRuntimeContext) {
     }
   }
 
-  function builtinName(row: InstalledPluginRow): string | null {
-    return row.sourceKind === "builtin" ? row.sourceBuiltinName : null;
-  }
-
-  function isPackagedBuiltinAppEntry(args: {
+  function isPackagedBuiltinEntry(args: {
     kind: ReturnType<typeof sourceKind>;
     manifest: PluginManifest;
     rootDir: string;
+    artifact: "app" | "server" | "host";
   }): boolean {
+    const entry = {
+      app: args.manifest.appEntry,
+      server: args.manifest.serverEntry,
+      host: args.manifest.hostEntry,
+    }[args.artifact];
     return (
       args.kind === "builtin" &&
-      args.manifest.appEntry === resolve(args.rootDir, "dist", "app.js")
-    );
-  }
-
-  function isPackagedBuiltinServerEntry(args: {
-    kind: ReturnType<typeof sourceKind>;
-    manifest: PluginManifest;
-    rootDir: string;
-  }): boolean {
-    return (
-      args.kind === "builtin" &&
-      args.manifest.serverEntry === resolve(args.rootDir, "dist", "server.js")
-    );
-  }
-
-  function isPackagedBuiltinHostEntry(args: {
-    kind: ReturnType<typeof sourceKind>;
-    manifest: PluginManifest;
-    rootDir: string;
-  }): boolean {
-    return (
-      args.kind === "builtin" &&
-      args.manifest.hostEntry === resolve(args.rootDir, "dist", "host.js")
+      entry === resolve(args.rootDir, "dist", `${args.artifact}.js`)
     );
   }
 
@@ -913,10 +942,11 @@ export function createPluginRuntime(context: PluginRuntimeContext) {
   ): Promise<string | null> {
     const kind = sourceKind(row.source);
     if (
-      !isPackagedBuiltinServerEntry({
+      !isPackagedBuiltinEntry({
         kind,
         manifest,
         rootDir: row.rootDir,
+        artifact: "server",
       })
     ) {
       return null;
@@ -942,11 +972,25 @@ export function createPluginRuntime(context: PluginRuntimeContext) {
     }
     const serverProblem = await validate("server");
     if (serverProblem !== null) return serverProblem;
-    if (isPackagedBuiltinAppEntry({ kind, manifest, rootDir: row.rootDir })) {
+    if (
+      isPackagedBuiltinEntry({
+        kind,
+        manifest,
+        rootDir: row.rootDir,
+        artifact: "app",
+      })
+    ) {
       const appProblem = await validate("app");
       if (appProblem !== null) return appProblem;
     }
-    if (isPackagedBuiltinHostEntry({ kind, manifest, rootDir: row.rootDir })) {
+    if (
+      isPackagedBuiltinEntry({
+        kind,
+        manifest,
+        rootDir: row.rootDir,
+        artifact: "host",
+      })
+    ) {
       return validate("host");
     }
     return null;
@@ -1031,10 +1075,11 @@ export function createPluginRuntime(context: PluginRuntimeContext) {
     if (
       row.sourceKind === "path" ||
       (row.sourceKind === "builtin" &&
-        !isPackagedBuiltinServerEntry({
+        !isPackagedBuiltinEntry({
           kind: row.sourceKind,
           manifest,
           rootDir: row.rootDir,
+          artifact: "server",
         }))
     ) {
       return manifest.serverEntry;
@@ -1086,7 +1131,12 @@ export function createPluginRuntime(context: PluginRuntimeContext) {
     const kind = row.sourceKind;
     if (
       (kind === "path" || kind === "builtin") &&
-      !isPackagedBuiltinAppEntry({ kind, manifest, rootDir: row.rootDir })
+      !isPackagedBuiltinEntry({
+        kind,
+        manifest,
+        rootDir: row.rootDir,
+        artifact: "app",
+      })
     ) {
       const meta = await readPluginAppBundleMeta(row.rootDir);
       const sdkChanged = meta?.sdkVersion !== PLUGIN_SDK_VERSION;
@@ -1131,7 +1181,12 @@ export function createPluginRuntime(context: PluginRuntimeContext) {
     const kind = row.sourceKind;
     if (
       (kind === "path" || kind === "builtin") &&
-      !isPackagedBuiltinHostEntry({ kind, manifest, rootDir: row.rootDir })
+      !isPackagedBuiltinEntry({
+        kind,
+        manifest,
+        rootDir: row.rootDir,
+        artifact: "host",
+      })
     ) {
       await buildPluginHost(
         row.rootDir,
@@ -1282,21 +1337,26 @@ export function createPluginRuntime(context: PluginRuntimeContext) {
       status: PluginRuntimeStatus,
       detail: string,
     ): void {
+      // Every non-running outcome must leave a log line: without one, an
+      // engines mismatch after a host upgrade leaves the plugin gone with
+      // no trace outside the in-memory status (#1915).
       if (previous !== undefined) {
         setStatus(row.id, "running", `reload failed: ${detail}`);
+        logger.warn(
+          `plugin ${row.id} reload failed (kept previous instance): ${detail}`,
+        );
       } else {
         setStatus(row.id, status, detail);
+        logger.warn(`plugin ${row.id} not loaded (${status}): ${detail}`);
       }
     }
     const hung = hungServices.get(row.id);
     if (hung !== undefined && hung.size > 0) {
       // A previous instance's service never stopped; loading now would
       // double-start it (design §3: degraded rather than double-starting).
-      setStatus(
-        row.id,
-        "degraded",
-        `service ${[...hung].join(", ")} did not stop`,
-      );
+      const detail = `service ${[...hung].join(", ")} did not stop`;
+      setStatus(row.id, "degraded", detail);
+      logger.warn(`plugin ${row.id} not loaded (degraded): ${detail}`);
       return;
     }
     try {
@@ -1551,7 +1611,6 @@ export function createPluginRuntime(context: PluginRuntimeContext) {
       logger.warn(`plugin ${row.id} failed to load: ${hostArtifactProblem}`);
       return;
     }
-    const loadedBuiltinName = builtinName(row);
     const plugin: LoadedPlugin = {
       manifest,
       handle,
@@ -1565,8 +1624,6 @@ export function createPluginRuntime(context: PluginRuntimeContext) {
         startedAt: 0,
         disposed: false,
       })),
-      isBuiltin: loadedBuiltinName !== null,
-      builtinName: loadedBuiltinName,
     };
     if (previous !== undefined) {
       await disposePluginInstance(row.id, previous);
@@ -1717,18 +1774,6 @@ export function createPluginRuntime(context: PluginRuntimeContext) {
     ownedRootUrls.clear();
   }
 
-  function clearRuntimeState(id: string): void {
-    disposeUnavailableProviderRegistrations(id);
-    statuses.delete(id);
-    baseStatuses.delete(id);
-    devBuildProblems.delete(id);
-    appBundles.delete(id);
-    hostArtifacts.delete(id);
-    brandingAssets.delete(id);
-    needsConfiguration.delete(id);
-    agentToolProblems.delete(id);
-  }
-
   async function loadAll(): Promise<void> {
     const rows = listInstalledPlugins(deps.db).sort((a, b) =>
       a.id.localeCompare(b.id),
@@ -1779,21 +1824,20 @@ export function createPluginRuntime(context: PluginRuntimeContext) {
     builtinSourceWatchers,
     checkEngineRange,
     checkPluginSdkRange,
-    clearRuntimeState,
     disposeAll,
     disposeOne,
     emitThreadEvent,
     handlerStats,
+    handleUncaughtException,
     hungServices,
     invokeWrapped,
     isBuiltinPluginId,
     identities,
-    isPackagedBuiltinAppEntry,
+    isPackagedBuiltinEntry,
     loadAll,
     loaded,
     loadOne,
     brandingAssets,
-    needsConfiguration,
     setDevBuildProblem,
     setStatus,
     sourceKind,
