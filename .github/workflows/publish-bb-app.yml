@@ -54,8 +54,7 @@ env:
 jobs:
   publish:
     name: Publish bb-app
-    # Every other job in this workflow needs `publish`, so gating it here gates
-    # the whole scheduled path. The nightly cron belongs to upstream: on a fork
+    # The nightly cron belongs to upstream: on a fork
     # it fires onto runners the fork cannot reach and queues forever. Manual
     # dispatch is unaffected, so the fork can still release deliberately.
     if: ${{ github.event_name != 'schedule' || github.repository == 'get-bb/bb' }}
@@ -376,6 +375,10 @@ jobs:
   # docs/bb-release-process.md#publishing-the-plugin-sdk.
   publish-plugin-sdk:
     name: Publish @get-bb/plugin-sdk
+    # Gated separately: this job depends on no other, so the gate on `publish`
+    # does not cover it. Without this it fires on the fork's nightly cron and
+    # goes red on a package the fork does not own.
+    if: ${{ github.event_name != 'schedule' || github.repository == 'get-bb/bb' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: npm-release

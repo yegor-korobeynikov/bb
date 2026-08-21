@@ -10,10 +10,11 @@
 #
 # What it does, in order:
 #   1. Refuses to run on a dirty tree or in the live daily-driver checkout.
-#   2. Fetches upstream and pushes origin/main straight to the fork's `main`
-#      (so the fork's sync point stays current) — no local branch involved.
-#   3. Runs the RISKY/SAFE triage (check-upstream-updates.sh) so the merge
-#      is walked into with open eyes.
+#   2. Runs the RISKY/SAFE triage (check-upstream-updates.sh) so the merge
+#      is walked into with open eyes. `--triage` stops here, having written
+#      nothing locally or remotely.
+#   3. Pushes origin/main straight to the fork's `main` mirror (so the fork's
+#      sync point stays current) — no local branch involved.
 #   4. MERGES origin/main into tendo-main (merge, not rebase: tendo-main is
 #      published; rebasing it would rewrite shared history).
 #   5. On conflicts: stops and leaves the merge in progress for a human (or
@@ -59,13 +60,6 @@ fi
 echo "Fetching upstream..."
 git fetch origin main --quiet
 
-echo "Updating the fork's mirror branch from upstream..."
-# No local `main` is involved: origin/main IS the mirror. Pushing the remote-tracking
-# ref straight through avoids both a divergent local branch and the case where `main`
-# is checked out in another worktree (git refuses to force-update it there).
-git push fork "$(git rev-parse origin/main):refs/heads/main" --quiet \
-  || echo "  (mirror push failed — non-fatal, continuing)"
-
 # -- 3. Triage ---------------------------------------------------------------
 
 echo "Running RISKY/SAFE triage..."
@@ -73,8 +67,16 @@ bash scripts/check-upstream-updates.sh
 
 if [ "$TRIAGE_ONLY" = 1 ]; then
   echo "Triage done (see /tmp/bb-upstream-triage.md). Merge skipped (--triage)."
+  echo "Nothing was written locally or remotely."
   exit 0
 fi
+
+echo "Updating the fork's mirror branch from upstream..."
+# No local `main` is involved: origin/main IS the mirror. Pushing the remote-tracking
+# ref straight through avoids both a divergent local branch and the case where `main`
+# is checked out in another worktree (git refuses to force-update it there).
+git push fork "$(git rev-parse origin/main):refs/heads/main" --quiet \
+  || echo "  (mirror push failed — non-fatal, continuing)"
 
 # -- 4. Merge ----------------------------------------------------------------
 
