@@ -1006,7 +1006,18 @@ function NotePane({
     );
 
   return (
-    <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+    // `h-full`, not `flex-1`: `flex-1` only sizes this box when its immediate
+    // host wrapper is itself a flex container. The threadPanelAction host
+    // (PluginPanelActions' ThreadActionTabContent, used for this same
+    // NotePane via DocumentPanel) provides a definite height via its own
+    // `h-full` but is NOT `display:flex` — so a `flex-1` root here would
+    // silently stop being sized by the host and grow to full content height
+    // instead, defeating the host's `overflow-hidden` "flush" contract (the
+    // note renders in full, clipped after one screenful, with nothing of its
+    // own left to scroll). `h-full` only needs a definite ancestor height,
+    // which the host always provides, regardless of the host's own display
+    // mode — the same shape side-chat's ThreadChat panel already relies on.
+    <div className="flex h-full min-h-0 min-w-0 flex-col">
       {conflict ? (
         <div className="flex items-center gap-2 border-b border-border bg-muted px-4 py-2 text-xs">
           Changed on disk.
@@ -1193,7 +1204,14 @@ function DocsFileOpener({ path: filePath, source }: PluginFileOpenerProps) {
     );
   }
   return (
-    <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+    // `h-full`, not `flex-1` — see the matching comment on NotePane's root
+    // above. This opener is hosted by `FileOpenerTabContent`, whose wrapper
+    // happens to declare `flex` today, so `flex-1` currently resolves; but
+    // that's an accident of the current host, not a contract this component
+    // can rely on. `h-full` only needs a definite ancestor height (which the
+    // "flush" file-opener host always provides) and stays correct regardless
+    // of whether the host wrapper is itself a flex container.
+    <div className="flex h-full min-h-0 min-w-0 flex-col">
       {liveFileTarget === null ? null : (
         <div className="flex items-center gap-2 border-b border-border px-3 py-1.5 text-xs">
           <FileLink className="min-w-0 flex-1 truncate" target={liveFileTarget}>
