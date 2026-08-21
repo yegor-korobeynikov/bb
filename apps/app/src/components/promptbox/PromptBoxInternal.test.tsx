@@ -3076,6 +3076,82 @@ describe("PromptBoxInternal selection reveal", () => {
   });
 });
 
+describe("PromptBoxInternal paste-a-link-over-a-selection", () => {
+  it("links the selected word instead of replacing it with the pasted URL", async () => {
+    const { changes, promptBoxRef } = renderPromptBox("check word here");
+
+    await focusPromptEnd(promptBoxRef);
+
+    let view: EditorView | null = null;
+    const coordsAtPosSpy = vi
+      .spyOn(EditorView.prototype, "coordsAtPos")
+      .mockImplementation(function (this: EditorView) {
+        view = this;
+        return { left: 0, right: 0, top: 0, bottom: 0 };
+      });
+
+    try {
+      await waitFor(() => expect(view).not.toBeNull());
+      const liveView = view as unknown as EditorView;
+      const { doc } = liveView.state;
+      // "check word here" -> select just "word" (positions 7..11 inside the
+      // single paragraph's text, 1-indexed past the paragraph's opening token).
+      const from = "check ".length + 1;
+      const to = from + "word".length;
+      await act(async () => {
+        liveView.dispatch(
+          liveView.state.tr.setSelection(TextSelection.create(doc, from, to)),
+        );
+      });
+
+      pastePlainText("https://example.com");
+
+      await waitFor(() =>
+        expect(latestValue(changes)).toBe(
+          "check [word](https://example.com) here",
+        ),
+      );
+    } finally {
+      coordsAtPosSpy.mockRestore();
+    }
+  });
+
+  it("still replaces the selection when the pasted text is not a bare URL", async () => {
+    const { changes, promptBoxRef } = renderPromptBox("check word here");
+
+    await focusPromptEnd(promptBoxRef);
+
+    let view: EditorView | null = null;
+    const coordsAtPosSpy = vi
+      .spyOn(EditorView.prototype, "coordsAtPos")
+      .mockImplementation(function (this: EditorView) {
+        view = this;
+        return { left: 0, right: 0, top: 0, bottom: 0 };
+      });
+
+    try {
+      await waitFor(() => expect(view).not.toBeNull());
+      const liveView = view as unknown as EditorView;
+      const { doc } = liveView.state;
+      const from = "check ".length + 1;
+      const to = from + "word".length;
+      await act(async () => {
+        liveView.dispatch(
+          liveView.state.tr.setSelection(TextSelection.create(doc, from, to)),
+        );
+      });
+
+      pastePlainText("replacement");
+
+      await waitFor(() =>
+        expect(latestValue(changes)).toBe("check replacement here"),
+      );
+    } finally {
+      coordsAtPosSpy.mockRestore();
+    }
+  });
+});
+
 describe("PromptBoxInternal prompt actions", () => {
   it("keeps the custom caret reveal for composer-handled text pastes", async () => {
     const { changes, promptBoxRef } = renderPromptBox("");

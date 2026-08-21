@@ -115,6 +115,7 @@ import {
   removeEmptyBlockquotes,
 } from "./editor/prompt-editor-blockquote";
 import { exitHeading } from "./editor/prompt-editor-heading";
+import { promptEditorPasteLinkHref } from "./editor/prompt-editor-link";
 import { applyPromptListNewline } from "./editor/prompt-editor-list";
 import { applyPromptParagraphNewline } from "./editor/prompt-editor-paragraph";
 import { MentionMenu, type TypeaheadSuggestion } from "./mentions/MentionMenu";
@@ -1899,6 +1900,26 @@ export function PromptBoxInternal({
           }
 
           const plainText = event.clipboardData?.getData("text/plain") ?? "";
+
+          // Pasting a bare URL over a text selection links the selected
+          // words instead of replacing them with the URL — matches
+          // @tiptap/extension-link's own linkOnPaste behavior, which never
+          // fires here because this handler always claims text pastes first
+          // (see promptEditorPasteLinkHref). Only when the schema actually
+          // has the link mark (richTextEditing on) and something is selected.
+          if (richTextEditing && !view.state.selection.empty) {
+            const linkHref = promptEditorPasteLinkHref(plainText);
+            if (linkHref !== null) {
+              event.preventDefault();
+              editorRef.current
+                ?.chain()
+                .focus()
+                .setLink({ href: linkHref })
+                .run();
+              return true;
+            }
+          }
+
           const sliceHasBlockquote = promptEditorSliceHasBlockquote(slice);
           if (sliceHasBlockquote || plainTextHasQuoteLine(plainText)) {
             event.preventDefault();

@@ -35,7 +35,7 @@ const schema = getSchema([
     strike: false,
     underline: false,
   }),
-  Link.configure({ autolink: false, linkOnPaste: true, openOnClick: false }),
+  Link.configure({ autolink: false, openOnClick: false }),
   PromptMentionExtension,
 ]);
 

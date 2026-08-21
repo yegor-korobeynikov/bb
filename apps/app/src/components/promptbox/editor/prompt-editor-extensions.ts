@@ -9,10 +9,14 @@ import {
 import { PromptMentionExtension } from "./prompt-mention-extension";
 
 /**
- * Pasting a URL over a text selection turns the selection into a link (the
- * extension's own `linkOnPaste` behavior); typing/pasting a bare URL does not
- * auto-link (`autolink: false`) since we have no authoring UI to edit or
- * remove an accidental link short of retyping the text.
+ * Typing/pasting a bare URL does not auto-link (`autolink: false`) since we
+ * have no authoring UI to edit or remove an accidental link short of
+ * retyping the text. `linkOnPaste` is left unset (its own default, `true`)
+ * but is inert either way: the extension's paste-over-selection plugin never
+ * gets a turn, because the composer's editorProps.handlePaste in
+ * PromptBoxInternal.tsx claims every text paste first. That handler
+ * implements paste-a-URL-over-a-selection itself instead
+ * (promptEditorPasteLinkHref + setLink).
  */
 const PROMPT_EDITOR_LINK_CLASS = "prompt-editor-link";
 
@@ -90,7 +94,6 @@ export function promptEditorExtensions({
           Link.configure({
             autolink: false,
             HTMLAttributes: { class: PROMPT_EDITOR_LINK_CLASS },
-            linkOnPaste: true,
             openOnClick: false,
           }),
         ]
