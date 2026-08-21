@@ -184,6 +184,17 @@ const CHECKS = {
       // taskId/projectId/title/prompt/isolate) — never a separate
       // picker/form screen. One glyph, present on every session row,
       // absent on every track (child) row.
+      //
+      // Extended same day, after item 3 (archive/menu overlap) closed as a
+      // false positive (archiveMenuOverlap: overlapCount=0, pass=true): the
+      // extension to sessions WITH an existing track (native chevron
+      // occupies the left slot there, so this one has to live in the
+      // right-side hover-actions zone alongside archive + actions-menu) now
+      // asserts NO overlap with either native button, reusing the same
+      // rectsOverlap geometry test as archiveMenuOverlap rather than
+      // trusting a guessed CSS offset.
+      const rectsOverlap = (a, b) =>
+        a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
       const mountedRows = document.querySelectorAll('[class*="thread-row"]').length;
       const actions = Array.from(document.querySelectorAll('[data-bso-new-track-action]'));
       const samples = actions.map((el) => {
@@ -196,24 +207,42 @@ const CHECKS = {
           title: el.getAttribute('title'),
         };
       });
+      const nativeButtons = Array.from(document.querySelectorAll('button')).filter((b) => {
+        const label = (b.getAttribute('aria-label') || '').toLowerCase();
+        return label.includes('archiv') || label.includes('actions') || label.includes('more') || label.includes('menu');
+      });
+      const overlaps = [];
+      for (const action of actions) {
+        const row = action.closest('[class*="thread-row"]');
+        const ar = action.getBoundingClientRect();
+        for (const nb of nativeButtons) {
+          if (row && !row.contains(nb)) continue;
+          const nr = nb.getBoundingClientRect();
+          if (rectsOverlap(ar, nr)) {
+            overlaps.push({
+              rowText: row ? (row.textContent || '').trim().slice(0, 40) : null,
+              nativeLabel: nb.getAttribute('aria-label'),
+              actionRect: { left: ar.left, right: ar.right },
+              nativeRect: { left: nr.left, right: nr.right },
+            });
+          }
+        }
+      }
       // Eligible-rendered proxy, CDP-only (no access to the plugin's own
       // parentThreadId data): a row without [data-sidebar-child-toggle] is
-      // either a session with no track yet (eligible) OR a track itself
-      // (not eligible, correctly excluded) — this over-counts relative to
-      // the true eligible set, so 'count' vs 'noToggleRows' is NOT asserted
-      // equal, just reported side by side as an honest, imperfect proxy.
-      // Which specific rows carry the action is still decided in the plugin
-      // from the thread's own parentThreadId (structurally correct by
-      // construction) — a human/agent judges from rowText samples whether
-      // any track title leaked in.
-      const noToggleRows = mountedRows -
-        document.querySelectorAll('[data-sidebar-child-toggle]').length;
+      // a session with no track yet; a row WITH the toggle is either a
+      // track-having session (now also eligible, post-extension) or a
+      // track itself (not eligible) — mountedRows is the honest overall
+      // denominator, count vs it is reported not asserted equal, same
+      // reasoning as before.
       return {
         found: actions.length > 0,
         count: actions.length,
         mountedRows,
-        noToggleRows,
-        inconclusive: noToggleRows <= 0,
+        inconclusive: mountedRows === 0,
+        overlapCount: overlaps.length,
+        overlapPass: overlaps.length === 0,
+        overlaps: overlaps.slice(0, 10),
         samples: samples.slice(0, 15),
       };
     })()
