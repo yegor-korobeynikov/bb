@@ -877,25 +877,39 @@ function mentionAttrsFromNode(
 
 /**
  * Markdown delimiters that wrap a text run carrying inline marks. `code` is
- * literal, so it never combines with emphasis. Bold wraps outside italic, e.g.
- * a run with both marks becomes `**_text_**`.
+ * literal, so it never combines with emphasis or a link. Bold wraps outside
+ * italic, e.g. a run with both marks becomes `**_text_**`; link wraps
+ * outermost of all, e.g. `[**_text_**](href)`, matching how Markdown nests
+ * emphasis inside a link label.
+ *
+ * The `key` two runs share to merge into one delimiter span (see
+ * appendMarkedInlineText) falls out of `open`/`close` alone — a link's close
+ * string embeds its href, so two adjacent links with different hrefs never
+ * merge into a single run even though both carry a "link" mark.
  */
 function markdownDelimitersForMarks(
   marks: readonly ProseMirrorNode["marks"][number][],
 ): { open: string; close: string } {
-  const names = new Set(marks.map((mark) => mark.type.name));
-  if (names.has("code")) {
+  if (marks.some((mark) => mark.type.name === "code")) {
     return { open: "`", close: "`" };
   }
   let open = "";
   let close = "";
-  if (names.has("bold")) {
+  const boldMark = marks.find((mark) => mark.type.name === "bold");
+  if (boldMark) {
     open = `${open}**`;
     close = `**${close}`;
   }
-  if (names.has("italic")) {
+  const italicMark = marks.find((mark) => mark.type.name === "italic");
+  if (italicMark) {
     open = `${open}_`;
     close = `_${close}`;
+  }
+  const linkMark = marks.find((mark) => mark.type.name === "link");
+  if (linkMark) {
+    const href = typeof linkMark.attrs.href === "string" ? linkMark.attrs.href : "";
+    open = `[${open}`;
+    close = `${close}](${href})`;
   }
   return { open, close };
 }

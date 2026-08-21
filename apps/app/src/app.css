@@ -136,6 +136,19 @@
   }
 
   /*
+   * Pasting a URL over a selection turns it into a link (prompt-editor-
+   * extensions.ts, linkOnPaste) — #2C7C8C is a fixed brand value for this
+   * one interaction, not aliased to --tendo-status-unread even though the two
+   * happen to share a hex today: that token is scoped to the sidebar status
+   * dot and tendo-tokens.css explicitly treats each status color as its own
+   * design decision, so tying link color to its lifecycle would be an
+   * accidental coupling.
+   */
+  .prompt-editor-link {
+    color: #2c7c8c;
+  }
+
+  /*
    * Mention-pill surface. PROMPT_MENTION_PILL_CLASS owns layout, radius, and
    * border width; this paints the theme-specific face, border, and soft shadow.
    * The --selected modifier tints the same chip for the editor's drag-select

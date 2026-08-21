@@ -1,3 +1,4 @@
+import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
 import StarterKit from "@tiptap/starter-kit";
 import type { AnyExtension } from "@tiptap/react";
@@ -6,6 +7,14 @@ import {
   type PromptDecorationExtensionOptions,
 } from "./prompt-decoration-extension";
 import { PromptMentionExtension } from "./prompt-mention-extension";
+
+/**
+ * Pasting a URL over a text selection turns the selection into a link (the
+ * extension's own `linkOnPaste` behavior); typing/pasting a bare URL does not
+ * auto-link (`autolink: false`) since we have no authoring UI to edit or
+ * remove an accidental link short of retyping the text.
+ */
+const PROMPT_EDITOR_LINK_CLASS = "prompt-editor-link";
 
 interface PromptEditorExtensionsOptions extends PromptDecorationExtensionOptions {
   /**
@@ -33,9 +42,12 @@ interface PromptEditorExtensionsOptions extends PromptDecorationExtensionOptions
  * backs the quote-into-prompt flow (appendQuoteToDraftText writes `> ` lines
  * that the serializer parses back into blockquote nodes). It must stay in the
  * schema in both modes, or re-parsing a quoted draft would hit an unknown node
- * type. Code blocks/link/underline stay disabled: code blocks make multiline
- * prompt editing too sticky; underline isn't Markdown; links need authoring UI
- * we don't provide.
+ * type. Code blocks/underline stay disabled: code blocks make multiline prompt
+ * editing too sticky; underline isn't Markdown. Link is gated with the rest —
+ * paste-a-URL-over-a-selection is the only way to create one (no authoring
+ * UI), and `promptEditorSerialization`'s markdownDelimitersForMarks emits it
+ * as `[text](href)`; parsing a submitted `[text](href)` back into a rich link
+ * on recall is not implemented.
  */
 export function promptEditorExtensions({
   richTextEditing,
@@ -63,6 +75,16 @@ export function promptEditorExtensions({
       strike: false,
       underline: false,
     }),
+    ...(richTextEditing
+      ? [
+          Link.configure({
+            autolink: false,
+            HTMLAttributes: { class: PROMPT_EDITOR_LINK_CLASS },
+            linkOnPaste: true,
+            openOnClick: false,
+          }),
+        ]
+      : []),
     Placeholder.configure({
       placeholder: () => getPlaceholder(),
     }),

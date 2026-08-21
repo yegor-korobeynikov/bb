@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getSchema } from "@tiptap/core";
+import Link from "@tiptap/extension-link";
 import StarterKit from "@tiptap/starter-kit";
 import { Node, Slice } from "@tiptap/pm/model";
 import type { PromptTextMention } from "@bb/domain";
@@ -34,6 +35,7 @@ const schema = getSchema([
     strike: false,
     underline: false,
   }),
+  Link.configure({ autolink: false, linkOnPaste: true, openOnClick: false }),
   PromptMentionExtension,
 ]);
 
@@ -358,6 +360,66 @@ describe("prompt editor markdown serialization (doc -> markdown text)", () => {
         },
       ]).text,
     ).toBe("**_x_**");
+  });
+
+  it("serializes a link mark as [text](href)", () => {
+    expect(
+      serialize([
+        {
+          type: "paragraph",
+          content: [
+            {
+              type: "text",
+              text: "example",
+              marks: [{ type: "link", attrs: { href: "https://example.com" } }],
+            },
+          ],
+        },
+      ]).text,
+    ).toBe("[example](https://example.com)");
+  });
+
+  it("wraps link outside bold and italic", () => {
+    expect(
+      serialize([
+        {
+          type: "paragraph",
+          content: [
+            {
+              type: "text",
+              text: "x",
+              marks: [
+                { type: "bold" },
+                { type: "italic" },
+                { type: "link", attrs: { href: "https://example.com" } },
+              ],
+            },
+          ],
+        },
+      ]).text,
+    ).toBe("[**_x_**](https://example.com)");
+  });
+
+  it("does not merge adjacent links with different hrefs into one run", () => {
+    expect(
+      serialize([
+        {
+          type: "paragraph",
+          content: [
+            {
+              type: "text",
+              text: "a",
+              marks: [{ type: "link", attrs: { href: "https://a.example" } }],
+            },
+            {
+              type: "text",
+              text: "b",
+              marks: [{ type: "link", attrs: { href: "https://b.example" } }],
+            },
+          ],
+        },
+      ]).text,
+    ).toBe("[a](https://a.example)[b](https://b.example)");
   });
 
   it("serializes headings with the right level", () => {

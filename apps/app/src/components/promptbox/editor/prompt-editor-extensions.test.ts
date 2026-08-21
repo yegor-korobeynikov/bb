@@ -10,7 +10,7 @@ function schemaFor(richTextEditing: boolean) {
 
 // Nodes/marks the Markdown rich-text feature added; gated by the preference.
 const GATED_NODES = ["heading", "bulletList", "orderedList", "listItem"];
-const GATED_MARKS = ["bold", "italic", "code"];
+const GATED_MARKS = ["bold", "italic", "code", "link"];
 
 describe("promptEditorExtensions", () => {
   it("enables the Markdown nodes and marks when rich text is on", () => {
@@ -45,11 +45,10 @@ describe("promptEditorExtensions", () => {
     }
   });
 
-  it("keeps code blocks, links, strike, and underline disabled in both modes", () => {
+  it("keeps code blocks, strike, and underline disabled in both modes", () => {
     for (const richTextEditing of [true, false]) {
       const schema = schemaFor(richTextEditing);
       expect(schema.nodes.codeBlock).toBeUndefined();
-      expect(schema.marks.link).toBeUndefined();
       expect(schema.marks.strike).toBeUndefined();
       expect(schema.marks.underline).toBeUndefined();
     }
