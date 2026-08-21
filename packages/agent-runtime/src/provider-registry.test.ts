@@ -1,5 +1,7 @@
-import { existsSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createProviderForId } from "./provider-registry.js";
 import type { HostDaemonAcpLaunchSpec } from "@bb/host-daemon-contract";
 import type { AgentRuntimeBridgeLaunch } from "./types.js";
@@ -98,6 +100,28 @@ function expectBridgeSpawn(
 }
 
 describe("provider registry", () => {
+  // resolveBridgeWorkerProcessArgs / resolveBundledBridgeModulePath now
+  // existsSync the bundle before trusting it (self-heal for a stale
+  // bridgeBundleDir — see fix-stale-bridge-bundle-fallback). A fixture
+  // asserting the bundled path must therefore point at a real directory
+  // containing the real filenames, not a bare "/tmp" literal nothing writes
+  // into.
+  let realBundleDir: string;
+
+  beforeAll(() => {
+    realBundleDir = mkdtempSync(join(tmpdir(), "bb-provider-registry-test-"));
+    writeFileSync(
+      join(realBundleDir, "bb-provider-bridge-worker.mjs"),
+      "export {};",
+    );
+    writeFileSync(join(realBundleDir, "bb-pi-bridge.mjs"), "export {};");
+  });
+
+  afterAll(() => {
+    rmSync(realBundleDir, { recursive: true, force: true });
+  });
+
+
   it("carries environment write roots to the acp bridge via provider options", () => {
     const provider = createProviderForId("acp-cursor", {
       additionalWorkspaceWriteRoots: ["/extra-root"],
@@ -132,13 +156,13 @@ describe("provider registry", () => {
   it("passes the configured bridge bundle directory to bundled providers", () => {
     const piProvider = createProviderForId("pi", {
       additionalWorkspaceWriteRoots: [],
-      bridgeBundleDir: "/tmp",
+      bridgeBundleDir: realBundleDir,
       bridgeLaunch: PI_BRIDGE_LAUNCH,
     });
 
     expectBridgeSpawn(piProvider, {
-      module: "/tmp/bb-pi-bridge.mjs",
-      bundleDir: "/tmp",
+      module: join(realBundleDir, "bb-pi-bridge.mjs"),
+      bundleDir: realBundleDir,
     });
   });
 
@@ -456,7 +480,7 @@ describe("provider registry", () => {
   it("runs the artifact a launch names even for a first-party id", () => {
     const provider = createProviderForId("pi", {
       additionalWorkspaceWriteRoots: [],
-      bridgeBundleDir: "/tmp",
+      bridgeBundleDir: realBundleDir,
       bridgeLaunch: {
         pluginId: "provider-fixture",
         dataDir: "/data/plugins/provider-fixture/bridge-data",
@@ -471,7 +495,7 @@ describe("provider registry", () => {
     });
     expectBridgeSpawn(provider, {
       module: "/data/provider-bridges/graduated-pi.mjs",
-      bundleDir: "/tmp",
+      bundleDir: realBundleDir,
     });
   });
 

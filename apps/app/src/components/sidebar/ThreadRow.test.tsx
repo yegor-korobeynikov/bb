@@ -775,16 +775,19 @@ describe("ThreadRow", () => {
     expect(container.textContent).toBe("Review foo.test.ts.");
   });
 
-  it("uses the circle-question glyph when the thread needs user input", () => {
-    renderThreadRow({
+  it("shows the leading blocked dot when the thread needs user input, with no trailing glyph", () => {
+    // The trailing CircleQuestion glyph was removed (2026-08-21): it duplicated
+    // the leading SidebarThreadStatusDot, which already renders this exact
+    // state as a filled Hot Accent dot with its own accessible label.
+    const { container } = renderThreadRow({
       thread: createThread({ hasPendingInteraction: true }),
     });
 
     expect(
-      screen
-        .getByLabelText("Thread needs user input")
-        .getAttribute("data-icon"),
-    ).toBe("CircleQuestion");
+      container.querySelector('[data-sidebar-thread-status-dot="blocked"]'),
+    ).not.toBeNull();
+    expect(container.querySelector('[data-icon="CircleQuestion"]')).toBeNull();
+    expect(screen.queryByLabelText("Thread needs user input")).toBeNull();
   });
 
   it("keeps the parent-thread disclosure caret visible on mobile", () => {
@@ -847,7 +850,7 @@ describe("ThreadRow", () => {
   it("shows the pending-input glyph while the runtime is still active", () => {
     // A thread blocked on AskUserQuestion keeps an active runtime for as long as
     // the question is open, so the spinner must not win this row.
-    renderThreadRow({
+    const { container } = renderThreadRow({
       thread: createThread({
         hasPendingInteraction: true,
         runtime: {
@@ -857,7 +860,9 @@ describe("ThreadRow", () => {
       }),
     });
 
-    expect(screen.getByLabelText("Thread needs user input")).not.toBeNull();
+    expect(
+      container.querySelector('[data-sidebar-thread-status-dot="blocked"]'),
+    ).not.toBeNull();
     expect(screen.queryByLabelText("Thread working")).toBeNull();
   });
 
@@ -1216,6 +1221,9 @@ describe("ThreadRow", () => {
   });
 
   it("renders an already-unread successful thread as a settled dot on initial load", () => {
+    // The trailing plain-grey dot was removed (2026-08-21): it duplicated the
+    // leading SidebarThreadStatusDot's Teal Blue "unread" state at the other
+    // end of the same row.
     const { container } = renderThreadRow({
       thread: createThread({
         status: "idle",
@@ -1224,8 +1232,11 @@ describe("ThreadRow", () => {
       }),
     });
 
-    expect(screen.getByLabelText("Unread thread succeeded")).not.toBeNull();
+    expect(
+      container.querySelector('[data-sidebar-thread-status-dot="unread"]'),
+    ).not.toBeNull();
     expect(container.querySelector('[data-icon="CircleCheck"]')).toBeNull();
+    expect(screen.queryByLabelText("Unread thread succeeded")).toBeNull();
   });
 
   it("switches directly from working to the settled done dot after finishing", () => {
@@ -1253,7 +1264,10 @@ describe("ThreadRow", () => {
     });
 
     expect(container.querySelector('[data-icon="CircleCheck"]')).toBeNull();
-    expect(screen.getByLabelText("Unread thread succeeded")).not.toBeNull();
+    expect(
+      container.querySelector('[data-sidebar-thread-status-dot="unread"]'),
+    ).not.toBeNull();
+    expect(screen.queryByLabelText("Unread thread succeeded")).toBeNull();
   });
 
   it("edits the row title inline after a double click and commits on Enter", () => {

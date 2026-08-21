@@ -198,9 +198,11 @@ describe("ProjectRow interactions", () => {
       label.compareDocumentPosition(disclosure) &
         Node.DOCUMENT_POSITION_PRECEDING,
     ).not.toBe(0);
+    // Native port (2026-08-21): the row's own edge padding now reads the
+    // canon token instead of a hardcoded px literal.
     expect(
       (threadLink?.parentElement as HTMLElement | null)?.style.paddingLeft,
-    ).toBe("8px");
+    ).toBe("var(--tendo-sidebar-edge-to-dot)");
     expect(projectGroup?.getAttribute("data-sidebar-project-id")).toBe(
       "proj_test",
     );
