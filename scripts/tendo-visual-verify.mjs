@@ -200,7 +200,7 @@ const CHECKS = {
       // parentThreadId data): a row without [data-sidebar-child-toggle] is
       // either a session with no track yet (eligible) OR a track itself
       // (not eligible, correctly excluded) — this over-counts relative to
-      // the true eligible set, so `count` vs `noToggleRows` is NOT asserted
+      // the true eligible set, so 'count' vs 'noToggleRows' is NOT asserted
       // equal, just reported side by side as an honest, imperfect proxy.
       // Which specific rows carry the action is still decided in the plugin
       // from the thread's own parentThreadId (structurally correct by
