@@ -218,6 +218,51 @@ const CHECKS = {
       };
     })()
   `,
+  archiveMenuOverlap: `
+    (() => {
+      // Contract (coordinator, 2026-08-21, freeze rule — written before the
+      // fix): "Archive thread" and "Thread/Worktree/Second Brain actions"
+      // are two DIFFERENT native bb buttons that can render stacked in the
+      // same row's right-side hover slot. Confirmed live on this build:
+      // archive rect left=256.09/right=276.09 vs actions rect
+      // left=266.09/right=286.09 on the same row (top=373.95) — a 10px
+      // click-target overlap, the likely cause of the earlier accidental
+      // thread-archive incident. Pass = zero rows where the two rects
+      // intersect; fail = at least one row still overlapping.
+      const rectsOverlap = (a, b) =>
+        a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+      const buttons = Array.from(document.querySelectorAll('button'));
+      const archiveBtns = buttons.filter((b) =>
+        (b.getAttribute('aria-label') || '').toLowerCase().includes('archiv'),
+      );
+      const menuBtns = buttons.filter((b) => {
+        const label = (b.getAttribute('aria-label') || '').toLowerCase();
+        return label.includes('actions') || label.includes('more') || label.includes('menu');
+      });
+      const overlaps = [];
+      for (const a of archiveBtns) {
+        const ar = a.getBoundingClientRect();
+        for (const m of menuBtns) {
+          const mr = m.getBoundingClientRect();
+          if (rectsOverlap(ar, mr)) {
+            overlaps.push({
+              archiveLabel: a.getAttribute('aria-label'),
+              menuLabel: m.getAttribute('aria-label'),
+              archiveRect: { left: ar.left, right: ar.right, top: ar.top, bottom: ar.bottom },
+              menuRect: { left: mr.left, right: mr.right, top: mr.top, bottom: mr.bottom },
+            });
+          }
+        }
+      }
+      return {
+        archiveCount: archiveBtns.length,
+        menuCount: menuBtns.length,
+        overlapCount: overlaps.length,
+        pass: overlaps.length === 0,
+        overlaps: overlaps.slice(0, 10),
+      };
+    })()
+  `,
 };
 
 function send(ws, id, method, params = {}) {
