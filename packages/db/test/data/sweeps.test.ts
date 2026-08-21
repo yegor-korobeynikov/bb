@@ -607,7 +607,7 @@ describe("listIdleActiveThreadHibernationCandidates", () => {
       path: "/tmp/env",
       managed: false,
       workspaceProvisionType: "unmanaged",
-      status: "active",
+      status: "ready",
     });
     const thread = createThread(db, noopNotifier, {
       projectId: project.id,
@@ -640,7 +640,7 @@ describe("listIdleActiveThreadHibernationCandidates", () => {
       path: "/tmp/env",
       managed: false,
       workspaceProvisionType: "unmanaged",
-      status: "active",
+      status: "ready",
     });
     const thread = createThread(db, noopNotifier, {
       projectId: project.id,
@@ -669,7 +669,7 @@ describe("listIdleActiveThreadHibernationCandidates", () => {
       path: "/tmp/env",
       managed: false,
       workspaceProvisionType: "unmanaged",
-      status: "active",
+      status: "ready",
     });
     const thread = createThread(db, noopNotifier, {
       projectId: project.id,
@@ -697,7 +697,7 @@ describe("listIdleActiveThreadHibernationCandidates", () => {
       path: "/tmp/env",
       managed: false,
       workspaceProvisionType: "unmanaged",
-      status: "active",
+      status: "ready",
     });
     const thread = createThread(db, noopNotifier, {
       projectId: project.id,
