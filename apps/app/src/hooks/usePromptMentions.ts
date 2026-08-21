@@ -50,6 +50,16 @@ interface UsePromptMentionsResult {
   suggestions: PromptMentionSuggestion[];
   isLoading: boolean;
   isError: boolean;
+  /**
+   * Retries the thread-mention fallback fetch. Scoped to threads because
+   * that is the source with an unrecoverable failure mode today: a real
+   * HTTP error is deliberately never auto-retried (see
+   * `isTransientReadError`), so once it fails it stays failed until
+   * something else invalidates the query. Path-suggestion failures aren't
+   * wired here — the composer's other mention sources don't share this
+   * dead-end shape yet.
+   */
+  retryThreads: () => void;
 }
 
 interface BuildPromptMentionSuggestionsArgs {
@@ -338,5 +348,6 @@ export function usePromptMentions(
     suggestions,
     isLoading,
     isError,
+    retryThreads: threadsQuery.retry,
   };
 }

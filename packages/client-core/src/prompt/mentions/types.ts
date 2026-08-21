@@ -258,8 +258,12 @@ export type MentionMenuState =
   | { kind: "hint" }
   /** Suggestions request in flight. */
   | { kind: "loading" }
-  /** Suggestions request failed. */
-  | { kind: "error" }
+  /**
+   * Suggestions request failed. `onRetry` is omitted when the failing
+   * source has no retry path wired (renders the error with no retry
+   * action); present, it re-runs the failed fetch.
+   */
+  | { kind: "error"; onRetry?: () => void }
   /** Suggestions resolved (possibly empty). */
   | {
       kind: "results";

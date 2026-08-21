@@ -158,6 +158,7 @@ interface UseThreadMentionCandidatesResult {
   isError: boolean;
   isFetching: boolean;
   isLoading: boolean;
+  retry: () => void;
 }
 
 interface UseThreadSearchArgs {
@@ -574,6 +575,15 @@ export function useThreadMentionCandidates({
     staleTime: THREAD_LIST_STALE_TIME_MS,
   });
   const derivedCandidates = enabled ? sidebarCandidates : undefined;
+  const refetchThreads = threadsQuery.refetch;
+  // Refetching is also the recovery path when the sidebar cache never
+  // populates (e.g. this composer mounted outside the normal sidebar-mount
+  // path): the network fallback's queryKey only differs from its disabled
+  // form once `shouldFetch` is already true, so a plain refetch on the same
+  // key is enough — no need to re-derive `shouldFetch` here.
+  const retry = useCallback(() => {
+    void refetchThreads();
+  }, [refetchThreads]);
 
   if (derivedCandidates !== undefined) {
     return {
@@ -581,6 +591,7 @@ export function useThreadMentionCandidates({
       isError: false,
       isFetching: false,
       isLoading: false,
+      retry,
     };
   }
   const waitingForBootstrap = enabled && isBootstrapPending;
@@ -589,6 +600,7 @@ export function useThreadMentionCandidates({
     isError: threadsQuery.isError,
     isFetching: threadsQuery.isFetching || waitingForBootstrap,
     isLoading: threadsQuery.isLoading || waitingForBootstrap,
+    retry,
   };
 }
 

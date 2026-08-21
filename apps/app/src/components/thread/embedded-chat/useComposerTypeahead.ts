@@ -79,6 +79,7 @@ export function useComposerTypeahead({
         isError: promptMentions.isError,
         onQueryChange: promptMentions.setQuery,
         resolveLink: resolveMentionLink,
+        onRetry: promptMentions.retryThreads,
       },
       command: {
         trigger: commandSuggestions.trigger,

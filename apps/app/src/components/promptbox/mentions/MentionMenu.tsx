@@ -573,10 +573,21 @@ export function MentionMenu({
             </span>
           </div>
         ) : innerState.kind === "error" ? (
-          <div className="px-3 py-2 text-xs text-destructive">
-            {state.trigger === "command"
-              ? "Failed to load commands"
-              : "Failed to load suggestions"}
+          <div className="flex items-center justify-between gap-2 px-3 py-2 text-xs text-destructive">
+            <span>
+              {state.trigger === "command"
+                ? "Failed to load commands"
+                : "Failed to load suggestions"}
+            </span>
+            {"onRetry" in innerState && innerState.onRetry ? (
+              <button
+                type="button"
+                className="shrink-0 rounded px-1.5 py-0.5 text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                onClick={innerState.onRetry}
+              >
+                Retry
+              </button>
+            ) : null}
           </div>
         ) : state.trigger === "command" ? (
           <CommandResults

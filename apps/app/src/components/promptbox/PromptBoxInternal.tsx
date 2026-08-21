@@ -311,6 +311,14 @@ export interface TypeaheadMentionConfig {
    * text; returns null per-resource when that mention isn't openable here.
    */
   resolveLink?: PromptMentionLinkResolver;
+  /**
+   * Retries whichever mention source is in `isError`. Some failures here
+   * (a real HTTP error from the thread-mention fallback fetch) are never
+   * auto-retried by the query client on purpose, so without this the menu
+   * stays on "Failed to load suggestions" until something unrelated
+   * invalidates the query. Omit to render the error with no retry action.
+   */
+  onRetry?: () => void;
 }
 
 /**
@@ -1265,6 +1273,7 @@ export function PromptBoxInternal({
     isError: mentionError,
     onQueryChange: onMentionQueryChange,
     resolveLink: mentionResolveLink,
+    onRetry: onMentionRetry,
   } = typeahead.mention;
   const {
     trigger: commandTriggerChar,
@@ -2269,7 +2278,7 @@ export function PromptBoxInternal({
       : mentionLoading
         ? { kind: "loading" }
         : mentionError
-          ? { kind: "error" }
+          ? { kind: "error", onRetry: onMentionRetry }
           : { kind: "results", suggestions: mentionSuggestions };
 
   const commandMenuState: CommandMenuState = commandLoading

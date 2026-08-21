@@ -1250,6 +1250,7 @@ export function NewThreadComposer({
               onQueryChange: promptMentions.setQuery,
               resolveLink:
                 options.resolveMentionLink ?? defaultMentionLinkResolver,
+              onRetry: promptMentions.retryThreads,
             },
             command: {
               trigger: commandSuggestions.trigger,
