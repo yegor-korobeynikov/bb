@@ -32,12 +32,27 @@ function sourceTypeScriptProcessArgs(sourcePath: string): BridgeProcessArgs {
  * A packaged daemon ships the bootstrap beside its bundled bridges; from
  * source it is the protocol package's TypeScript entry, run through tsx (which
  * also lets the bootstrap dynamically import a TypeScript bridge module).
+ *
+ * `bridgeBundleDir` reflects a decision the daemon made once at boot (from a
+ * sentinel file check), not the bundle directory's live state. A dev rebuild
+ * that clears `dist/` after boot (e.g. an interrupted `--clean-dist` build)
+ * leaves that decision stale: the bundle the boot-time check saw is gone, but
+ * every subsequent thread spawn still trusts it and dies with a raw
+ * MODULE_NOT_FOUND. Re-checking here — falling back to source when the
+ * expected bundle file isn't actually on disk — makes a stale `dist/` self-heal
+ * instead of wedging every new thread until the daemon restarts.
  */
 export function resolveBridgeWorkerProcessArgs(args: {
   bridgeBundleDir?: string;
 }): BridgeProcessArgs {
   if (args.bridgeBundleDir) {
-    return [resolve(args.bridgeBundleDir, BRIDGE_WORKER_BUNDLE_FILE_NAME)];
+    const bundlePath = resolve(
+      args.bridgeBundleDir,
+      BRIDGE_WORKER_BUNDLE_FILE_NAME,
+    );
+    if (existsSync(bundlePath)) {
+      return [bundlePath];
+    }
   }
   const sourceEntry = fileURLToPath(
     import.meta.resolve("@bb/provider-bridge-protocol/bridge-worker-entry"),
@@ -58,12 +73,19 @@ interface ResolveBundledBridgeModuleArgs {
  * Where a daemon-bundled bridge module lives: inside a packaged daemon's
  * bundle directory, or beside the runtime's own sources. The bootstrap imports
  * this path; it never executes it directly.
+ *
+ * Verifies the bundle file is actually present before trusting
+ * `bridgeBundleDir` — see the fallback note on `resolveBridgeWorkerProcessArgs`
+ * for why a boot-time bundle-dir decision can go stale mid-process.
  */
 export function resolveBundledBridgeModulePath(
   args: ResolveBundledBridgeModuleArgs,
 ): string {
   if (args.bridgeBundleDir && args.bundleFileName) {
-    return resolve(args.bridgeBundleDir, args.bundleFileName);
+    const bundlePath = resolve(args.bridgeBundleDir, args.bundleFileName);
+    if (existsSync(bundlePath)) {
+      return bundlePath;
+    }
   }
 
   const moduleDir = dirname(fileURLToPath(args.importMetaUrl));
