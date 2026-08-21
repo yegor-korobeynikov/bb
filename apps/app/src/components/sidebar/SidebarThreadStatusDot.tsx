@@ -61,6 +61,12 @@ export function SidebarThreadStatusDot({
         ? { "aria-hidden": true as const }
         : { role: "img", "aria-label": STATUS_LABEL[status], title: STATUS_LABEL[status] })}
       style={{
+        // A decorative marker must never intercept the row's click target: the
+        // invisible full-row <a> sits behind it, and every other glyph in this
+        // file (working spinner, plugin status, draft icon) is pointer-events-
+        // none for the same reason. Missing here, this element's own 5px
+        // footprint silently swallowed clicks landing exactly on it.
+        pointerEvents: "none",
         // `top` is a measured correction, not a guess: vertical-align centres
         // on the font's x-height box rather than the row's own box, and a
         // debug pass across seven rows found the same 1.4px low offset every
