@@ -239,6 +239,23 @@ function npmCommand(): string {
   return process.platform === "win32" ? "npm.cmd" : "npm";
 }
 
+/**
+ * A daemon-owned, user-writable npm global prefix (`<dataDir>/tool-cache`,
+ * see runtime-shell-env.ts `prepareRuntimeShellEnv`). Installing here instead
+ * of the system npm global prefix avoids EACCES on machines where Node was
+ * installed via the official pkg installer (system prefix owned by root),
+ * which otherwise forces the user out to a terminal to run `sudo npm i -g`.
+ */
+function managedNpmPrefix(): string | null {
+  const value = process.env.BB_TOOL_CACHE_DIR?.trim();
+  return value && value.length > 0 ? value : null;
+}
+
+function npmGlobalPrefixArgs(): string[] {
+  const prefix = managedNpmPrefix();
+  return prefix === null ? [] : ["--prefix", prefix];
+}
+
 function formatCommand(command: string, args: readonly string[]): string {
   return [command, ...args]
     .map((part) =>
@@ -371,7 +388,12 @@ export async function getCodexProviderInstallationStatus(
       : null;
   const actionArgs =
     actionKind === "install"
-      ? ["install", "-g", `${CODEX_NPM_PACKAGE}@latest`]
+      ? [
+          "install",
+          "-g",
+          ...npmGlobalPrefixArgs(),
+          `${CODEX_NPM_PACKAGE}@latest`,
+        ]
       : ["update"];
   const actionCommand = actionKind === "install" ? npm : "codex";
 
@@ -418,7 +440,12 @@ function buildCodexProviderInstallationRun(
   const command = action === "install" ? npmCommand() : "codex";
   const args =
     action === "install"
-      ? ["install", "-g", `${CODEX_NPM_PACKAGE}@latest`]
+      ? [
+          "install",
+          "-g",
+          ...npmGlobalPrefixArgs(),
+          `${CODEX_NPM_PACKAGE}@latest`,
+        ]
       : ["update"];
   return {
     available: true,

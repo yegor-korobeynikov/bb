@@ -22,6 +22,15 @@ interface PrepareRuntimeShellEnvOptions {
   hostDaemonPort?: number;
   serverUrl: string;
   inheritedPath?: string;
+  /**
+   * User-writable npm global prefix bb manages for itself (see
+   * `<dataDir>/tool-cache` in start-host-daemon.ts). Provider CLI installs
+   * (e.g. Codex's `npm install -g`) target this instead of the system npm
+   * global prefix, which is often root-owned and would otherwise force a
+   * terminal + sudo. `<toolCacheDirectory>/bin` is prepended to PATH so an
+   * install here is immediately visible to `which`-based health checks.
+   */
+  toolCacheDirectory?: string;
 }
 
 interface ResolveUserShellPathOptions {
@@ -398,17 +407,29 @@ export function prepareRuntimeShellEnv(
   const bbExecutablePath =
     options.bbExecutablePath ??
     resolveBbExecutablePathInDirectory(options.bbExecutableDirectory);
+  const pathWithBbExecutable = prependPath(
+    options.bbExecutableDirectory,
+    options.inheritedPath ?? process.env.PATH,
+  );
   const shellEnv: NonNullable<AgentRuntimeOptions["shellEnv"]> = {
-    PATH: prependPath(
-      options.bbExecutableDirectory,
-      options.inheritedPath ?? process.env.PATH,
-    ),
+    PATH:
+      options.toolCacheDirectory === undefined
+        ? pathWithBbExecutable
+        : prependPath(
+            resolve(options.toolCacheDirectory, "bin"),
+            pathWithBbExecutable,
+          ),
     // Absolute path survives PATH rewrites in ACP agent tool shells. Official
     // CLI entrypoints re-exec to this target when it differs from the current
     // binary (see apps/cli `maybeReexecViaBbCli`).
     BB_CLI: bbExecutablePath,
     BB_SERVER_URL: options.serverUrl,
   };
+  assignIfDefined({
+    key: "BB_TOOL_CACHE_DIR",
+    target: shellEnv,
+    value: options.toolCacheDirectory,
+  });
   assignIfDefined({
     key: "BB_HOST_DAEMON_PORT",
     target: shellEnv,
