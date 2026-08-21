@@ -81,12 +81,16 @@ the frontend under the running server and drops the user's session.
   before binding, not just launch the server immediately after a kill.
   `launchctl kickstart -k` sends SIGKILL and `KeepAlive` respawns
   immediately; the OS doesn't always release the port in that gap, so the
-  new process fails to bind, `KeepAlive` respawns again, and this repeats
-  for 1-2s. Any thread with an open connection to the daemon during that
-  window sees "host daemon disconnected" — confirmed live 2026-08-21 by
-  correlating `~/.bb/logs/launchd-stderr.log`'s `EADDRINUSE` bursts against
-  error-state threads' timestamps. `scripts/sync-live.mjs`'s own
-  `waitForServerUp` already tolerates this (60s timeout, 1s poll, treats a
+  new process fails to bind, `KeepAlive` respawns again, and this repeats.
+  Duration is NOT reliably 1-2s — a same-day (2026-08-21) restart crash-
+  looped for 30+ retries before the port cleared, dropping multiple threads
+  at once (every thread with an open daemon connection sees "host daemon
+  disconnected" simultaneously). A fixed short wait bound isn't safe; the
+  wrapper should wait considerably longer and log the PID/command actually
+  holding the port on each check, so a repeat is diagnosable from
+  `~/.bb/logs/launchd-stderr.log` instead of reconstructed after the fact.
+  `scripts/sync-live.mjs`'s own `waitForServerUp` already tolerates this
+  (60s timeout, 1s poll, treats a
   failed `/health` fetch as "not up yet" rather than an error) — this note
   is for anyone hand-rolling their own restart wrapper outside that script.
 
