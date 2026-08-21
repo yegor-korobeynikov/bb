@@ -1,4 +1,8 @@
-import type { ThreadChatMessageReference } from "@get-bb/plugin-sdk";
+import type { ComponentType } from "react";
+import type {
+  PluginMessageDecorationProps,
+  ThreadChatMessageReference,
+} from "@get-bb/plugin-sdk";
 import type { PromptInput } from "@bb/domain";
 import type {
   MarkdownPreviewLocalFileLink,
@@ -97,6 +101,24 @@ export interface ThreadTimelinePluginMessageAction {
   icon: string | null;
   label: string;
   onSelect: () => void;
+}
+
+/**
+ * A plugin-contributed inline decoration for one message, resolved by the
+ * timeline root and rendered by the per-message body under the action bar.
+ * The row carries the resolved component plus the props it renders with, so
+ * the mount site stays a dumb renderer.
+ */
+export interface ThreadTimelinePluginMessageDecoration {
+  /** Unique render key across plugins and reload generations. */
+  key: string;
+  pluginId: string;
+  /** The registration id, for the slot mount's crash-scoping key. */
+  slotId: string;
+  /** Discriminates this message's mount from the same slot on other rows. */
+  instanceId: string;
+  Component: ComponentType<PluginMessageDecorationProps>;
+  componentProps: PluginMessageDecorationProps;
 }
 
 /**

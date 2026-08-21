@@ -1808,6 +1808,23 @@ openWorkspaceFile }` — register a leaf
   `useBbNavigate().openThreadPanel`. Errors from `run` (sync or
   async) are contained and
   logged, never breaking the timeline.
+- `experimental_messageDecoration` → persistent inline content rendered
+  underneath a chat message, in the timeline itself. Registration:
+  `{ id, roles?, component }`. Where `messageDirective` renders only where the
+  agent wrote a directive into its own text, a decoration attaches to any
+  message from the outside — so a plugin can hang durable state (a comment
+  thread, a linked side track's status) off a message it did not author. The
+  component receives `{ threadId, message, openPanel? }`: `message` is the
+  same narrow `ThreadChatMessageReference` the `messageAction` slot gets, and
+  `openPanel` matches that slot's, but is **optional** — it is absent on
+  surfaces with no side panel (a `ThreadChat` embedded in a plugin panel), and
+  decorations render there too. `roles` defaults to `["assistant"]`.
+  **Return `null` when there is nothing to show**: the timeline reserves no
+  space for decorations, so a component that always renders chrome puts a
+  strip under every message in the conversation. Fetch per *thread*, not per
+  message — the component mounts once per row, so a per-message request is one
+  request per row on a long conversation. Crashes are contained per plugin per
+  message and never break the row.
 - `experimental_providerIcon` → the React component bb draws as one agent
   provider's icon. Registration: `{ providerId, icon }`, where `providerId` is
   the provider's id (`"codex"`, `"acp-cursor"`) — not the plugin id — and

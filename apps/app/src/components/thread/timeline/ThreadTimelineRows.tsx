@@ -27,7 +27,10 @@ import type {
   TimelineRow,
   TimelineSystemOperationKind,
 } from "@bb/server-contract";
-import type { ThreadChatMessageReference } from "@get-bb/plugin-sdk";
+import type {
+  PluginTargetedPanelActionOpenOptions,
+  ThreadChatMessageReference,
+} from "@get-bb/plugin-sdk";
 import {
   assertNever,
   buildTimelineActivityIntentTitles,
@@ -64,6 +67,7 @@ import type {
   ThreadTimelineImageViewSrcResolver,
   ThreadTimelineConsumerMessageAction,
   ThreadTimelinePluginMessageAction,
+  ThreadTimelinePluginMessageDecoration,
   ThreadTimelineUnreadDividerPlacement,
   UserAttachmentImageSrcResolver,
 } from "./types.js";
@@ -118,6 +122,7 @@ import {
   getPluginSlotSnapshot,
   subscribePluginSlots,
   type PluginMessageActionSlot,
+  type PluginMessageDecorationSlot,
 } from "@/lib/plugin-slots.js";
 import { runPluginMessageAction } from "@/lib/plugin-message-actions.js";
 import { isPluginSideChatSenderThread } from "@/lib/side-chat-plugin.js";
@@ -234,6 +239,11 @@ interface TimelineRendererStaticContextValue {
    * has no thread identity (plugin actions need a real thread context).
    */
   pluginMessageActions: readonly PluginMessageActionSlot[];
+  /**
+   * Plugin `experimental_messageDecoration` registrations, subscribed at the
+   * same root and gated the same way as `pluginMessageActions`.
+   */
+  pluginMessageDecorations: readonly PluginMessageDecorationSlot[];
   /** Surface-scoped consumer actions; empty when none were supplied. */
   consumerMessageActions: readonly ThreadTimelineConsumerMessageAction[];
   /**
@@ -956,6 +966,49 @@ function buildRowPluginMessageActions(args: {
 }
 
 /**
+ * Resolve the registered `experimental_messageDecoration`s for one row.
+ * Empty (nothing rendered, no wrapper) when the surface has no thread
+ * identity or no registration claims the row's role — the default role set is
+ * assistant-only, so a plugin that omits `roles` never decorates the user's
+ * own messages.
+ */
+function buildRowPluginMessageDecorations(args: {
+  slots: readonly PluginMessageDecorationSlot[];
+  timelineThreadId: string | undefined;
+  message: ThreadChatMessageReference;
+  openThreadPanel: ThreadTimelineOpenPluginPanelHandler | undefined;
+}): readonly ThreadTimelinePluginMessageDecoration[] {
+  const { slots, timelineThreadId, message, openThreadPanel } = args;
+  if (timelineThreadId === undefined || slots.length === 0) {
+    return [];
+  }
+  return slots
+    .filter((slot) => (slot.roles ?? ["assistant"]).includes(message.role))
+    .map((slot) => ({
+      key: `${slot.pluginId}/${slot.id}/${slot.generation}`,
+      pluginId: slot.pluginId,
+      slotId: slot.id,
+      instanceId: message.id,
+      Component: slot.component,
+      componentProps: {
+        threadId: timelineThreadId,
+        message,
+        ...(openThreadPanel === undefined
+          ? {}
+          : {
+              openPanel: (options: PluginTargetedPanelActionOpenOptions) =>
+                openThreadPanel({
+                  pluginId: slot.pluginId,
+                  actionId: options.actionId,
+                  title: options.title,
+                  params: options.params,
+                }),
+            }),
+      },
+    }));
+}
+
+/**
  * Resolve the surface-scoped consumer actions (the `ThreadChat`
  * `messageActions` prop) for one row: filter by the row's role and contain
  * `run` errors like the slot-registered plugin actions.
@@ -1067,6 +1120,7 @@ const ConversationRowContent = memo(function ConversationRowContent({
     onSendToMainMessage,
     onSelectionAddToChat,
     pluginMessageActions,
+    pluginMessageDecorations,
     consumerMessageActions,
     reportProseSelection,
     threadOriginKind,
@@ -1111,6 +1165,12 @@ const ConversationRowContent = memo(function ConversationRowContent({
           actions: consumerMessageActions,
           message: messageReference,
         });
+  const rowPluginDecorations = buildRowPluginMessageDecorations({
+    slots: pluginMessageDecorations,
+    timelineThreadId: threadId,
+    message: messageReference,
+    openThreadPanel: onOpenPluginPanel,
+  });
   const rowPluginActions =
     rowConsumerActions.length === 0
       ? rowSlotActions
@@ -1180,6 +1240,7 @@ const ConversationRowContent = memo(function ConversationRowContent({
         systemMessageKind={row.systemMessageKind}
         systemMessageSubject={row.systemMessageSubject}
         pluginActions={rowPluginActions}
+        pluginDecorations={rowPluginDecorations}
         text={row.text}
         turnRequest={row.turnRequest}
       />
@@ -1222,6 +1283,7 @@ const ConversationRowContent = memo(function ConversationRowContent({
       onOpenLocalFileLink={onOpenLocalFileLink}
       onOpenPluginPanel={onOpenPluginPanel}
       pluginActions={rowPluginActions}
+      pluginDecorations={rowPluginDecorations}
       projectId={projectId}
       resolveUserAttachmentImageSrc={resolveUserAttachmentImageSrc}
       role="assistant"
@@ -2282,6 +2344,11 @@ function ThreadTimelineRowsForTimelineView(props: ThreadTimelineRowsProps) {
     () => getPluginSlotSnapshot().messageActions,
     () => EMPTY_PLUGIN_SLOT_SNAPSHOT.messageActions,
   );
+  const messageDecorationSlots = useSyncExternalStore(
+    subscribePluginSlots,
+    () => getPluginSlotSnapshot().messageDecorations,
+    () => EMPTY_PLUGIN_SLOT_SNAPSHOT.messageDecorations,
+  );
   const messageDirectiveRegistry = useMemo(
     () => buildMessageDirectiveRegistry(messageDirectiveSlots),
     [messageDirectiveSlots],
@@ -2401,6 +2468,15 @@ function ThreadTimelineRowsForTimelineView(props: ThreadTimelineRowsProps) {
         props.includePluginMessageActions === false
           ? EMPTY_PLUGIN_SLOT_SNAPSHOT.messageActions
           : messageActionSlots,
+      // Gated with `pluginMessageActions` on purpose: a plugin panel that
+      // embeds `ThreadChat` opts out of plugin message chrome, and a
+      // decoration whose own panel renders that chat would otherwise recurse
+      // into itself one message deep.
+      pluginMessageDecorations:
+        timelineThreadId === undefined ||
+        props.includePluginMessageActions === false
+          ? EMPTY_PLUGIN_SLOT_SNAPSHOT.messageDecorations
+          : messageDecorationSlots,
       consumerMessageActions:
         props.consumerMessageActions ?? EMPTY_CONSUMER_MESSAGE_ACTIONS,
       reportProseSelection,
@@ -2427,6 +2503,7 @@ function ThreadTimelineRowsForTimelineView(props: ThreadTimelineRowsProps) {
       props.onSendToMainMessage,
       selectionAddToChatHandler,
       messageActionSlots,
+      messageDecorationSlots,
       props.includePluginMessageActions,
       props.consumerMessageActions,
       reportProseSelection,

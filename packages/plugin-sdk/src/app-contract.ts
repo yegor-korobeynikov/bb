@@ -994,6 +994,48 @@ export interface PluginMessageActionRegistration {
   run(context: PluginMessageActionContext): void | Promise<void>;
 }
 
+/** Props handed to a `experimental_messageDecoration` component. */
+export interface PluginMessageDecorationProps {
+  /** The thread whose timeline is rendering this message. */
+  threadId: string;
+  message: ThreadChatMessageReference;
+  /**
+   * Open one of this plugin's `threadPanelAction` components in the current
+   * thread's side panel, with the same accept/decline contract as
+   * `messageAction`'s `openPanel`. Absent when the surface has no side panel
+   * (a `ThreadChat` embedded in a plugin panel does not) — decoration
+   * components render on those surfaces too, so treat it as optional chrome
+   * rather than assuming a panel is reachable.
+   */
+  openPanel?: (options: PluginTargetedPanelActionOpenOptions) => boolean;
+}
+
+/**
+ * Render persistent inline content underneath one chat message, in the
+ * timeline itself. Unlike `messageDirective` (which renders only where the
+ * agent wrote a directive into its own text) a decoration attaches to any
+ * message from the outside, so a plugin can hang durable state — a comment
+ * thread, a linked side track's status — off a message it did not author.
+ *
+ * The component renders once per message per plugin and must return `null`
+ * when it has nothing to show: the timeline reserves no space for it, and a
+ * decoration that always renders chrome would put a strip under every message
+ * in the conversation. Errors are contained by the host's slot boundary and
+ * never break the timeline.
+ *
+ * Experimental: see docs/api_to_audit.md.
+ */
+export interface PluginMessageDecorationRegistration {
+  /** Unique within the plugin; letters, digits, `-`, `_`. */
+  id: string;
+  /**
+   * Message roles the decoration applies to. Omitted = assistant messages
+   * only, which is the common case (commentary on what the agent produced).
+   */
+  roles?: readonly ("user" | "assistant")[];
+  component: ComponentType<PluginMessageDecorationProps>;
+}
+
 /**
  * Supply the inline React mark bb draws for one agent provider.
  *
@@ -1075,6 +1117,14 @@ export interface PluginAppSlots {
   experimental_diffRenderer(registration: PluginDiffRendererRegistration): void;
   messageDirective(registration: PluginMessageDirectiveRegistration): void;
   messageAction(registration: PluginMessageActionRegistration): void;
+  /**
+   * Render persistent inline content under a chat message (see
+   * {@link PluginMessageDecorationRegistration}). Experimental: see
+   * docs/api_to_audit.md.
+   */
+  experimental_messageDecoration(
+    registration: PluginMessageDecorationRegistration,
+  ): void;
   /**
    * Draw one agent provider's icon with an inline React component instead of
    * its `<img>`-rendered logo file (see

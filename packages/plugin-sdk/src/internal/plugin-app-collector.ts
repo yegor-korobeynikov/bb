@@ -6,6 +6,7 @@ import type {
   PluginFileOpenerRegistration,
   PluginHomepageSectionRegistration,
   PluginMessageActionRegistration,
+  PluginMessageDecorationRegistration,
   PluginMessageDirectiveRegistration,
   PluginNavPanelRegistration,
   PluginNewThreadPanelActionRegistration,
@@ -34,6 +35,35 @@ type PluginNavPanelFixedTabRegistration = NonNullable<
   PluginNavPanelRegistration["experimental_fixedTabs"]
 >[number];
 
+type PluginMessageRole = "user" | "assistant";
+
+const PLUGIN_MESSAGE_ROLES: readonly PluginMessageRole[] = [
+  "user",
+  "assistant",
+];
+
+/**
+ * Validate a registration's `roles` filter. An empty array is rejected rather
+ * than silently meaning "never render": that is always an authoring mistake,
+ * and omitting the field is the way to say "the default set".
+ */
+function requireMessageRoles(
+  kind: string,
+  value: unknown,
+): readonly PluginMessageRole[] {
+  if (!Array.isArray(value) || value.length === 0) {
+    throw new Error(`${kind}: "roles" must be a non-empty array when present`);
+  }
+  for (const role of value) {
+    if (!PLUGIN_MESSAGE_ROLES.includes(role as PluginMessageRole)) {
+      throw new Error(
+        `${kind}: "roles" entries must be "user" or "assistant" (got ${JSON.stringify(role)})`,
+      );
+    }
+  }
+  return [...new Set(value as PluginMessageRole[])];
+}
+
 /** Validated registrations produced by one plugin app setup execution. */
 export interface CollectedPluginAppRegistrations {
   homepageSections: PluginHomepageSectionRegistration[];
@@ -51,6 +81,7 @@ export interface CollectedPluginAppRegistrations {
   diffRenderers: PluginDiffRendererRegistration[];
   messageDirectives: PluginMessageDirectiveRegistration[];
   messageActions: PluginMessageActionRegistration[];
+  messageDecorations: PluginMessageDecorationRegistration[];
   providerIcons: PluginProviderIconRegistration[];
   contentScripts: PluginContentScriptRegistration[];
 }
@@ -82,6 +113,7 @@ export function collectPluginAppRegistrations(
     diffRenderers: [],
     messageDirectives: [],
     messageActions: [],
+    messageDecorations: [],
     providerIcons: [],
     contentScripts: [],
   };
@@ -101,6 +133,7 @@ export function collectPluginAppRegistrations(
     diffRenderer: new Set<string>(),
     messageDirective: new Set<string>(),
     messageAction: new Set<string>(),
+    messageDecoration: new Set<string>(),
     providerIcon: new Set<string>(),
     contentScript: new Set<string>(),
   };
@@ -448,6 +481,18 @@ export function collectPluginAppRegistrations(
               }
             : {}),
           run: registration.run,
+        });
+      },
+      experimental_messageDecoration(registration) {
+        const kind = "slots.experimental_messageDecoration";
+        const id = requireSlotId(kind, registration?.id);
+        requireUniqueId(kind, seenIds.messageDecoration, id);
+        collected.messageDecorations.push({
+          id,
+          ...(registration.roles !== undefined
+            ? { roles: requireMessageRoles(kind, registration.roles) }
+            : {}),
+          component: requireComponent(kind, registration.component),
         });
       },
       experimental_providerIcon(registration) {

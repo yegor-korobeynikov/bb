@@ -89,6 +89,77 @@ describe("collectPluginAppRegistrations — experimental_threadHeaderAction", ()
   });
 });
 
+describe("collectPluginAppRegistrations — experimental_messageDecoration", () => {
+  it("collects a decoration and leaves roles absent when omitted", () => {
+    const definition = definePluginApp((app) => {
+      app.slots.experimental_messageDecoration({
+        id: "comments",
+        component: Component,
+      });
+    });
+    const [decoration] = collectPluginAppRegistrations(
+      definition,
+    ).messageDecorations;
+    expect(decoration).toEqual({ id: "comments", component: Component });
+    // Absent (not defaulted here): the timeline applies the assistant-only
+    // default at render time, so the registration stays what the plugin wrote.
+    expect(decoration).not.toHaveProperty("roles");
+  });
+
+  it("keeps an explicit roles filter and de-duplicates it", () => {
+    const definition = definePluginApp((app) => {
+      app.slots.experimental_messageDecoration({
+        id: "comments",
+        roles: ["user", "assistant", "user"],
+        component: Component,
+      });
+    });
+    expect(
+      collectPluginAppRegistrations(definition).messageDecorations[0],
+    ).toMatchObject({ roles: ["user", "assistant"] });
+  });
+
+  it("rejects an empty roles array", () => {
+    const definition = definePluginApp((app) => {
+      app.slots.experimental_messageDecoration({
+        id: "comments",
+        roles: [],
+        component: Component,
+      });
+    });
+    expect(() => collectPluginAppRegistrations(definition)).toThrow(
+      /non-empty array/,
+    );
+  });
+
+  it("rejects an unknown role", () => {
+    const definition = definePluginApp((app) => {
+      app.slots.experimental_messageDecoration({
+        id: "comments",
+        roles: ["system"],
+        component: Component,
+      } as never);
+    });
+    expect(() => collectPluginAppRegistrations(definition)).toThrow(/roles/);
+  });
+
+  it("rejects a duplicate id", () => {
+    const definition = definePluginApp((app) => {
+      app.slots.experimental_messageDecoration({
+        id: "comments",
+        component: Component,
+      });
+      app.slots.experimental_messageDecoration({
+        id: "comments",
+        component: Component,
+      });
+    });
+    expect(() => collectPluginAppRegistrations(definition)).toThrow(
+      /comments/,
+    );
+  });
+});
+
 describe("collectPluginAppRegistrations — experimental_threadList", () => {
   it("collects a thread list with its optional fields", () => {
     const definition = definePluginApp((app) => {

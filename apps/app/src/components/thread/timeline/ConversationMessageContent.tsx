@@ -63,7 +63,11 @@ import {
   SelectableMessageProse,
   type MessageProseSelection,
 } from "./SelectableMessageProse.js";
-import type { ThreadTimelinePluginMessageAction } from "./types.js";
+import type {
+  ThreadTimelinePluginMessageAction,
+  ThreadTimelinePluginMessageDecoration,
+} from "./types.js";
+import { MessageDecorations } from "./MessageDecorations.js";
 import type { PromptDraftAttachment } from "@bb/client-core";
 import { buildThreadHostFileContentUrl } from "@/lib/file-content-urls";
 
@@ -73,6 +77,11 @@ interface ConversationMessageContentBaseProps {
   onOpenPluginPanel?: MarkdownMessageDirectives["openThreadPanel"];
   /** Plugin-contributed per-message actions, resolved by the timeline root. */
   pluginActions?: readonly ThreadTimelinePluginMessageAction[];
+  /**
+   * Plugin-contributed inline content under the message, resolved by the
+   * timeline root. Empty on every message no plugin claims.
+   */
+  pluginDecorations?: readonly ThreadTimelinePluginMessageDecoration[];
   projectId?: string;
   resolveUserAttachmentImageSrc?: UserAttachmentImageSrcResolver;
   text: string;
@@ -206,6 +215,7 @@ interface UserConversationMessageProps {
   attachmentItems: ConversationAttachmentItems;
   originKind: ThreadOriginKind | null;
   pluginActions?: readonly ThreadTimelinePluginMessageAction[];
+  pluginDecorations?: readonly ThreadTimelinePluginMessageDecoration[];
   initiator: TimelineUserConversationRow["initiator"];
   mentions: readonly PromptTextMention[];
   mobileActionDisplay: "inline" | "overflow";
@@ -231,6 +241,7 @@ interface AssistantConversationMessageProps extends AssistantMessageRowIdentity 
   addToChatAttachments: readonly PromptDraftAttachment[];
   attachmentItems: ConversationAttachmentItems;
   pluginActions?: readonly ThreadTimelinePluginMessageAction[];
+  pluginDecorations?: readonly ThreadTimelinePluginMessageDecoration[];
   onAddToChat?: ThreadTimelineAddToChatHandler;
   onFork?: () => void;
   onSendToMain?: () => void;
@@ -413,6 +424,7 @@ function UserConversationMessage({
   onOpenLink,
   onOpenLocalFileLink,
   pluginActions = [],
+  pluginDecorations = [],
   projectId,
   resolveMentionLink,
   resolveSegmentLinkHref,
@@ -541,6 +553,7 @@ function UserConversationMessage({
           onEdit={onEdit}
           pluginActions={pluginActions}
         />
+        <MessageDecorations decorations={pluginDecorations} />
       </div>
     </div>
   );
@@ -559,6 +572,7 @@ function AssistantConversationMessage({
   onOpenLocalFileLink,
   onOpenPluginPanel,
   pluginActions,
+  pluginDecorations = [],
   projectId,
   showActions,
   mobileActionDisplay,
@@ -721,6 +735,12 @@ function AssistantConversationMessage({
           pluginActions={pluginActions}
         />
       ) : null}
+      {/*
+        Outside the `showActions` gate: a decoration is durable state on the
+        message (a comment thread, a linked track), not hover chrome, so it
+        stays visible on surfaces that suppress the action bar.
+      */}
+      <MessageDecorations decorations={pluginDecorations} />
     </div>
   );
 }

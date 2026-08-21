@@ -13,6 +13,7 @@ import {
   type PluginHomepageSectionProps,
   type PluginHttpAuthMode,
   type PluginMessageActionContext,
+  type PluginMessageDecorationProps,
   type PluginMessageActionRegistration,
   type PluginMessageDirectiveProps,
   type PluginNavPanelProps,
@@ -168,6 +169,7 @@ type SlotPropsByName = {
   experimental_diffRenderer: PluginDiffRendererProps;
   messageDirective: PluginMessageDirectiveProps;
   messageAction: PluginMessageActionContext;
+  experimental_messageDecoration: PluginMessageDecorationProps;
   // Registration-object slot: the component receives only className, so the
   // registration type is the documented surface.
   experimental_providerIcon: PluginProviderIconRegistration;
@@ -261,6 +263,7 @@ const FRONTEND_SLOT_PROP_FIELDS = {
   ],
   messageDirective: ["attributes", "source", "message", "openWorkspaceFile"],
   messageAction: ["threadId", "message", "selectedText", "openPanel"],
+  experimental_messageDecoration: ["threadId", "message", "openPanel"],
   experimental_providerIcon: ["providerId", "icon"],
 } as const satisfies {
   [S in keyof SlotPropsByName]: readonly (keyof SlotPropsByName[S])[];
