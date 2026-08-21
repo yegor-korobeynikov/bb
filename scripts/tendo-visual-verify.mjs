@@ -140,6 +140,40 @@ const CHECKS = {
       };
     })()
   `,
+  sidebarNewTrackHoverAction: `
+    (() => {
+      // Contract (Yegor, 2026-08-21, freeze rule — written BEFORE the
+      // implementation, not after): every top-level SESSION row (a row
+      // whose own thread has no parentThreadId — i.e. a task, not a
+      // track) must carry a hover-revealed 'New track' action, marked
+      // [data-bso-new-track-action], that calls the SAME create path as
+      // the native TrackTab 'New track' button (the openTrack RPC:
+      // taskId/projectId/title/prompt/isolate) — never a separate
+      // picker/form screen. One glyph, present on every session row,
+      // absent on every track (child) row.
+      const actions = Array.from(document.querySelectorAll('[data-bso-new-track-action]'));
+      const samples = actions.map((el) => {
+        const row = el.closest('[class*="thread-row"]');
+        const cs = getComputedStyle(el);
+        return {
+          rowText: row ? (row.textContent || '').trim().slice(0, 40) : null,
+          display: cs.display,
+          ariaLabel: el.getAttribute('aria-label'),
+          title: el.getAttribute('title'),
+        };
+      });
+      // Which rows carry the action is decided in the plugin from the
+      // thread's own parentThreadId (structurally correct by construction,
+      // per the plugin's own indent/dot rows using the same lookup) — this
+      // check reports WHAT shipped, human/agent judges from rowText samples
+      // whether any track (indented, non-top-level) title leaked in.
+      return {
+        found: actions.length > 0,
+        count: actions.length,
+        samples: samples.slice(0, 15),
+      };
+    })()
+  `,
 };
 
 function send(ws, id, method, params = {}) {
