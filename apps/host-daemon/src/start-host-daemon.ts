@@ -190,6 +190,12 @@ export async function startHostDaemon(
       });
     const runtimeShellEnv = await resolveRuntimeShellEnv();
     const runtimeShellEnvResolvedAtMs = Date.now();
+    // Provider health checks (provider-maintenance.ts `which`/`execFile`
+    // lookups) run in-process and inherit process.env, not runtimeShellEnv —
+    // without this, a daemon launched via launchd/LaunchAgent with a minimal
+    // PATH reports installed CLIs (codex, cursor-agent, etc.) as "not
+    // installed" even though they resolve fine in the user's login shell.
+    process.env.PATH = runtimeShellEnv.PATH;
     app = await createHostDaemonApp({
       dataDir,
       serverUrl,
