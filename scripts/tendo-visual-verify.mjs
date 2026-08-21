@@ -13,7 +13,7 @@
 //      programmatic half Yegor asked for — not "looks right in a screenshot."
 //   2. A PNG screenshot for human sanity-check, saved next to the JSON.
 //
-// Usage: node scripts/tendo-visual-verify.mjs [--port 9333] [--out /tmp/tendo-verify]
+// Usage: node scripts/tendo-visual-verify.mjs [--port 9333] [--out /tmp/tendo-verify] [--match <url-fragment>]
 
 import { writeFileSync } from "node:fs";
 // Node 22 ships a native global WebSocket — no dependency needed.
@@ -21,6 +21,8 @@ import { writeFileSync } from "node:fs";
 const args = process.argv.slice(2);
 const portArg = args.indexOf("--port");
 const outArg = args.indexOf("--out");
+const matchArg = args.indexOf("--match");
+const match = matchArg !== -1 ? args[matchArg + 1] : null;
 const port = portArg !== -1 ? Number(args[portArg + 1]) : 9333;
 const outBase = outArg !== -1 ? args[outArg + 1] : "/tmp/tendo-verify";
 
@@ -62,6 +64,42 @@ const CHECKS = {
       };
     })()
   `,
+  tendoStatusDot: `
+    (() => {
+      const dots = Array.from(document.querySelectorAll('[data-sidebar-thread-status-dot]'));
+      if (dots.length === 0) return { found: false, count: 0, samples: [] };
+      const byState = {};
+      for (const el of dots) {
+        const state = el.getAttribute('data-sidebar-thread-status-dot');
+        byState[state] = (byState[state] || 0) + 1;
+      }
+      const samples = dots.slice(0, 6).map((el) => {
+        const cs = getComputedStyle(el);
+        const r = el.getBoundingClientRect();
+        const row = el.closest('[class*="thread-row"]') || el.parentElement;
+        const rowRect = row ? row.getBoundingClientRect() : null;
+        // The canon states edge-to-dot and chevron-to-dot in px; measure both
+        // rather than trusting the stylesheet.
+        const title = el.parentElement
+          ? el.parentElement.querySelector('span[class*="truncate"]')
+          : null;
+        const titleRect = title ? title.getBoundingClientRect() : null;
+        return {
+          state: el.getAttribute('data-sidebar-thread-status-dot'),
+          width: Math.round(r.width * 100) / 100,
+          height: Math.round(r.height * 100) / 100,
+          bg: cs.backgroundColor,
+          border: cs.border,
+          visibility: cs.visibility,
+          boxSizing: cs.boxSizing,
+          ariaHidden: el.getAttribute('aria-hidden'),
+          edgeToDot: rowRect ? Math.round((r.left - rowRect.left) * 100) / 100 : null,
+          dotToTitle: titleRect ? Math.round((titleRect.left - r.right) * 100) / 100 : null,
+        };
+      });
+      return { found: true, count: dots.length, byState, samples };
+    })()
+  `,
   sidebarUnreadDotColor: `
     (() => {
       const dots = Array.from(document.querySelectorAll('[data-testid*="status" i], [class*="status-dot" i]'));
@@ -92,7 +130,17 @@ function send(ws, id, method, params = {}) {
 async function main() {
   const listRes = await fetch(`http://localhost:${port}/json/list`);
   const targets = await listRes.json();
-  const page = targets.find((t) => t.type === "page" && t.url.includes("38886"));
+  // Match any locally served Tendo page, not one hardcoded port: the daily
+  // driver runs on 38886, but a dev instance derives its ports from the
+  // checkout path, so pinning one number made this instrument single-target.
+  // --match narrows it when several are open.
+  const page = targets.find(
+    (t) =>
+      t.type === "page" &&
+      (match !== null
+        ? t.url.includes(match)
+        : /https?:\/\/(127\.0\.0\.1|localhost):\d+/.test(t.url)),
+  );
   if (!page) {
     console.error("No matching Tendo page target found on debug port", port);
     console.error(targets.map((t) => `${t.type} ${t.url}`).join("\n"));
