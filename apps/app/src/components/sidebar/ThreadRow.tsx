@@ -67,7 +67,7 @@ import {
   SIDEBAR_SUCCESS_STATUS_COLOR_CLASS,
   SIDEBAR_SUCCESS_STATUS_DOT_CLASS,
   SIDEBAR_WORKING_STATUS_COLOR_CLASS,
-  getSidebarThreadRowPaddingLeft,
+  getTendoSidebarThreadRowPaddingLeft,
 } from "./sidebarRowClasses";
 import type { ConsumeDragClickSuppression } from "@/components/ui/use-drag-click-suppression";
 import type { SidebarSortableDragBindings } from "./sortableMotion";
@@ -229,7 +229,7 @@ function PluginThreadRowStatusIndicator({
 
 function getThreadRowStyle(depth: number): CSSProperties {
   return {
-    paddingLeft: getSidebarThreadRowPaddingLeft(depth),
+    paddingLeft: getTendoSidebarThreadRowPaddingLeft(depth),
   };
 }
 
@@ -734,6 +734,15 @@ function ThreadRowComponent({
             collapseLabel={`Collapse ${labelTitle} threads`}
             onToggle={() => parentOptions.onToggleCollapsed(thread.id)}
             revealOnHover
+            // The row's flex container spaces every child with a uniform
+            // gap-1.5 (6px) — fine between the dot and the title, short of
+            // the canon's chevron-to-dot target. This adds the remainder on
+            // top of that shared gap rather than replacing it, so a change
+            // to gap-1.5 doesn't silently detune this number too.
+            style={{
+              marginRight:
+                "calc(var(--tendo-sidebar-chevron-to-dot) - 0.375rem)",
+            }}
           />
         ) : null}
         <SidebarThreadStatusDot

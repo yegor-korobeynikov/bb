@@ -44,6 +44,39 @@ export function getSidebarThreadRowPaddingLeft(depth: number): number {
   );
 }
 
+/**
+ * Tendo-canon padding-left for a leaf/parent thread row (ThreadRow only —
+ * left the older `getSidebarThreadRowPaddingLeft` above untouched since
+ * ProjectRow's worktree/environment header rows still consume it and
+ * weren't part of this pass, per tendo-design-system/DESIGN.md's indent-step
+ * fast-follow scope).
+ *
+ * Ported from the same bb-plugin-task-tabs DOM patch the status dot was
+ * ported from (2026-08-20 session) — ONE difference from that port: the
+ * patch reached its 40px/16px targets by MEASURING live rendered positions
+ * and correcting after the fact (`getBoundingClientRect` deltas against a
+ * parent row), which is exactly the "changes shape after first paint" defect
+ * the whole native-port effort exists to remove. A pure CSS formula can't
+ * measure — it has to be told the same relationship the patch discovered
+ * empirically: `--tendo-sidebar-edge-to-dot` is the padding a row's OWN
+ * depth-0 position resolves to when nothing precedes the dot; a visible
+ * chevron consumes some of that budget itself (accounted for by
+ * `--tendo-sidebar-chevron-to-dot`, applied as the chevron's own
+ * margin-right in ThreadRow.tsx, not here); each additional nesting level
+ * beyond the row's own base adds one `--tendo-sidebar-indent-step`.
+ *
+ * UNVERIFIED against the live app as written — this session has no
+ * `--remote-debugging-port` access to confirm the composition holds pixel
+ * for pixel the way the status dot's port was confirmed by
+ * `tendo-visual-verify.mjs`. Treat the exact numbers as the best available
+ * reconstruction, not measured ground truth, until that check runs.
+ */
+export function getTendoSidebarThreadRowPaddingLeft(depth: number): string {
+  return depth <= 0
+    ? "var(--tendo-sidebar-edge-to-dot)"
+    : `calc(var(--tendo-sidebar-edge-to-dot) + var(--tendo-sidebar-indent-step) * ${depth})`;
+}
+
 export function getSidebarThreadGroupLineLeft(depth: number): number {
   return (
     getSidebarThreadRowPaddingLeft(depth) +

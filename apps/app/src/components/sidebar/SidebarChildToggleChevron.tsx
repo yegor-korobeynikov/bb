@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { Icon } from "@bb/shared-ui/icon";
 import { LIST_HOVER_TRANSITION } from "@bb/shared-ui/motion";
 import {
@@ -12,6 +13,7 @@ interface SidebarChildToggleChevronProps {
   collapseLabel: string;
   onToggle: () => void;
   revealOnHover?: boolean;
+  style?: CSSProperties;
 }
 
 export function SidebarChildToggleChevron({
@@ -20,6 +22,7 @@ export function SidebarChildToggleChevron({
   collapseLabel,
   onToggle,
   revealOnHover = false,
+  style,
 }: SidebarChildToggleChevronProps) {
   return (
     <button
@@ -35,6 +38,7 @@ export function SidebarChildToggleChevron({
         event.stopPropagation();
         onToggle();
       }}
+      style={style}
       className={cn(
         revealOnHover ? SIDEBAR_HOVER_ACTIONS_CLASS : "pointer-events-auto",
         "relative z-10 inline-flex size-5 shrink-0 cursor-pointer items-center justify-center rounded-md text-subtle-foreground outline-none ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2",

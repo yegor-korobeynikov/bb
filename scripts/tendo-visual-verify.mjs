@@ -100,6 +100,36 @@ const CHECKS = {
       return { found: true, count: dots.length, byState, samples };
     })()
   `,
+  tendoIndentStep: `
+    (() => {
+      // Follow-up to tendoStatusDot (2026-08-21): that check measures
+      // edge-to-dot per row but not chevron-to-dot, and doesn't compare a
+      // parent row's dot against its own child's — the two numbers the
+      // indent-step port needs to land against the canon
+      // (--tendo-sidebar-chevron-to-dot: 20px, --tendo-sidebar-indent-step:
+      // 16px). This is UNVERIFIED-as-written ground truth for that port,
+      // not a pre-existing confirmed check.
+      const dots = Array.from(document.querySelectorAll('[data-sidebar-thread-status-dot]'));
+      const chevronToDotSamples = dots.map((dot) => {
+        const container = dot.parentElement;
+        const chevron = container ? container.querySelector('[data-sidebar-child-toggle]') : null;
+        if (!chevron) return null;
+        const cr = chevron.getBoundingClientRect();
+        const dr = dot.getBoundingClientRect();
+        const row = dot.closest('[class*="thread-row"]');
+        return {
+          chevronToDot: Math.round((dr.left - cr.right) * 100) / 100,
+          rowText: row ? (row.textContent || '').trim().slice(0, 30) : null,
+        };
+      }).filter(Boolean);
+      return {
+        found: dots.length > 0,
+        totalDots: dots.length,
+        rowsWithChevron: chevronToDotSamples.length,
+        chevronToDotSamples: chevronToDotSamples.slice(0, 10),
+      };
+    })()
+  `,
   sidebarUnreadDotColor: `
     (() => {
       const dots = Array.from(document.querySelectorAll('[data-testid*="status" i], [class*="status-dot" i]'));
