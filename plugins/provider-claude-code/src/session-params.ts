@@ -121,6 +121,7 @@ interface BuildInternalSessionParamsArgs {
   instructionMode: InstructionMode;
   options: ClaudeSessionExecutionOptions;
   threadId: string;
+  accountConfigDir?: string | undefined;
 }
 
 /**
@@ -159,6 +160,7 @@ function buildInternalSessionParams(
       : {}),
     ...(skillConfig ? skillConfig : {}),
     ...(config ? { config } : {}),
+    ...(args.accountConfigDir ? { accountConfigDir: args.accountConfigDir } : {}),
     ...(args.options.model ? { model: args.options.model } : {}),
     ...(args.options.reasoningLevel
       ? { reasoningLevel: args.options.reasoningLevel }
@@ -194,6 +196,12 @@ const claudeProviderOptionsSchema = z
      * field for it — same delivery as the ACP launch spec.
      */
     additionalWorkspaceWriteRoots: z.array(z.string()).optional(),
+    /**
+     * `CLAUDE_CONFIG_DIR` for a non-default account profile, set as a static
+     * `bridgeOptions.configDir` per `registerProvider` call (one provider id
+     * per profile). Undefined means the default profile.
+     */
+    configDir: z.string().min(1).optional(),
   })
   .passthrough();
 
@@ -257,6 +265,7 @@ export function buildClaudeSessionParams(
       memoryEnabled: providerOptions.memoryEnabled,
       providerSubagentsEnabled: providerOptions.providerSubagentsEnabled,
     },
+    accountConfigDir: providerOptions.configDir,
   });
 }
 

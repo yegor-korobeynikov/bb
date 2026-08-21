@@ -393,12 +393,29 @@ async function readKeychainCredentials(): Promise<string | null> {
   return null;
 }
 
-async function readCredentials(): Promise<ClaudeCredentials | null> {
-  let raw = await readKeychainCredentials();
+/**
+ * `configDir` set means this is a non-default account profile
+ * (`CLAUDE_CONFIG_DIR`-relocated, see `server.ts`'s `~/.claude-*` discovery).
+ * Credentials for those profiles are read from that directory's
+ * `.credentials.json` only, never Keychain: the Keychain item Claude Code
+ * writes on login is not verified to be scoped by `CLAUDE_CONFIG_DIR` (it may
+ * be a single global entry per machine), so trusting it here risks silently
+ * reading the WRONG account's token for a second profile. The default
+ * profile (`configDir` undefined) keeps today's Keychain-first behavior.
+ */
+async function readCredentials(
+  configDir?: string,
+): Promise<ClaudeCredentials | null> {
+  let raw: string | null = null;
+  if (configDir === undefined) {
+    raw = await readKeychainCredentials();
+  }
   if (raw === null) {
     try {
       raw = await fs.readFile(
-        path.join(os.homedir(), ".claude", ".credentials.json"),
+        configDir === undefined
+          ? path.join(os.homedir(), ".claude", ".credentials.json")
+          : path.join(configDir, ".credentials.json"),
         "utf8",
       );
     } catch {
@@ -413,11 +430,16 @@ async function readCredentials(): Promise<ClaudeCredentials | null> {
   }
 }
 
-async function readAccountEmail(): Promise<string | null> {
+async function readAccountEmail(configDir?: string): Promise<string | null> {
   try {
     const parsed = claudeAccountSchema.safeParse(
       JSON.parse(
-        await fs.readFile(path.join(os.homedir(), ".claude.json"), "utf8"),
+        await fs.readFile(
+          configDir === undefined
+            ? path.join(os.homedir(), ".claude.json")
+            : path.join(configDir, ".claude.json"),
+          "utf8",
+        ),
       ),
     );
     return parsed.success
@@ -462,7 +484,9 @@ function healthResult(
   };
 }
 
-export async function getClaudeProviderHealth(): Promise<ExperimentalProviderHealthResult> {
+export async function getClaudeProviderHealth(
+  configDir?: string,
+): Promise<ExperimentalProviderHealthResult> {
   const command = process.env.BB_CLAUDE_CODE_EXECUTABLE?.trim() || "claude";
   if ((await executablePath(command)) === null) {
     return healthResult("not_installed");
@@ -470,8 +494,8 @@ export async function getClaudeProviderHealth(): Promise<ExperimentalProviderHea
   const version = await installedVersion();
   try {
     const [credentials, email] = await Promise.all([
-      readCredentials(),
-      readAccountEmail(),
+      readCredentials(configDir),
+      readAccountEmail(configDir),
     ]);
     if (!credentials) {
       return healthResult("unauthenticated", { installedVersion: version });
@@ -607,14 +631,16 @@ function normalizeUsage(
   };
 }
 
-export async function getClaudeProviderUsage(): Promise<ExperimentalProviderUsageResult> {
+export async function getClaudeProviderUsage(
+  configDir?: string,
+): Promise<ExperimentalProviderUsageResult> {
   const command = process.env.BB_CLAUDE_CODE_EXECUTABLE?.trim() || "claude";
   if ((await executablePath(command)) === null) {
     return { supported: true, usage: { status: "not_installed" } };
   }
   const [credentials, email] = await Promise.all([
-    readCredentials(),
-    readAccountEmail(),
+    readCredentials(configDir),
+    readAccountEmail(configDir),
   ]);
   if (!credentials) {
     return { supported: true, usage: { status: "unauthenticated" } };
