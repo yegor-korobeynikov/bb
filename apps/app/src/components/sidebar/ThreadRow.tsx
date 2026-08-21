@@ -72,6 +72,10 @@ import {
 import type { ConsumeDragClickSuppression } from "@/components/ui/use-drag-click-suppression";
 import type { SidebarSortableDragBindings } from "./sortableMotion";
 import { SidebarChildToggleChevron } from "./SidebarChildToggleChevron";
+import {
+  resolveSidebarThreadStatus,
+  SidebarThreadStatusDot,
+} from "./SidebarThreadStatusDot";
 import { useSidebarThreadShortcut } from "./sidebarThreadShortcuts";
 import { SplitPaneMiniMap } from "./SplitPaneMiniMap";
 import { usePaneContentSplitIndicator } from "./paneContentSplitIndicator";
@@ -523,6 +527,11 @@ function ThreadRowComponent({
   const threadPlanModeActive = hasActivePlanModeActivity(thread);
   const threadGoalActive = hasActiveGoalActivity(thread);
   const threadUnreadDone = isUnreadDoneThread(thread);
+  const sidebarStatus = resolveSidebarThreadStatus({
+    hasPendingInteraction,
+    isUnread: threadUnreadDone,
+    isChildThread: thread.parentThreadId !== null,
+  });
   const threadUnreadError = threadUnreadDone && thread.status === "error";
   const threadUnreadSuccess = threadUnreadDone && !threadUnreadError;
   const threadTitle = getThreadDisplayTitle(thread);
@@ -727,6 +736,10 @@ function ThreadRowComponent({
             revealOnHover
           />
         ) : null}
+        <SidebarThreadStatusDot
+          status={sidebarStatus}
+          isReserved={sidebarStatus !== "blocked" && threadRuntimeBusy}
+        />
         {isEditing ? (
           <span className="relative z-10 min-w-0 flex-1 overflow-visible">
             {editor}
