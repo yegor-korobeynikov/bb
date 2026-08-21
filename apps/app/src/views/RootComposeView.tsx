@@ -828,7 +828,7 @@ function RootComposeSurface({
     hostId: composeHostId,
     enabled: composeHostId !== null,
   });
-  const { queuedJobKeys, runningJobKey, failuresByJobKey, startInstall } =
+  const { queuedJobKeys, runningJobKey, startInstall } =
     useProviderCliInstallRunner();
   const selectedProviderCliStatus =
     providerCliStatus.data?.[selectedProviderId] ?? null;
@@ -852,31 +852,6 @@ function RootComposeSurface({
     if (selectedProviderCliIssue === null || composeHostId === null) return;
     startInstall({ hostId: composeHostId, issue: selectedProviderCliIssue });
   }, [selectedProviderCliIssue, composeHostId, startInstall]);
-
-  // A provider picked in the composer that was never installed gets its CLI
-  // fetched automatically - no "Install" click required. The install store
-  // (`startProviderCliInstall`) already dedupes by job key, and a prior
-  // failure is recorded in `failuresByJobKey`, so this effect fires at most
-  // once per provider until the user retries from the failure toast; it
-  // never loops.
-  useEffect(() => {
-    if (composeHostId === null || selectedProviderCliStatus === null) return;
-    if (selectedProviderCliStatus.installed) return;
-    const issue = buildProviderCliIssue({
-      provider: selectedProviderId,
-      status: selectedProviderCliStatus,
-    });
-    if (issue === null || !hasProviderCliAction(issue)) return;
-    const jobKey = providerCliJobKey(composeHostId, selectedProviderId);
-    if (failuresByJobKey.has(jobKey)) return;
-    startInstall({ hostId: composeHostId, issue });
-  }, [
-    composeHostId,
-    failuresByJobKey,
-    selectedProviderCliStatus,
-    selectedProviderId,
-    startInstall,
-  ]);
 
   useFixedPanelTabsStorageMaintenance();
   const fixedPanelTabsState = useFixedPanelTabsState(
