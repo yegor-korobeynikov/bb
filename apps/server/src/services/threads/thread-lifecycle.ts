@@ -338,6 +338,10 @@ function lifecycleEventForInterruptedThread(
   switch (reason) {
     case "manual-stop":
       return { type: "stop.settled" };
+    case "idle-hibernation":
+      // Same clean settle as a manual stop: nothing failed, the runtime was
+      // released on purpose, and the next message resumes normally.
+      return { type: "stop.settled" };
     case "host-daemon-restarted":
       return { type: "run.failed" };
     // Legacy persisted watchdog interruption; no current producer. Lands on
@@ -355,6 +359,8 @@ function pendingInteractionStopReason(
   switch (reason) {
     case "manual-stop":
       return "Thread stopped by user request";
+    case "idle-hibernation":
+      return "Thread's runtime released after sitting idle; still awaiting your interaction";
     case "host-daemon-restarted":
       return "Host daemon restarted while awaiting user interaction";
     // Legacy persisted watchdog interruption; no current producer.
@@ -370,6 +376,9 @@ function threadCommandFailureMessageForInterruption(
 ): string | null {
   switch (reason) {
     case "manual-stop":
+      return null;
+    case "idle-hibernation":
+      // Same as manual-stop: this is not a failure, so no failure message.
       return null;
     case "host-daemon-restarted":
       return "Thread interrupted because the host daemon disconnected";
@@ -387,6 +396,8 @@ function threadCommandFailureDetailForInterruption(
   switch (reason) {
     case "manual-stop":
       return "Thread stopped by user request";
+    case "idle-hibernation":
+      return "Thread's runtime was released after sitting idle";
     case "host-daemon-restarted":
       return "Please retry the thread to continue.";
     // Legacy persisted watchdog interruption; no current producer.
@@ -1525,6 +1536,7 @@ export function requestActiveRuntimeThreadStopIfNeeded(
     hostId: string;
     id: string;
   },
+  interruptionReason: SystemThreadInterruptedReason = "manual-stop",
 ): void {
   if (thread.status !== "active" && !hasLiveThreadStartInFlight(thread.id)) {
     return;
@@ -1532,7 +1544,7 @@ export function requestActiveRuntimeThreadStopIfNeeded(
   requestThreadStop(deps, {
     environmentId: environment.id,
     hostId: environment.hostId,
-    interruptionReason: "manual-stop",
+    interruptionReason,
     threadId: thread.id,
   });
 }

@@ -124,6 +124,8 @@ function threadInterruptedTitle(reason: SystemThreadInterruptedReason): string {
       return "Stopped manually";
     case "host-daemon-restarted":
       return "Stopped — host daemon restarted";
+    case "idle-hibernation":
+      return "Stopped — idle, runtime released";
     // Legacy persisted watchdog interruption; no current producer.
     case "provider-turn-idle":
       return "Stopped — provider turn stopped responding";

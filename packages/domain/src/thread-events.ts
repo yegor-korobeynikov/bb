@@ -231,6 +231,11 @@ export const systemUserQuestionLifecycleEventDataSchema = z.object({
 const systemThreadInterruptedReasonValues = [
   "manual-stop",
   "host-daemon-restarted",
+  // Automatic: no turn was in flight, the thread sat idle past the
+  // hibernation threshold, and the runtime was released to reclaim memory.
+  // Distinct from "manual-stop" so the two are never conflated when reading
+  // the timeline back — this is not a stop the user or an operator asked for.
+  "idle-hibernation",
   // Legacy persisted watchdog interruption; retained for read/replay only,
   // with no current producer.
   "provider-turn-idle",

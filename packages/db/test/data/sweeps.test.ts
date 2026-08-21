@@ -10,6 +10,7 @@ import {
   COMPLETED_EVENT_OUTPUT_RETAINED_HEAD_CHARS,
   COMPLETED_EVENT_OUTPUT_RETAINED_TAIL_CHARS,
   COMPLETED_EVENT_OUTPUT_TRUNCATION_THRESHOLD_CHARS,
+  listIdleActiveThreadHibernationCandidates,
   pruneClosedSessions,
   pruneDestroyedEnvironments,
   sweepManagedEnvironments,
@@ -30,6 +31,7 @@ import {
   environments,
   events,
   hostDaemonSessions,
+  threads,
 } from "../../src/schema.js";
 
 function setup() {
@@ -586,6 +588,133 @@ describe("sweepManagedEnvironments", () => {
     });
 
     const candidates = sweepManagedEnvironments(db);
+    expect(candidates).toHaveLength(0);
+  });
+});
+
+describe("listIdleActiveThreadHibernationCandidates", () => {
+  const IDLE_THRESHOLD_MS = 3 * 60_000;
+
+  function ageThread(db: DbConnection, threadId: string, updatedAt: number) {
+    db.update(threads).set({ updatedAt }).where(eq(threads.id, threadId)).run();
+  }
+
+  it("returns an active thread whose runtime has been idle past the threshold", () => {
+    const { db, host, project } = setup();
+    const env = createEnvironment(db, noopNotifier, {
+      projectId: project.id,
+      hostId: host.id,
+      path: "/tmp/env",
+      managed: false,
+      workspaceProvisionType: "unmanaged",
+      status: "active",
+    });
+    const thread = createThread(db, noopNotifier, {
+      projectId: project.id,
+      environmentId: env.id,
+      providerId: "codex",
+      status: "active",
+    });
+
+    const now = Date.now();
+    ageThread(db, thread.id, now - IDLE_THRESHOLD_MS - 1_000);
+
+    const candidates = listIdleActiveThreadHibernationCandidates(db, {
+      idleThresholdMs: IDLE_THRESHOLD_MS,
+      now,
+    });
+
+    expect(candidates).toHaveLength(1);
+    expect(candidates[0]).toEqual({
+      threadId: thread.id,
+      environmentId: env.id,
+      hostId: host.id,
+    });
+  });
+
+  it("does not return a thread that has not been idle long enough yet", () => {
+    const { db, host, project } = setup();
+    const env = createEnvironment(db, noopNotifier, {
+      projectId: project.id,
+      hostId: host.id,
+      path: "/tmp/env",
+      managed: false,
+      workspaceProvisionType: "unmanaged",
+      status: "active",
+    });
+    const thread = createThread(db, noopNotifier, {
+      projectId: project.id,
+      environmentId: env.id,
+      providerId: "codex",
+      status: "active",
+    });
+
+    const now = Date.now();
+    // Just inside the threshold — recently active, not a candidate.
+    ageThread(db, thread.id, now - IDLE_THRESHOLD_MS + 1_000);
+
+    const candidates = listIdleActiveThreadHibernationCandidates(db, {
+      idleThresholdMs: IDLE_THRESHOLD_MS,
+      now,
+    });
+
+    expect(candidates).toHaveLength(0);
+  });
+
+  it("does not return a thread that is not active", () => {
+    const { db, host, project } = setup();
+    const env = createEnvironment(db, noopNotifier, {
+      projectId: project.id,
+      hostId: host.id,
+      path: "/tmp/env",
+      managed: false,
+      workspaceProvisionType: "unmanaged",
+      status: "active",
+    });
+    const thread = createThread(db, noopNotifier, {
+      projectId: project.id,
+      environmentId: env.id,
+      providerId: "codex",
+      status: "idle",
+    });
+
+    const now = Date.now();
+    ageThread(db, thread.id, now - IDLE_THRESHOLD_MS - 1_000);
+
+    const candidates = listIdleActiveThreadHibernationCandidates(db, {
+      idleThresholdMs: IDLE_THRESHOLD_MS,
+      now,
+    });
+
+    expect(candidates).toHaveLength(0);
+  });
+
+  it("does not return a deleted thread", () => {
+    const { db, host, project } = setup();
+    const env = createEnvironment(db, noopNotifier, {
+      projectId: project.id,
+      hostId: host.id,
+      path: "/tmp/env",
+      managed: false,
+      workspaceProvisionType: "unmanaged",
+      status: "active",
+    });
+    const thread = createThread(db, noopNotifier, {
+      projectId: project.id,
+      environmentId: env.id,
+      providerId: "codex",
+      status: "active",
+    });
+
+    const now = Date.now();
+    ageThread(db, thread.id, now - IDLE_THRESHOLD_MS - 1_000);
+    markThreadDeleted(db, noopNotifier, { threadId: thread.id });
+
+    const candidates = listIdleActiveThreadHibernationCandidates(db, {
+      idleThresholdMs: IDLE_THRESHOLD_MS,
+      now,
+    });
+
     expect(candidates).toHaveLength(0);
   });
 

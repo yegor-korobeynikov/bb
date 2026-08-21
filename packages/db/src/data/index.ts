@@ -377,6 +377,8 @@ export {
   COMPLETED_EVENT_OUTPUT_RETENTION_MS,
   DEFAULT_CLOSED_SESSION_PRUNE_BATCH_SIZE,
   DEFAULT_COMPLETED_EVENT_OUTPUT_TRUNCATION_BATCH_SIZE,
+  IDLE_RUNTIME_HIBERNATION_THRESHOLD_MS,
+  listIdleActiveThreadHibernationCandidates,
   pruneClosedSessions,
   pruneDestroyedEnvironments,
   truncateCompletedEventItemOutputs,

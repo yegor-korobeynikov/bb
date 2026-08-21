@@ -3,6 +3,8 @@ import {
   CLOSED_SESSION_ROW_RETENTION_MS,
   compactDatabase,
   COMPLETED_EVENT_OUTPUT_RETENTION_MS,
+  IDLE_RUNTIME_HIBERNATION_THRESHOLD_MS,
+  listIdleActiveThreadHibernationCandidates,
   DATABASE_COMPACTION_MIN_RECLAIMABLE_BYTES,
   DATABASE_COMPACTION_MIN_RECLAIMABLE_RATIO,
   DATABASE_INCREMENTAL_VACUUM_MAX_PAGES,
@@ -44,7 +46,11 @@ import {
   advanceProjectDeletion,
   listProjectsPendingDeletion,
 } from "../projects/project-deletion.js";
-import { hasLiveThreadStartInFlight } from "../threads/thread-lifecycle.js";
+import {
+  hasLiveThreadStartInFlight,
+  requestActiveRuntimeThreadStopIfNeeded,
+} from "../threads/thread-lifecycle.js";
+import { getActiveTurnId } from "../threads/thread-events.js";
 import { advanceThreadProvisioning } from "../threads/thread-provisioning.js";
 import { runQueuedMessageAutoSendSweep } from "../threads/queued-messages.js";
 import { LIVE_DAEMON_COMMAND_TIMEOUT_MS } from "../hosts/live-command.js";
@@ -396,6 +402,42 @@ export async function runManagedEnvironmentArchiveCleanupRecoverySweep(
   await advanceRetiringManagedEnvironments(deps);
 }
 
+/**
+ * Hibernates idle-runtime threads to reclaim memory: each resident agent
+ * runtime process costs real physical memory (measured ~336 MB per Claude
+ * Code session — see decision-tendo-idle-session-hibernation-v1). A thread
+ * that has sat idle past the threshold with no turn in flight is stopped
+ * exactly as `bb thread stop` would stop it manually — full history and
+ * state remain durable, and the next message resumes it normally. Threads
+ * with a turn actually running, or a start in flight, are never touched.
+ */
+function runIdleRuntimeHibernationSweep(
+  deps: LoggedPendingInteractionWorkSessionDeps,
+  now: number,
+): void {
+  const candidates = listIdleActiveThreadHibernationCandidates(deps.db, {
+    idleThresholdMs: IDLE_RUNTIME_HIBERNATION_THRESHOLD_MS,
+    now,
+  });
+
+  for (const candidate of candidates) {
+    if (hasLiveThreadStartInFlight(candidate.threadId)) {
+      continue;
+    }
+    if (getActiveTurnId(deps, candidate.threadId) !== null) {
+      // A turn is genuinely running — updatedAt is stale relative to the
+      // in-flight turn's own progress. Never hibernate active work.
+      continue;
+    }
+    requestActiveRuntimeThreadStopIfNeeded(
+      deps,
+      { id: candidate.threadId, status: "active" },
+      { hostId: candidate.hostId, id: candidate.environmentId },
+      "idle-hibernation",
+    );
+  }
+}
+
 async function runProjectDeletionSweep(
   deps: LoggedPendingInteractionWorkSessionDeps,
 ): Promise<void> {
@@ -584,6 +626,16 @@ const PERIODIC_SWEEP_JOBS: PeriodicSweepJob[] = [
     category: "maintenance",
     name: "database-maintenance",
     run: runDatabaseMaintenanceSweep,
+  },
+  {
+    // Runs every tick (10s, per start-server.ts) rather than on its own
+    // cadence: the query is a cheap indexed scan, and a short poll interval
+    // keeps the gap between "idle long enough" and "actually released"
+    // small relative to the multi-minute threshold itself.
+    cadenceMs: 0,
+    category: "orphan-cleanup",
+    name: "idle-runtime-hibernation",
+    run: runIdleRuntimeHibernationSweep,
   },
 ];
 

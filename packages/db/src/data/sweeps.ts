@@ -4,11 +4,12 @@ import {
   sql,
   lt,
   inArray,
+  isNull,
 } from "drizzle-orm";
 import { type ThreadEventItemType } from "@bb/domain";
 import type { DbConnection } from "../connection.js";
 import type { DbNotifier } from "../notifier.js";
-import { environments, maintenanceScanCursors } from "../schema.js";
+import { environments, maintenanceScanCursors, threads } from "../schema.js";
 
 /** Destroyed environments are hard-deleted after 7 days. */
 const DESTROYED_ENVIRONMENT_TTL_MS = 7 * 24 * 60 * 60_000;
@@ -18,6 +19,16 @@ export const CLOSED_SESSION_ROW_RETENTION_MS = 7 * 24 * 60 * 60_000;
 
 /** Completed item output remains inspectable, but old large blobs are bounded. */
 export const COMPLETED_EVENT_OUTPUT_RETENTION_MS = 7 * 24 * 60 * 60_000;
+
+/**
+ * How long a thread's runtime may sit idle (status "active", no turn in
+ * flight) before it becomes a hibernation candidate. Each resident runtime
+ * costs real physical memory (measured ~336 MB per Claude Code session) —
+ * reclaiming it is safe because full history and state are already durable;
+ * a later message resumes the thread exactly as `bb thread stop` does today.
+ * See decision-tendo-idle-session-hibernation-v1 in the Second Brain graph.
+ */
+export const IDLE_RUNTIME_HIBERNATION_THRESHOLD_MS = 3 * 60_000;
 
 export const COMPLETED_EVENT_OUTPUT_TRUNCATION_THRESHOLD_CHARS = 32 * 1024;
 export const COMPLETED_EVENT_OUTPUT_RETAINED_HEAD_CHARS = 2 * 1024;
@@ -360,6 +371,36 @@ export function sweepManagedEnvironments(db: DbConnection) {
     .all();
 
   return rows;
+}
+
+/**
+ * Candidates for idle-runtime hibernation: threads whose runtime has been
+ * resident and untouched (no new event) since before the threshold. Whether
+ * a turn is actually in flight right now (never true to hibernate) and
+ * whether a start is in-flight (process-local state) are checked by the
+ * caller — those cannot be expressed in this query.
+ */
+export function listIdleActiveThreadHibernationCandidates(
+  db: DbConnection,
+  args: { idleThresholdMs: number; now?: number },
+) {
+  const now = args.now ?? Date.now();
+  return db
+    .select({
+      environmentId: environments.id,
+      hostId: environments.hostId,
+      threadId: threads.id,
+    })
+    .from(threads)
+    .innerJoin(environments, eq(threads.environmentId, environments.id))
+    .where(
+      and(
+        eq(threads.status, "active"),
+        isNull(threads.deletedAt),
+        lt(threads.updatedAt, now - args.idleThresholdMs),
+      ),
+    )
+    .all();
 }
 
 export function pruneDestroyedEnvironments(
