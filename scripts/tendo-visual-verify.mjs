@@ -29,16 +29,39 @@ const outBase = outArg !== -1 ? args[outArg + 1] : "/tmp/tendo-verify";
 // Named checks: each is a pure DOM predicate run in the page context via
 // Runtime.evaluate. Add new checks here as new UI fixes need verification —
 // this file is the reusable instrument, not a one-off probe.
+// Relative-comparison contract (Yegor, 2026-08-21 — the sidebar is a
+// virtualized list; bb only mounts rows scrolled into the current viewport,
+// so `document.querySelectorAll(...)` on any per-row marker only ever sees
+// whatever subset happens to be mounted at the instant the check runs. A
+// bare `found: false` conflated two different situations: "this row IS
+// mounted and is missing the element" (a real bug) vs "no eligible row is
+// mounted right now" (nothing to test, not a failure) — the sidebarNewTrack-
+// HoverAction check hit exactly this, flip-flopping found=false/count=5 with
+// zero code changes between runs, purely from scroll position. Every check
+// below now reports `mountedRows` (the honest denominator — how many
+// thread-rows exist in the DOM right now) alongside its own count, and an
+// `inconclusive` flag when mountedRows is 0 — nothing was rendered to test,
+// so neither pass nor fail. This does NOT require simulating a scroll
+// (deliberately out of scope this session, same principle as not simulating
+// clicks/hover) — it just stops mis-reading "nothing mounted" as "broken".
 const CHECKS = {
   sidebarChevronVisible: `
     (() => {
+      const mountedRows = document.querySelectorAll('[class*="thread-row"]').length;
       const rows = Array.from(document.querySelectorAll('[data-sidebar-child-toggle]'));
-      if (rows.length === 0) return { found: false };
+      // No independent DOM signal for "this mounted row SHOULD have a
+      // chevron" exists without the plugin's own parentThreadId data (only
+      // rows with children get one, and "has children" isn't otherwise
+      // exposed in the DOM) — so this stays a coarse count against
+      // mountedRows, not a strict per-row assertion like the status-dot
+      // checks below.
+      if (rows.length === 0) return { found: false, count: 0, mountedRows, inconclusive: mountedRows === 0 };
       const el = rows[0];
       const cs = getComputedStyle(el);
       return {
         found: true,
         count: rows.length,
+        mountedRows,
         display: cs.display,
         opacity: cs.opacity,
         visible: cs.display !== 'none' && Number(cs.opacity) > 0,
@@ -66,8 +89,15 @@ const CHECKS = {
   `,
   tendoStatusDot: `
     (() => {
+      const mountedRows = document.querySelectorAll('[class*="thread-row"]').length;
       const dots = Array.from(document.querySelectorAll('[data-sidebar-thread-status-dot]'));
-      if (dots.length === 0) return { found: false, count: 0, samples: [] };
+      // Unlike the chevron, SidebarThreadStatusDot.tsx's own doc comment is
+      // explicit: "Leading status marker on every sidebar thread row" — no
+      // exceptions, session or track. That makes this a real strict
+      // assertion, not just a coarse count: every mounted row should have
+      // exactly one.
+      const allRowsHaveDot = mountedRows > 0 && dots.length === mountedRows;
+      if (dots.length === 0) return { found: false, count: 0, mountedRows, inconclusive: mountedRows === 0, allRowsHaveDot: false, samples: [] };
       const byState = {};
       for (const el of dots) {
         const state = el.getAttribute('data-sidebar-thread-status-dot');
@@ -97,7 +127,7 @@ const CHECKS = {
           dotToTitle: titleRect ? Math.round((titleRect.left - r.right) * 100) / 100 : null,
         };
       });
-      return { found: true, count: dots.length, byState, samples };
+      return { found: true, count: dots.length, mountedRows, allRowsHaveDot, byState, samples };
     })()
   `,
   tendoIndentStep: `
@@ -109,6 +139,7 @@ const CHECKS = {
       // (--tendo-sidebar-chevron-to-dot: 20px, --tendo-sidebar-indent-step:
       // 16px). This is UNVERIFIED-as-written ground truth for that port,
       // not a pre-existing confirmed check.
+      const mountedRows = document.querySelectorAll('[class*="thread-row"]').length;
       const dots = Array.from(document.querySelectorAll('[data-sidebar-thread-status-dot]'));
       const chevronToDotSamples = dots.map((dot) => {
         const container = dot.parentElement;
@@ -125,6 +156,8 @@ const CHECKS = {
       return {
         found: dots.length > 0,
         totalDots: dots.length,
+        mountedRows,
+        inconclusive: mountedRows === 0,
         rowsWithChevron: chevronToDotSamples.length,
         chevronToDotSamples: chevronToDotSamples.slice(0, 10),
       };
@@ -151,6 +184,7 @@ const CHECKS = {
       // taskId/projectId/title/prompt/isolate) — never a separate
       // picker/form screen. One glyph, present on every session row,
       // absent on every track (child) row.
+      const mountedRows = document.querySelectorAll('[class*="thread-row"]').length;
       const actions = Array.from(document.querySelectorAll('[data-bso-new-track-action]'));
       const samples = actions.map((el) => {
         const row = el.closest('[class*="thread-row"]');
@@ -162,14 +196,24 @@ const CHECKS = {
           title: el.getAttribute('title'),
         };
       });
-      // Which rows carry the action is decided in the plugin from the
-      // thread's own parentThreadId (structurally correct by construction,
-      // per the plugin's own indent/dot rows using the same lookup) — this
-      // check reports WHAT shipped, human/agent judges from rowText samples
-      // whether any track (indented, non-top-level) title leaked in.
+      // Eligible-rendered proxy, CDP-only (no access to the plugin's own
+      // parentThreadId data): a row without [data-sidebar-child-toggle] is
+      // either a session with no track yet (eligible) OR a track itself
+      // (not eligible, correctly excluded) — this over-counts relative to
+      // the true eligible set, so `count` vs `noToggleRows` is NOT asserted
+      // equal, just reported side by side as an honest, imperfect proxy.
+      // Which specific rows carry the action is still decided in the plugin
+      // from the thread's own parentThreadId (structurally correct by
+      // construction) — a human/agent judges from rowText samples whether
+      // any track title leaked in.
+      const noToggleRows = mountedRows -
+        document.querySelectorAll('[data-sidebar-child-toggle]').length;
       return {
         found: actions.length > 0,
         count: actions.length,
+        mountedRows,
+        noToggleRows,
+        inconclusive: noToggleRows <= 0,
         samples: samples.slice(0, 15),
       };
     })()
