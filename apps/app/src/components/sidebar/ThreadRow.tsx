@@ -65,7 +65,6 @@ import {
   SIDEBAR_PAIRED_ACTION_TRAILING_TARGET_CLASS,
   SIDEBAR_ROW_OPEN_IN_SPLIT_STATE_CLASS,
   SIDEBAR_SUCCESS_STATUS_COLOR_CLASS,
-  SIDEBAR_SUCCESS_STATUS_DOT_CLASS,
   SIDEBAR_WORKING_STATUS_COLOR_CLASS,
   getTendoSidebarThreadRowPaddingLeft,
 } from "./sidebarRowClasses";
@@ -317,16 +316,12 @@ export function ThreadStatusGlyph({
         />
       );
     case "waiting-for-input":
-      return (
-        <Icon
-          name="CircleQuestion"
-          className={cn(
-            "text-muted-foreground/75",
-            COARSE_POINTER_ICON_SIZE_CLASS,
-          )}
-          aria-label={getThreadListIndicatorLabel(kind) ?? undefined}
-        />
-      );
+      // No trailing glyph (Yegor, 2026-08-21): redundant with the leading
+      // SidebarThreadStatusDot, which already renders this exact state as
+      // a filled Hot Accent dot with its own accessible label — this was
+      // a second signal for the same fact once the dot shipped natively,
+      // same species of duplication as "unread-success" below.
+      return null;
     case "working-draft":
       return <ThreadDraftIndicator isWorking />;
     case "workflow":
@@ -409,12 +404,11 @@ export function ThreadStatusGlyph({
         />
       );
     case "unread-success":
-      return (
-        <span
-          className={SIDEBAR_SUCCESS_STATUS_DOT_CLASS}
-          aria-label={getThreadListIndicatorLabel(kind) ?? undefined}
-        />
-      );
+      // No trailing glyph (Yegor, 2026-08-21, "уже есть цветная индикация
+      // в начале сессий" — a plain grey dot here duplicated the leading
+      // dot's Teal Blue "unread" state at the OTHER end of the same row).
+      // Kept the leading dot as the one source of truth for this state.
+      return null;
     case "none":
       return null;
   }
