@@ -25,6 +25,8 @@
     "build": "node scripts/guard-live-build.mjs && turbo run build --filter=@bb/scripts --filter=@bb/app --filter=@bb/server --filter=@bb/host-daemon --filter=@bb/cli --filter=bb-app",
     "bb-app:prepare": "turbo run build --filter=bb-app --output-logs=none --log-prefix=none --summarize=false",
     "start": "cross-env NODE_ENV=production dotenv -c production -- node --conditions=source --import tsx scripts/start-bb.mjs",
+    "sync-live": "node scripts/sync-live.mjs",
+    "sync-live:check": "node scripts/sync-live.mjs --dry-run",
     "start:host-daemon": "cross-env NODE_ENV=production dotenv -c production -- pnpm run --silent bb-app:prepare && cross-env NODE_ENV=production dotenv -c production -- node packages/bb-app/dist/bb-app.js host-daemon",
     "seed:perf": "node scripts/ensure-native-modules.mjs && cross-env NODE_ENV=development node --conditions=source --import tsx packages/scripts/src/commands/seed-perf-db.ts",
     "reset": "cross-env NODE_ENV=production pnpm run --silent scripts:prepare && cross-env NODE_ENV=production node packages/scripts/dist/commands/reset-bb-data.js",
