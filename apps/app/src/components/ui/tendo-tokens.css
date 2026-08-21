@@ -1,0 +1,35 @@
+/*
+ * Tendo design canon — tokens authored in the tendo-design-system project.
+ *
+ * Deliberately NOT in theme.css: apps/mobile generates its native theme from
+ * that file and treats every custom property there as a colour, so a font
+ * weight of 300 came out as the colour #330000. Keeping the canon in its own
+ * file leaves the generator's input untouched, and shrinks the merge surface
+ * on theme.css — one of the most upstream-contested files in the repo.
+ *
+ * Plugins run in the host DOM and inherit :root, so var(--tendo-*) resolves
+ * for them at runtime regardless of which file declares it.
+ *
+ * NOTE: single-value, no light/dark pair. The three status colours are the
+ * authored canon values and have no dark variant YET — picking one is a
+ * design decision, not a mechanical port.
+ */
+:root {
+  /* Status dot: filled = real state, outline = idle (never absent). */
+  --tendo-status-blocked: #e0532b;
+  --tendo-status-unread: #2c7c8c;
+  --tendo-status-done: #6e7b33;
+  --tendo-status-idle-border: var(--muted-foreground);
+  --tendo-status-dot-size: 5px;
+
+  /* Sidebar row spacing — CDP-measured targets. */
+  --tendo-sidebar-edge-to-dot: 40px;
+  --tendo-sidebar-chevron-to-dot: 20px;
+  --tendo-sidebar-indent-step: 16px;
+
+  /* Typography scale. */
+  --tendo-type-sidebar-weight: 350;
+  --tendo-type-body-weight: 300;
+  --tendo-type-muted-weight: 300;
+  --tendo-type-heading-weight: 600;
+}
