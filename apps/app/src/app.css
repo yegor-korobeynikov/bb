@@ -149,6 +149,22 @@
   }
 
   /*
+   * Backtick-wrapping a word (richTextEditing's `code` mark) should look the
+   * same live as it will once sent — matches the inline-code pill rendered
+   * messages already use (MarkdownCode in markdown-preview.tsx: "rounded
+   * bg-muted px-1.5 py-0.5 font-mono text-xs"), reusing the same --muted and
+   * --font-mono theme tokens rather than a one-off value.
+   */
+  .prompt-editor-code {
+    background-color: var(--muted);
+    border-radius: var(--radius-sm);
+    padding: 0.125rem 0.375rem;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    line-height: 1rem;
+  }
+
+  /*
    * Mention-pill surface. PROMPT_MENTION_PILL_CLASS owns layout, radius, and
    * border width; this paints the theme-specific face, border, and soft shadow.
    * The --selected modifier tints the same chip for the editor's drag-select

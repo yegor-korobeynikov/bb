@@ -16,6 +16,14 @@ import { PromptMentionExtension } from "./prompt-mention-extension";
  */
 const PROMPT_EDITOR_LINK_CLASS = "prompt-editor-link";
 
+/**
+ * Matches the inline-code pill rendered messages already use
+ * (MarkdownCode in markdown-preview.tsx: "rounded bg-muted px-1.5 py-0.5
+ * font-mono text-xs") so a backtick-wrapped word looks the same live in the
+ * composer as it will once sent, instead of only turning monospace on send.
+ */
+const PROMPT_EDITOR_CODE_CLASS = "prompt-editor-code";
+
 interface PromptEditorExtensionsOptions extends PromptDecorationExtensionOptions {
   /**
    * When true, the composer enables Markdown rich-text formatting (headings,
@@ -62,7 +70,9 @@ export function promptEditorExtensions({
       blockquote: {},
       bold: richTextEditing ? {} : false,
       bulletList: richTextEditing ? {} : false,
-      code: richTextEditing ? {} : false,
+      code: richTextEditing
+        ? { HTMLAttributes: { class: PROMPT_EDITOR_CODE_CLASS } }
+        : false,
       codeBlock: false,
       dropcursor: false,
       gapcursor: false,
