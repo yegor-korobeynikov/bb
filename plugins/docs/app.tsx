@@ -826,7 +826,7 @@ function HtmlDocumentPanelBody({ document }: { document: DocumentRef }) {
   }, [document.path, document.vaultId, rpc]);
   if (!state) return <DocumentSkeleton />;
   if ("error" in state)
-    return <div className="text-sm text-destructive">{state.error}</div>;
+    return <div className="p-4 text-sm text-destructive">{state.error}</div>;
   return (
     <iframe
       className="min-h-[32rem] flex-1 border-0 bg-white"
@@ -842,7 +842,7 @@ function DocumentPanel({ params }: PluginThreadPanelProps) {
   const navigate = useBbNavigate();
   if (!document)
     return (
-      <div className="text-sm text-muted-foreground">
+      <div className="p-4 text-sm text-muted-foreground">
         Open a Docs card from a message to edit it here.
       </div>
     );
@@ -2201,6 +2201,14 @@ export default definePluginApp((app) => {
     title: "Document",
     icon: "FileText",
     component: DocumentPanel,
+    // DocumentPanel owns its own header + scroll container (NotePane's
+    // TiptapEditor is the one true `overflow-y-auto` scroller, sized via its
+    // own `h-full`/`flex-1` chain). Without `flush`, the host wraps it in a
+    // second `overflow-y-auto p-4` box: a long note then sits inside two
+    // nested auto-scroll containers of the same size, and the outer one never
+    // has anything of its own to scroll — a long note reliably renders cut
+    // off after the first screenful with no way to reach the rest.
+    layout: "flush",
   });
   app.slots.fileOpener({
     id: "docs",

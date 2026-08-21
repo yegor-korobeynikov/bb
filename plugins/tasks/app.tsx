@@ -28,6 +28,14 @@ export default definePluginApp((app) => {
     title: "Task",
     icon: "ListTodo",
     component: TaskEmbedPanel,
+    // TaskEmbedPanel owns its own header + scroll container (its detail body
+    // is `min-h-0 flex-1 overflow-y-auto`, sized via the panel's own `h-full`
+    // chain). Without `flush`, the host wraps it in a second `overflow-y-auto
+    // p-4` box: a long task description/comment thread sits inside two
+    // same-size nested auto-scroll containers, and the outer one never has
+    // anything to scroll — content renders cut off after the first
+    // screenful with no way to reach the rest.
+    layout: "flush",
   });
   app.slots.messageDirective({ id: "task", component: TaskDirectiveCard });
 });
