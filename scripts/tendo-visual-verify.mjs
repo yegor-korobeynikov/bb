@@ -281,10 +281,27 @@ const CHECKS = {
       const actions = sessionRows.map(findAction).filter(Boolean);
       const titleOverlaps = [];
       const missingRadix = [];
+      // The title's own reserved space (.bb-sidebar-hover-actions-inset,
+      // padding-right) is CSS-conditional on
+      // ':is(:hover, :has(:focus-visible))' OR the hover-actions container
+      // carrying data-sidebar-hover-actions-open="true" — it is NOT applied
+      // at rest. The action button's own position is opacity/pointer-events
+      // gated by the same trigger but its LAYOUT position never moves — so
+      // measuring both rects at rest (no real mouse hover in a CDP session)
+      // compares the button's permanent position against the title's WIDER
+      // rest-state width, not the narrower hover-state width the real user
+      // sees when the button is actually visible. Force the same
+      // data-sidebar-hover-actions-open="true" attribute the CSS itself
+      // reads (2026-08-22 fix — first version of this check produced
+      // 5/14 false-positive overlaps, all traced to this), restore it after
+      // each row so nothing outside this check's own read is left mutated.
       const samples = actions.map((el) => {
         const row = el.closest('[class*="thread-row"]');
         const cs = getComputedStyle(el);
         const title = row ? row.querySelector('span.truncate, [class*="truncate"]') : null;
+        const hoverContainer = row ? row.querySelector('[data-sidebar-hover-actions-open]') : null;
+        const hadAttr = hoverContainer ? hoverContainer.getAttribute('data-sidebar-hover-actions-open') : null;
+        if (hoverContainer) hoverContainer.setAttribute('data-sidebar-hover-actions-open', 'true');
         if (title) {
           const ar = el.getBoundingClientRect();
           const tr = title.getBoundingClientRect();
@@ -295,6 +312,10 @@ const CHECKS = {
               titleRect: { left: tr.left, right: tr.right },
             });
           }
+        }
+        if (hoverContainer) {
+          if (hadAttr === null) hoverContainer.removeAttribute('data-sidebar-hover-actions-open');
+          else hoverContainer.setAttribute('data-sidebar-hover-actions-open', hadAttr);
         }
         // Same radix signature as Archive: no bare title attribute, has
         // aria-label plus a data-state (the Tooltip Trigger's own marker) —
