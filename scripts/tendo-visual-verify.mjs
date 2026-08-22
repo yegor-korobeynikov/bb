@@ -72,7 +72,12 @@ const CHECKS = {
         if (!ref) continue;
         const depthAttr = a.getAttribute('data-sidebar-thread-depth');
         const depth = depthAttr !== null ? depthAttr : 'pad:' + getComputedStyle(row).paddingLeft;
-        const x = Math.round((ref.getBoundingClientRect().left - row.getBoundingClientRect().left) * 10) / 10;
+        // Viewport-absolute, NOT row-relative: the children wrapper around a
+        // depth carries its own padding (bb's pl-8, and for a while a plugin
+        // override halving it), which moves the ROW itself. Row-relative x
+        // is blind to that — it would pass while the tree visibly staggers.
+        // Absolute x is what the eye compares, so it is what this asserts.
+        const x = Math.round(ref.getBoundingClientRect().left * 10) / 10;
         const hasChevron = row.querySelector('[data-sidebar-child-toggle]') !== null;
         (groups[depth] ||= []).push({ x, hasChevron, title: (ref.textContent || '').trim().slice(0, 28) });
       }
@@ -93,7 +98,17 @@ const CHECKS = {
       // No anchor resolved in any row = the selector is wrong for this build,
       // not a clean sidebar — never let that read as a pass.
       if (grouped === 0) return { found: true, count: anchors.length, pass: false, inconclusive: true, groups: report };
-      return { found: true, count: anchors.length, pass, groups: report };
+      // Visible step between consecutive numeric depths (absolute x of the
+      // group's min). Informational, not asserted: whether the step is the
+      // right SIZE is a token-tuning question; whether it is CONSISTENT
+      // across depths is what the spread assertion above already covers.
+      const numericDepths = Object.keys(report).filter(d => /^\\d+$/.test(d)).map(Number).sort((a, b) => a - b);
+      const steps = {};
+      for (let i = 1; i < numericDepths.length; i++) {
+        const a = numericDepths[i - 1], b = numericDepths[i];
+        steps[a + '->' + b] = Math.round((report[String(b)].min - report[String(a)].min) * 10) / 10;
+      }
+      return { found: true, count: anchors.length, pass, steps, groups: report };
     })()
   `,
   sidebarChevronVisible: `
