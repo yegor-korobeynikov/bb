@@ -13,6 +13,8 @@ import { Icon } from "@bb/shared-ui/icon";
 import { Skeleton } from "@bb/shared-ui/skeleton";
 import { useSystemConfig } from "@/hooks/queries/system-queries";
 import { toUserAttachmentImageSrc } from "@/lib/user-attachment-images";
+import { buildThreadHostFileContentUrl } from "@/lib/file-content-urls";
+import type { UserAttachmentImageSrcResolver } from "./types";
 import { ThreadTimelineRows } from "./ThreadTimelineRows.js";
 import { useAutoLoadOlderRows } from "./useAutoLoadOlderRows.js";
 import { TimelineStatusIndicator } from "./TimelineStatusIndicator.js";
@@ -179,6 +181,35 @@ export function ThreadTimelineSurface({
   const systemConfigQuery = useSystemConfig();
   const timelineWindowingEnabled =
     systemConfigQuery.data?.experiments.timelineWindowing ?? false;
+  // A workspace image in a message must load same-origin. The default
+  // resolver falls back to a `file://` URL for a local path, which the
+  // desktop shell and the browser-tab surface both block (webSecurity), so
+  // the image renders broken. Route those through the thread's own
+  // host-files endpoint instead — the same HTTP path markdown images already
+  // use — and keep the default (web/data/blob passthrough, project-scoped
+  // attachments) for everything else.
+  const resolveUserAttachmentImageSrc =
+    useMemo<UserAttachmentImageSrcResolver>(
+      () => (pathOrUrl, imageProjectId) => {
+        if (/^(https?:|data:|blob:)/i.test(pathOrUrl)) {
+          return pathOrUrl;
+        }
+        if (imageProjectId) {
+          return toUserAttachmentImageSrc(pathOrUrl, imageProjectId);
+        }
+        const filePath = pathOrUrl.startsWith("file://")
+          ? decodeURI(pathOrUrl.replace(/^file:\/\//, ""))
+          : pathOrUrl;
+        const absolutePath =
+          filePath.startsWith("/") || /^[a-zA-Z]:[\\/]/.test(filePath)
+            ? filePath
+            : workspaceRootPath !== undefined
+              ? `${workspaceRootPath.replace(/\/$/, "")}/${filePath}`
+              : filePath;
+        return buildThreadHostFileContentUrl(threadId, absolutePath);
+      },
+      [threadId, workspaceRootPath],
+    );
   const showActiveThinking =
     activeThinking !== null && ongoingIndicatorLabel === undefined;
   const activeThinkingText = activeThinking?.text.trim() ?? "";
@@ -237,7 +268,7 @@ export function ThreadTimelineSurface({
           onTitleAction={onTitleAction}
           projectId={projectId}
           resolveMentionLink={resolveMentionLink}
-          resolveUserAttachmentImageSrc={toUserAttachmentImageSrc}
+          resolveUserAttachmentImageSrc={resolveUserAttachmentImageSrc}
           hasOlderTimelineRows={hasOlderTimelineRows}
           isLoadingOlderTimelineRows={isLoadingOlderTimelineRows}
           onLoadOlderRows={onLoadOlderRows}
