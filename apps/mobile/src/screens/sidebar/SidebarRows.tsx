@@ -133,20 +133,31 @@ export const SidebarThreadRowView = memo(function SidebarThreadRowView({
           >
             {title}
           </Text>
-          {row.childCount > 0 ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={
-                row.collapsed ? "Show child threads" : "Hide child threads"
-              }
-              hitSlop={10}
-              onPress={() => onToggleCollapsed(thread.id)}
-              className="h-6 w-6 items-center justify-center rounded-sm active:bg-state-active"
-              testID={`thread-row-toggle-${thread.id}`}
-            >
-              <DisclosureChevron collapsed={row.collapsed} size={14} />
-            </Pressable>
-          ) : null}
+          {/* Reserved unconditionally (2026-08-22 — same fix as the desktop
+              chevron, 54e9ff42f: a row with no children skipped this slot
+              entirely, so the title shared its shrink budget with the
+              chevron only on rows that HAD one, and the truncation point
+              jumped between the two row kinds. SidebarHeaderRowView below
+              already renders its chevron unconditionally for exactly this
+              reason — that's the working reference this follows.) Empty
+              when childless, so it still reserves the width without adding
+              a pressable/hit target nothing should activate. */}
+          <View className="relative h-6 w-6 items-center justify-center">
+            {row.childCount > 0 ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={
+                  row.collapsed ? "Show child threads" : "Hide child threads"
+                }
+                hitSlop={10}
+                onPress={() => onToggleCollapsed(thread.id)}
+                className="absolute inset-0 items-center justify-center rounded-sm active:bg-state-active"
+                testID={`thread-row-toggle-${thread.id}`}
+              >
+                <DisclosureChevron collapsed={row.collapsed} size={14} />
+              </Pressable>
+            ) : null}
+          </View>
         </View>
         {subtitle?.kind === "project" ? (
           <View className="flex-row items-center gap-1">
