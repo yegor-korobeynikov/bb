@@ -111,6 +111,32 @@ const CHECKS = {
       return { found: true, count: anchors.length, pass, steps, groups: report };
     })()
   `,
+  // The status dot sits on the title's line-box centre. A -1.4px nudge once
+  // compensated vertical-align:middle centring on the x-height when the dot
+  // was inline; it outlived that layout (the row is a flex items-center
+  // container now) and became a constant 1.40px skew on every row — the same
+  // "compensation outlived its cause" class as the edge-to-dot double layer
+  // earlier on 2026-08-22. Measured after removal: 29/29 rows at 0.00px.
+  // Asserts |dotCentreY - titleCentreY| <= 0.5px on every mounted row.
+  sidebarStatusDotVerticalCenter: `
+    (() => {
+      const anchors = Array.from(document.querySelectorAll('[data-sidebar-thread-id]'));
+      if (anchors.length === 0) return { found: false, inconclusive: true, count: 0 };
+      const deltas = [];
+      for (const a of anchors) {
+        const row = a.closest('[class*="thread-row"]') || a.parentElement;
+        const dot = row && row.querySelector('[data-sidebar-thread-status-dot]');
+        const title = row && row.querySelector('span.truncate, [class*="truncate"]');
+        if (!dot || !title) continue;
+        const d = dot.getBoundingClientRect(), t = title.getBoundingClientRect();
+        deltas.push(Math.round(((d.top + d.height / 2) - (t.top + t.height / 2)) * 100) / 100);
+      }
+      if (deltas.length === 0) return { found: true, inconclusive: true, count: 0, pass: false };
+      const maxAbs = Math.max(...deltas.map(Math.abs));
+      return { found: true, count: deltas.length, maxAbsDelta: maxAbs, pass: maxAbs <= 0.5,
+        offenders: deltas.map((v, i) => ({ i, v })).filter(x => Math.abs(x.v) > 0.5).slice(0, 5) };
+    })()
+  `,
   sidebarChevronVisible: `
     (() => {
       const mountedRows = document.querySelectorAll('[class*="thread-row"]').length;
