@@ -300,9 +300,17 @@
   }
 
   /* Row content beside a hover-actions overlay that grows past its rest slot
-   * (the thread row's archive button sits left of the menu trigger). Reserve
-   * one action width under the same row states that reveal the overlay, so the
-   * title truncates instead of running under the button. */
+   * (the thread row's archive button sits left of the menu trigger, and as
+   * of the New Track button going native (2026-08-22,
+   * decision-tendo-tracks-are-core-not-plugin-v1) a third button sits left
+   * of that). Reserve TWO action widths under the same row states that
+   * reveal the overlay — was one (1.5rem), now doubled to 3rem for the
+   * second additional button — so the title truncates instead of running
+   * under whichever button sits furthest left. A DOM-patched plugin button
+   * briefly lived in this same slot without this reservation growing to
+   * match (2026-08-22 live measurement: 2.9px-22.7px title overlap,
+   * plugin-side fix was to remove the button rather than guess at this
+   * value) — this is the real fix, sized for three buttons at the source. */
   .bb-sidebar-hover-actions-inset {
     transition-property: padding;
     transition-duration: 0ms;
@@ -314,7 +322,7 @@
       .bb-sidebar-hover-actions[data-sidebar-hover-actions-open="true"]
     )
     .bb-sidebar-hover-actions-inset {
-    padding-right: 1.5rem;
+    padding-right: 3rem;
   }
 
   .bb-sidebar-hover-actions-fade {
