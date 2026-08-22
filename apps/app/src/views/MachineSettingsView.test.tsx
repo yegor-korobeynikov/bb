@@ -89,6 +89,7 @@ function systemConfig(): SystemConfigResponse {
     primaryHostPlatform: "darwin",
     voiceTranscriptionEnabled: false,
     dataDir: "/tmp/bb-test",
+    buildId: "test-build",
   };
 }
 

@@ -183,6 +183,14 @@ export const systemConfigResponseSchema = z.object({
   voiceTranscriptionEnabled: z.boolean(),
   /** Absolute path of the active bb data directory (where ui/, theme/, the DB live). */
   dataDir: z.string(),
+  /**
+   * The running server's git commit (or "unknown" outside a git checkout).
+   * The client compares this on every reconnect-triggered config refetch to
+   * detect a server restart onto a newer build while its own bundle is still
+   * the old one in memory, and reloads. See `noteBuildId` in
+   * apps/app/src/lib/system-config-atoms.ts.
+   */
+  buildId: z.string(),
 });
 export type SystemConfigResponse = z.infer<typeof systemConfigResponseSchema>;
 

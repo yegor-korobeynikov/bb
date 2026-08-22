@@ -28,6 +28,7 @@ import {
 } from "@bb/server-contract";
 import type { Hono } from "hono";
 import type { ServerAppDeps, ServerRuntimeConfig } from "../types.js";
+import { resolveBuildId } from "../services/system/build-id.js";
 import type { PluginService } from "../services/plugins/plugin-service.js";
 import { ApiError } from "../errors.js";
 import {
@@ -186,6 +187,7 @@ export function registerSystemRoutes(
           : deps.hub.getDaemonPlatformForHost(primaryHostId),
       voiceTranscriptionEnabled: resolveVoiceTranscriptionEnabled(deps),
       dataDir: deps.config.dataDir,
+      buildId: resolveBuildId(),
     };
   }
 

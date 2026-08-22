@@ -79,6 +79,7 @@ function systemConfig(): SystemConfigResponse {
     primaryHostPlatform: null,
     voiceTranscriptionEnabled: false,
     dataDir: "/tmp/bb-test",
+    buildId: "test-build",
   };
 }
 

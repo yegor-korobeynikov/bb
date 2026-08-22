@@ -38,6 +38,7 @@ const unavailableSystemConfig: SystemConfigResponse = {
   primaryHostPlatform: null,
   voiceTranscriptionEnabled: false,
   dataDir: "",
+  buildId: "",
 };
 
 type SystemConfigLoadStatus = "failed" | "succeeded" | null;
@@ -72,6 +73,26 @@ function didLastSystemConfigLoadFail(): boolean {
   return lastSystemConfigLoadStatus === "failed";
 }
 
+// Set on the first successful config load, compared on every later one.
+// `pnpm sync-live` (or any server restart) swaps the served bundle under a
+// websocket that reconnects silently — the SPA keeps running the OLD JS/CSS
+// in memory with no visible signal a newer build shipped. This atom already
+// refetches system config on every reconnect (see `onMount` below), so the
+// buildId comparison rides that existing refresh instead of adding a new
+// signal path.
+let lastKnownBuildId: string | null = null;
+
+function noteBuildId(buildId: string): void {
+  if (lastKnownBuildId === null) {
+    lastKnownBuildId = buildId;
+    return;
+  }
+  if (buildId !== lastKnownBuildId && typeof window !== "undefined") {
+    // location.reload() keeps the current URL, so the active route survives.
+    window.location.reload();
+  }
+}
+
 async function loadSystemConfig(): Promise<SystemConfigResponse> {
   try {
     const res = await apiClient.system.config.$get();
@@ -80,7 +101,9 @@ async function loadSystemConfig(): Promise<SystemConfigResponse> {
       return unavailableSystemConfig;
     }
     markSystemConfigLoadSucceeded();
-    return (await res.json()) as SystemConfigResponse;
+    const config = (await res.json()) as SystemConfigResponse;
+    noteBuildId(config.buildId);
+    return config;
   } catch {
     markSystemConfigLoadFailed();
     return unavailableSystemConfig;

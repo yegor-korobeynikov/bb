@@ -146,6 +146,7 @@ const systemConfig = {
   primaryHostPlatform: "darwin",
   voiceTranscriptionEnabled: true,
   dataDir: "/Users/michael/.bb",
+  buildId: "story-build",
 } satisfies SystemConfigResponse;
 
 const systemVersion = {
