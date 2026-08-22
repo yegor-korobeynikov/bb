@@ -67,14 +67,27 @@ export function SidebarThreadStatusDot({
         // none for the same reason. Missing here, this element's own 5px
         // footprint silently swallowed clicks landing exactly on it.
         pointerEvents: "none",
-        // `top` is a measured correction, not a guess: vertical-align centres
-        // on the font's x-height box rather than the row's own box, and a
-        // debug pass across seven rows found the same 1.4px low offset every
-        // time. border-box keeps the outline variant the same 5px footprint
-        // as a filled one instead of growing it by the border width.
+        // No `top` correction. There used to be one — `position: relative;
+        // top: -1.4px` — measured back when the dot sat in an inline flow and
+        // `vertical-align: middle` centred it on the font's x-height box
+        // instead of the row's. That correction outlived its cause: the dot's
+        // only call site (ThreadRow) now puts it in a flex container with
+        // `items-center`, where flex centres it on the line box and
+        // vertical-align is inert. The nudge was therefore no longer
+        // compensating for anything — it was the whole misalignment.
+        //
+        // Measured on the live app 2026-08-22, all 22 mounted dots: dot centre
+        // sat exactly -1.40px above its title's centre, identical on every row;
+        // setting top to 0 put every one of them at exactly 0.00. The dot is
+        // also within 0.05px of the title's cap-height centre there, so this is
+        // optically centred, not merely box-centred.
+        //
+        // border-box below keeps the outline (idle) variant the same 5px
+        // footprint as a filled one instead of growing it by the border width.
+        // `display` stays: the reserved (spinner-showing) state hides the dot
+        // with `visibility: hidden` and relies on it still occupying its box,
+        // which is what SidebarThreadStatusDot.test.tsx pins.
         display: "inline-block",
-        position: "relative",
-        top: "-1.4px",
         width: "var(--tendo-status-dot-size)",
         height: "var(--tendo-status-dot-size)",
         borderRadius: "50%",
