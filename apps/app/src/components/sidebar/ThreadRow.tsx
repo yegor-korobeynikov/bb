@@ -721,7 +721,7 @@ function ThreadRowComponent({
           !shortcut && SIDEBAR_HOVER_ACTIONS_INSET_CLASS,
         )}
       >
-        {parentOptions && hasChildren ? (
+        {hasChildren && parentOptions ? (
           <SidebarChildToggleChevron
             isCollapsed={isParentCollapsed}
             expandLabel={`Expand ${labelTitle} threads`}
@@ -738,7 +738,33 @@ function ThreadRowComponent({
                 "calc(var(--tendo-sidebar-chevron-to-dot) - 0.375rem)",
             }}
           />
-        ) : null}
+        ) : (
+          // Same footprint as the chevron button above (size-5 + its own
+          // marginRight), rendered empty. `options.kind` decides "parent" vs
+          // "leaf" upstream of this component — a leaf row never receives
+          // parentOptions at all, so gating the spacer on parentOptions (the
+          // first version of this fix, same day) left every leaf-kind row
+          // with zero reserved space again: parentOptions is only ever set
+          // together with hasChildren, so that gate made the spacer branch
+          // dead code. Without ANY reservation here, a childless row's dot/
+          // label starts ~40px further left than a sibling that happens to
+          // have children — inconsistent indent at the SAME depth, and a
+          // child row landing flush with (not right of) a chevron-bearing
+          // parent, since the parent's depth-based padding has no way to
+          // know its own label was pushed right by a chevron its children
+          // never render (measured live, 2026-08-22, via
+          // scripts/tendo-visual-verify.mjs's tendoRowLabelAlignment check —
+          // 40px spread at depth 1, 0/12 direction checks passing at depth
+          // 2, both closed by unconditionally reserving this slot).
+          <span
+            aria-hidden="true"
+            className="inline-flex size-5 shrink-0"
+            style={{
+              marginRight:
+                "calc(var(--tendo-sidebar-chevron-to-dot) - 0.375rem)",
+            }}
+          />
+        )}
         <SidebarThreadStatusDot
           status={sidebarStatus}
           isReserved={sidebarStatus !== "blocked" && threadRuntimeBusy}

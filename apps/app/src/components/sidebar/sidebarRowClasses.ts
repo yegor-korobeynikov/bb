@@ -42,11 +42,15 @@ export function getSidebarThreadRowPaddingLeft(depth: number): number {
 }
 
 /**
- * Tendo-canon padding-left for a leaf/parent thread row (ThreadRow only —
- * left the older `getSidebarThreadRowPaddingLeft` above untouched since
- * ProjectRow's worktree/environment header rows still consume it and
- * weren't part of this pass, per tendo-design-system/DESIGN.md's indent-step
- * fast-follow scope).
+ * Tendo-canon padding-left for every sidebar row that carries depth —
+ * ThreadRow, ProjectRow's header/drag rows, and SidebarSectionRow all resolve
+ * through this one function now. The older `getSidebarThreadRowPaddingLeft`
+ * below was left in place for those call sites for one pass (ProjectRow's
+ * worktree/environment header rows "weren't part of this pass"); that gap
+ * between the two formulas — 8+24×depth vs this function's 40+16×depth —
+ * is what produced visibly inconsistent indentation across row types
+ * (2026-08-22: measured live, not guessed — see
+ * decision-tendo-sidebar-indent-formula-unification-v1).
  *
  * Ported from the same bb-plugin-task-tabs DOM patch the status dot was
  * ported from (2026-08-20 session) — ONE difference from that port: the

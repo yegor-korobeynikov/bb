@@ -35,7 +35,7 @@ import {
   SIDEBAR_MORE_ACTION_TRIGGER_CLASS,
   SIDEBAR_ROW_BASE_CLASS,
   SIDEBAR_ROW_STATIC_STATE_CLASS,
-  getSidebarThreadRowPaddingLeft,
+  getTendoSidebarThreadRowPaddingLeft,
 } from "./sidebarRowClasses";
 import { SidebarChildToggleChevron } from "./SidebarChildToggleChevron";
 import { CollapsedThreadStatusGlyph } from "./ThreadRow";
@@ -133,7 +133,7 @@ function SidebarSectionRowComponent({
     isDropTargetActive && "bg-sidebar-accent text-sidebar-accent-foreground",
   );
   const style: CSSProperties = {
-    paddingLeft: getSidebarThreadRowPaddingLeft(depth),
+    paddingLeft: getTendoSidebarThreadRowPaddingLeft(depth),
   };
   const handleClickCapture = useCallback<MouseEventHandler<HTMLElement>>(
     (event) => {

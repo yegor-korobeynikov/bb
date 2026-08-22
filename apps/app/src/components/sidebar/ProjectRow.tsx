@@ -108,7 +108,7 @@ import {
 import {
   SIDEBAR_MORE_ACTION_TRIGGER_CLASS,
   SIDEBAR_ROW_BASE_CLASS,
-  getSidebarThreadRowPaddingLeft,
+  getTendoSidebarThreadRowPaddingLeft,
 } from "./sidebarRowClasses";
 import {
   SIDEBAR_DRAG_OVERLAY_DROP_ANIMATION,
@@ -913,7 +913,7 @@ function EnvironmentThreadGroupHeader({
     COARSE_POINTER_COMPACT_ROW_HEIGHT_CLASS,
   );
   const style = {
-    paddingLeft: getSidebarThreadRowPaddingLeft(rowDepth),
+    paddingLeft: getTendoSidebarThreadRowPaddingLeft(rowDepth),
   };
   const content = (
     <>
@@ -1240,7 +1240,7 @@ export function DropPreviewRow({
       data-sidebar-section-drop-preview="true"
       data-visible={visible ? "true" : "false"}
       style={{
-        paddingLeft: getSidebarThreadRowPaddingLeft(depth),
+        paddingLeft: getTendoSidebarThreadRowPaddingLeft(depth),
         // `space-y-px` supplies the normal row gap once visible. Suppress it
         // while collapsed so every target owns a truly zero-height slot.
         marginTop: visible ? undefined : 0,
@@ -1264,7 +1264,7 @@ function SectionThreadDragOverlay({ thread }: { thread: ThreadListEntry }) {
     <div
       aria-hidden="true"
       data-sidebar-section-drag-overlay="true"
-      style={{ paddingLeft: getSidebarThreadRowPaddingLeft(0) }}
+      style={{ paddingLeft: getTendoSidebarThreadRowPaddingLeft(0) }}
       className={cn(
         SIDEBAR_ROW_BASE_CLASS,
         COARSE_POINTER_COMPACT_ROW_HEIGHT_CLASS,
