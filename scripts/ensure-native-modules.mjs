@@ -1,5 +1,6 @@
 import { createRequire } from "node:module";
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -8,6 +9,45 @@ const defaultRepoRoot = resolve(fileURLToPath(import.meta.url), "../..");
 const nativeModules = [
   { name: "better-sqlite3", resolveFrom: "packages/db/package.json" },
 ];
+
+/**
+ * Refuse to touch native modules under the wrong Node major.
+ *
+ * The failure this prevents is not hypothetical — it burned an evening
+ * (2026-08-21): a shell whose PATH resolved `node` to the system install
+ * (v22) ran this script against better-sqlite3 built for the pinned v24.
+ * On macOS the mismatched dlopen doesn't even reach the NODE_MODULE_VERSION
+ * check — the kernel kills the verify subprocess outright
+ * (`SIGKILL (Code Signature Invalid)`, CODESIGNING/"Invalid Page"; four
+ * identical crash reports in ~/Library/Logs/DiagnosticReports). The script
+ * then dies with an opaque signal and the old server keeps serving stale
+ * dist indefinitely. And the failure mode when the kill does NOT happen is
+ * worse: the "repair" path would rebuild the module for the wrong ABI,
+ * breaking the running daemon that uses the pinned version.
+ *
+ * So: compare against .nvmrc BEFORE any dlopen and fail with the one line
+ * of instruction that would have saved the evening.
+ */
+function assertPinnedNodeMajor(repoRoot) {
+  let pinned;
+  try {
+    pinned = readFileSync(resolve(repoRoot, ".nvmrc"), "utf8").trim();
+  } catch {
+    return; // no pin, nothing to enforce
+  }
+  const pinnedMajor = pinned.split(".")[0];
+  const runningMajor = process.versions.node.split(".")[0];
+  if (pinnedMajor === runningMajor) return;
+  throw new Error(
+    `[ensure-native-modules] Node ${process.versions.node} (${process.execPath}) ` +
+      `does not match the pinned ${pinned} (.nvmrc). Native modules here are ` +
+      `built for the pinned ABI; verifying or rebuilding them under another ` +
+      `major either gets SIGKILLed by macOS (Code Signature Invalid) or — ` +
+      `worse — rebuilds them for the wrong ABI and breaks the running daemon. ` +
+      `Fix: put the pinned Node first in PATH (e.g. ` +
+      `export PATH="$HOME/.local/node${pinnedMajor}/bin:$PATH") and re-run.`,
+  );
+}
 
 function formatThrownValue(err) {
   return err instanceof Error ? err.message : String(err);
@@ -92,6 +132,7 @@ export function ensureNativeModules({
     getRepairedNativeModuleError,
   log = console.log,
 } = {}) {
+  assertPinnedNodeMajor(repoRoot);
   for (const { name, resolveFrom } of modules) {
     const requireModule = createRequireImpl(resolve(repoRoot, resolveFrom));
     try {
