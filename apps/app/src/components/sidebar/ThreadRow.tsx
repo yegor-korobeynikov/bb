@@ -20,6 +20,7 @@ import {
   ThreadActionsContextMenu,
   ThreadActionsMenu,
   ThreadArchiveQuickAction,
+  ThreadNewTrackQuickAction,
 } from "@/components/thread/ThreadActionsMenu";
 import { useThreadActions } from "@/components/thread/ThreadActionsProvider";
 import { useInlineThreadTitle } from "@/components/thread/InlineThreadTitle";
@@ -62,6 +63,7 @@ import {
   SIDEBAR_ROW_SELECTED_STATE_CLASS,
   SIDEBAR_MORE_ACTION_TRIGGER_CLASS,
   SIDEBAR_PAIRED_ACTION_LEADING_TARGET_CLASS,
+  SIDEBAR_PAIRED_ACTION_MIDDLE_TARGET_CLASS,
   SIDEBAR_PAIRED_ACTION_TRAILING_TARGET_CLASS,
   SIDEBAR_ROW_OPEN_IN_SPLIT_STATE_CLASS,
   SIDEBAR_SUCCESS_STATUS_COLOR_CLASS,
@@ -576,6 +578,11 @@ function ThreadRowComponent({
   const childActivity =
     parentOptions?.childActivity ?? NO_COLLAPSED_CHILD_ACTIVITY;
   const hasChildren = childCount > 0;
+  // A track carries parentThreadId; a session (a task's own top-level
+  // thread) doesn't — the same isTrack/isSession distinction the plugin
+  // used all day, now read straight off the thread record rather than
+  // derived from DOM structure.
+  const isSessionRow = !thread.parentThreadId;
   // A collapsed parent hides its descendants behind one glyph, so it must
   // surface its own status combined with the rolled-up child activity. Expanded
   // parents and leaves show only their own status.
@@ -870,6 +877,25 @@ function ThreadRowComponent({
                   "absolute inset-y-0 right-0 z-10 flex items-center justify-end max-md:pointer-coarse:hidden",
                 )}
               >
+                {isSessionRow ? (
+                  // New track (2026-08-22, decision-tendo-tracks-are-core-
+                  // not-plugin-v1): a session row — a task's own top-level
+                  // thread — not a track itself (tracks carry
+                  // parentThreadId, sessions don't; the same isTrack check
+                  // the plugin used all day). Now the LEADING glyph in the
+                  // cluster; Archive moved from leading to middle to make
+                  // room (see sidebarRowClasses.ts).
+                  <ThreadNewTrackQuickAction
+                    thread={thread}
+                    existingChildCount={childCount}
+                    className={cn(
+                      "text-subtle-foreground hover:bg-transparent hover:text-foreground",
+                      SIDEBAR_MORE_ACTION_TRIGGER_CLASS,
+                      "-mr-0.5",
+                      SIDEBAR_PAIRED_ACTION_LEADING_TARGET_CLASS,
+                    )}
+                  />
+                ) : null}
                 <ThreadArchiveQuickAction
                   thread={thread}
                   className={cn(
@@ -878,7 +904,9 @@ function ThreadRowComponent({
                     // Tighter than two full margins: a half step between the
                     // two glyphs reads as one control group.
                     "-mr-0.5",
-                    SIDEBAR_PAIRED_ACTION_LEADING_TARGET_CLASS,
+                    isSessionRow
+                      ? SIDEBAR_PAIRED_ACTION_MIDDLE_TARGET_CLASS
+                      : SIDEBAR_PAIRED_ACTION_LEADING_TARGET_CLASS,
                   )}
                 />
                 <ThreadActionsMenu

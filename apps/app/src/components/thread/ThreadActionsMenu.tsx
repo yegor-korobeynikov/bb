@@ -22,6 +22,10 @@ import { useIsCompactViewport } from "@bb/shared-ui/hooks/use-compact-viewport";
 import { cn } from "@bb/shared-ui/lib/utils";
 import { CompactLongPressMenu } from "@/components/ui/compact-long-press-menu";
 import { isThreadRead } from "@bb/client-core";
+import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
+import { getThreadRoutePath } from "@/lib/route-paths";
+import { useCreateTrack } from "@/hooks/mutations/thread-track-mutations";
 import { useThreadActions } from "./ThreadActionsProvider";
 
 interface ThreadActionsMenuBaseProps {
@@ -283,6 +287,69 @@ export function ThreadArchiveQuickAction({
         </Button>
       </TooltipTrigger>
       <TooltipContent side="bottom">{label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+/**
+ * One-click "New track" button for hover-revealed row actions
+ * (decision-tendo-tracks-are-core-not-plugin-v1, 2026-08-22) — same
+ * Tooltip component as Archive, same createTrack pipeline every other
+ * thread creation uses via useCreateTrack, no plugin RPC in between.
+ * Shares the task's environment (isolate: false); an isolated managed
+ * worktree stays a menu-only choice, out of this one-click's scope.
+ * `existingChildCount` is the caller's own childCount, not recomputed
+ * here — ThreadRow already has it for the chevron/collapse state.
+ */
+export function ThreadNewTrackQuickAction({
+  thread,
+  existingChildCount,
+  className,
+}: {
+  thread: Thread;
+  existingChildCount: number;
+  className?: string;
+}) {
+  const { createTrack, isPending } = useCreateTrack();
+  const navigate = useNavigate();
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className={cn("rounded-md p-0", className)}
+          aria-label="New track"
+          disabled={isPending}
+          onClick={async (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            const result = await createTrack({
+              parentThread: thread,
+              existingChildCount,
+              isolate: false,
+            });
+            if (!result.ok) {
+              toast.error(
+                result.failure.kind === "parent-has-no-environment"
+                  ? "This session has no environment to share a track with."
+                  : "No host available for an isolated track.",
+              );
+              return;
+            }
+            navigate(
+              getThreadRoutePath({
+                projectId: thread.projectId,
+                threadId: result.thread.id,
+              }),
+            );
+          }}
+        >
+          <Icon name="Plus" className={COARSE_POINTER_ICON_SIZE_CLASS} />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side="bottom">New track</TooltipContent>
     </Tooltip>
   );
 }

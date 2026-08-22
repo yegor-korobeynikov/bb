@@ -52,6 +52,7 @@ vi.mock("@/components/thread/ThreadActionsMenu", () => ({
   ),
   ThreadActionsMenu: () => null,
   ThreadArchiveQuickAction: () => null,
+  ThreadNewTrackQuickAction: () => null,
 }));
 
 function createThread(

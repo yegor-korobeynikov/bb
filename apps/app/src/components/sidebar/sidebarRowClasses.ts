@@ -103,14 +103,23 @@ export const SIDEBAR_MORE_ACTION_TRIGGER_CLASS =
   "relative m-1 h-5 w-5 after:absolute after:left-1/2 after:top-1/2 after:h-7 after:w-7 after:-translate-x-1/2 after:-translate-y-1/2 after:content-[''] max-md:pointer-coarse:m-0 max-md:pointer-coarse:h-9 max-md:pointer-coarse:w-9 max-md:pointer-coarse:after:hidden";
 
 /**
- * When two `SIDEBAR_MORE_ACTION_TRIGGER_CLASS` buttons sit side by side, their
- * centered 28px pseudo-targets would overlap and the later sibling would win
- * clicks aimed at the earlier one. These variants re-anchor each target to
- * stretch 4px outward but stop 1px short of the shared edge (the midpoint of
- * a 2px gap), so every point between the glyphs belongs to exactly one button.
+ * When two or more `SIDEBAR_MORE_ACTION_TRIGGER_CLASS` buttons sit side by
+ * side, their centered 28px pseudo-targets would overlap and the later
+ * sibling would win clicks aimed at the earlier one. These variants re-anchor
+ * each target to stretch 4px outward on its OUTER edge but stop 1px short of
+ * each shared edge (the midpoint of a 2px gap), so every point in the row
+ * belongs to exactly one button. LEADING is the outermost-left glyph
+ * (stretches left), TRAILING the outermost-right (stretches right), MIDDLE
+ * sits between two neighbours and stretches neither way — added
+ * 2026-08-22 when New Track joined Archive/actions-menu as a third glyph
+ * (decision-tendo-tracks-are-core-not-plugin-v1): Archive moved from
+ * LEADING to MIDDLE since New Track now sits left of it.
  */
 export const SIDEBAR_PAIRED_ACTION_LEADING_TARGET_CLASS =
   "after:-left-1 after:-right-px after:w-auto after:translate-x-0";
+
+export const SIDEBAR_PAIRED_ACTION_MIDDLE_TARGET_CLASS =
+  "after:-left-px after:-right-px after:w-auto after:translate-x-0";
 
 export const SIDEBAR_PAIRED_ACTION_TRAILING_TARGET_CLASS =
   "after:-left-px after:-right-1 after:w-auto after:translate-x-0";
