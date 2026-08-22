@@ -45,6 +45,57 @@ const outBase = outArg !== -1 ? args[outArg + 1] : "/tmp/tendo-verify";
 // (deliberately out of scope this session, same principle as not simulating
 // clicks/hover) — it just stops mis-reading "nothing mounted" as "broken".
 const CHECKS = {
+  // The indent contract (freeze rule, 2026-08-22): a thread row's title x
+  // is a function of its DEPTH and nothing else. Two things used to break
+  // it: (a) the expand chevron was rendered only for rows with children and
+  // sat in the flex flow with its own margin, so a childless row's dot and
+  // title slid left by the whole chevron slot; (b) therefore children of a
+  // chevron-bearing parent and children of a childless parent landed at
+  // different x. This check groups rows by depth (data attribute when the
+  // build has it, computed padding-left as a fallback so it can baseline an
+  // older build) and asserts every row in a depth group shares the same
+  // title left edge within 1px — with and without a chevron.
+  sidebarIndentDepthOnly: `
+    (() => {
+      // [data-sidebar-thread-id] is the invisible full-row <a> overlay
+      // (absolute inset-0, empty); the visible content and the padding-left
+      // live on its PARENT, the .group/thread-row container. Measure there.
+      const anchors = Array.from(document.querySelectorAll('[data-sidebar-thread-id]'));
+      if (anchors.length === 0) return { found: false, inconclusive: true, count: 0 };
+      const groups = {};
+      for (const a of anchors) {
+        const row = a.closest('[class*="thread-row"]') || a.parentElement;
+        if (!row) continue;
+        const title = row.querySelector('span.truncate, [class*="truncate"]');
+        const dot = row.querySelector('[data-sidebar-thread-status-dot]');
+        const ref = title || dot;
+        if (!ref) continue;
+        const depthAttr = a.getAttribute('data-sidebar-thread-depth');
+        const depth = depthAttr !== null ? depthAttr : 'pad:' + getComputedStyle(row).paddingLeft;
+        const x = Math.round((ref.getBoundingClientRect().left - row.getBoundingClientRect().left) * 10) / 10;
+        const hasChevron = row.querySelector('[data-sidebar-child-toggle]') !== null;
+        (groups[depth] ||= []).push({ x, hasChevron, title: (ref.textContent || '').trim().slice(0, 28) });
+      }
+      const report = {};
+      let pass = true;
+      for (const [depth, items] of Object.entries(groups)) {
+        const xs = items.map(i => i.x);
+        const min = Math.min(...xs), max = Math.max(...xs);
+        const spread = Math.round((max - min) * 10) / 10;
+        const withChevron = items.filter(i => i.hasChevron).map(i => i.x);
+        const without = items.filter(i => !i.hasChevron).map(i => i.x);
+        const chevronDelta = withChevron.length && without.length
+          ? Math.round((Math.min(...withChevron) - Math.max(...without)) * 10) / 10 : null;
+        if (spread > 1) pass = false;
+        report[depth] = { count: items.length, min, max, spread, chevronDelta, samples: items.slice(0, 4) };
+      }
+      const grouped = Object.keys(report).length;
+      // No anchor resolved in any row = the selector is wrong for this build,
+      // not a clean sidebar — never let that read as a pass.
+      if (grouped === 0) return { found: true, count: anchors.length, pass: false, inconclusive: true, groups: report };
+      return { found: true, count: anchors.length, pass, groups: report };
+    })()
+  `,
   sidebarChevronVisible: `
     (() => {
       const mountedRows = document.querySelectorAll('[class*="thread-row"]').length;

@@ -1320,3 +1320,62 @@ describe("ThreadRow", () => {
     );
   });
 });
+
+describe("ThreadRow chevron slot", () => {
+  // The indent contract: a row's title x depends on its depth only. A parent-
+  // capable row without children must keep the chevron's layout box, or its
+  // dot and title slide left by the whole slot (measured live 2026-08-22:
+  // 40px, via scripts/tendo-visual-verify.mjs sidebarIndentDepthOnly).
+  const parentBase = {
+    kind: "parent" as const,
+    depth: 0,
+    isCompact: false,
+    isCollapsed: false,
+    childActivity: NO_COLLAPSED_CHILD_ACTIVITY,
+    onToggleCollapsed: vi.fn(),
+  };
+
+  it("renders a real chevron when the row has children", () => {
+    const { container } = renderThreadRow({
+      options: { ...parentBase, childCount: 1 },
+    });
+    expect(container.querySelector("[data-sidebar-child-toggle]")).not.toBeNull();
+    expect(
+      container.querySelector("[data-sidebar-child-toggle-placeholder]"),
+    ).toBeNull();
+  });
+
+  it("reserves the chevron's box when a parent-capable row has no children", () => {
+    const { container } = renderThreadRow({
+      options: { ...parentBase, childCount: 0 },
+    });
+    expect(container.querySelector("[data-sidebar-child-toggle]")).toBeNull();
+    const placeholder = container.querySelector<HTMLElement>(
+      "[data-sidebar-child-toggle-placeholder]",
+    );
+    expect(placeholder).not.toBeNull();
+    if (placeholder === null) return;
+    // Same footprint and the same right margin as the real chevron, so the
+    // dot and title land on the same x as a sibling that has one.
+    expect(placeholder.className).toContain("size-5");
+    expect(placeholder.style.marginRight).toBe(
+      "calc(var(--tendo-sidebar-chevron-to-dot) - 0.375rem)",
+    );
+    expect(placeholder.getAttribute("aria-hidden")).toBe("true");
+  });
+
+  it("does not reserve a slot on a child row, which can never carry a chevron", () => {
+    const { container } = renderThreadRow({ options: DEFAULT_OPTIONS });
+    expect(container.querySelector("[data-sidebar-child-toggle]")).toBeNull();
+    expect(
+      container.querySelector("[data-sidebar-child-toggle-placeholder]"),
+    ).toBeNull();
+  });
+
+  it("exposes its depth for the visual-verify indent check", () => {
+    renderThreadRow({ options: { ...parentBase, depth: 2, childCount: 0 } });
+    expect(
+      screen.getByRole("link", { name: /Open/ }).getAttribute("data-sidebar-thread-depth"),
+    ).toBe("2");
+  });
+});

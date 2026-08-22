@@ -680,6 +680,11 @@ function ThreadRowComponent({
         to={getThreadRoutePath({ projectId, threadId: thread.id })}
         data-sidebar-thread-shortcut-target=""
         data-sidebar-thread-id={thread.id}
+        // Read by scripts/tendo-visual-verify.mjs (sidebarIndentDepthOnly):
+        // the one DOM signal that lets a check assert "every row at the same
+        // depth puts its title at the same x" without guessing depth from
+        // computed padding.
+        data-sidebar-thread-depth={options.depth}
         onClick={(event) => {
           if (isEditing) {
             event.preventDefault();
@@ -721,23 +726,46 @@ function ThreadRowComponent({
           !shortcut && SIDEBAR_HOVER_ACTIONS_INSET_CLASS,
         )}
       >
-        {parentOptions && hasChildren ? (
-          <SidebarChildToggleChevron
-            isCollapsed={isParentCollapsed}
-            expandLabel={`Expand ${labelTitle} threads`}
-            collapseLabel={`Collapse ${labelTitle} threads`}
-            onToggle={() => parentOptions.onToggleCollapsed(thread.id)}
-            revealOnHover
-            // The row's flex container spaces every child with a uniform
-            // gap-1.5 (6px) — fine between the dot and the title, short of
-            // the canon's chevron-to-dot target. This adds the remainder on
-            // top of that shared gap rather than replacing it, so a change
-            // to gap-1.5 doesn't silently detune this number too.
-            style={{
-              marginRight:
-                "calc(var(--tendo-sidebar-chevron-to-dot) - 0.375rem)",
-            }}
-          />
+        {parentOptions ? (
+          hasChildren ? (
+            <SidebarChildToggleChevron
+              isCollapsed={isParentCollapsed}
+              expandLabel={`Expand ${labelTitle} threads`}
+              collapseLabel={`Collapse ${labelTitle} threads`}
+              onToggle={() => parentOptions.onToggleCollapsed(thread.id)}
+              revealOnHover
+              // The row's flex container spaces every child with a uniform
+              // gap-1.5 (6px) — fine between the dot and the title, short of
+              // the canon's chevron-to-dot target. This adds the remainder on
+              // top of that shared gap rather than replacing it, so a change
+              // to gap-1.5 doesn't silently detune this number too.
+              style={{
+                marginRight:
+                  "calc(var(--tendo-sidebar-chevron-to-dot) - 0.375rem)",
+              }}
+            />
+          ) : (
+            // A row that CAN carry a chevron but has no children keeps the
+            // chevron's exact layout box, so its dot and title land where a
+            // sibling's do. Same hidden-not-removed rule as the status dot.
+            // Measured before this existed (tendo-visual-verify
+            // sidebarIndentDepthOnly, 2026-08-22): depth-0 rows without a
+            // chevron sat 40px left of rows with one — the whole slot —
+            // which is most of what read as "the indents are a zoo".
+            // Scoped to parentOptions rows on purpose: child rows never get
+            // a chevron, and their indent step is already tuned to sit under
+            // a chevron-bearing parent, so reserving here too would un-tune
+            // every child by the same 40px.
+            <span
+              aria-hidden="true"
+              data-sidebar-child-toggle-placeholder=""
+              className="inline-flex size-5 shrink-0"
+              style={{
+                marginRight:
+                  "calc(var(--tendo-sidebar-chevron-to-dot) - 0.375rem)",
+              }}
+            />
+          )
         ) : null}
         <SidebarThreadStatusDot
           status={sidebarStatus}
