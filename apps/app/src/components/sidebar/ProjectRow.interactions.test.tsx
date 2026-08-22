@@ -137,23 +137,31 @@ function renderProjectRow(
   isCollapsed = false,
 ) {
   const onToggleEnvironmentCollapsed = vi.fn();
+  // QueryClientProvider (2026-08-22): ThreadRow's New Track button
+  // (decision-tendo-tracks-are-core-not-plugin-v1) reaches useCreateTrack ->
+  // useCreateThread -> useQueryClient() on every render, not just on click -
+  // any tree that mounts a ThreadRow now needs a query client present, this
+  // helper didn't have one yet.
+  const queryClient = new QueryClient();
   const result = render(
     <TooltipProvider>
-      <MemoryRouter>
-        <ProjectRow
-          project={makeProject()}
-          threadListState={threadListState}
-          isActive={isActive}
-          isCollapsed={isCollapsed}
-          compareThreads={() => 0}
-          collapsedThreadIds={new Set()}
-          collapsedEnvironmentIds={collapsedEnvironmentIds}
-          isLocalPathInvalid={false}
-          onToggleProjectCollapsed={onToggleProjectCollapsed}
-          onToggleThreadCollapsed={vi.fn()}
-          onToggleEnvironmentCollapsed={onToggleEnvironmentCollapsed}
-        />
-      </MemoryRouter>
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <ProjectRow
+            project={makeProject()}
+            threadListState={threadListState}
+            isActive={isActive}
+            isCollapsed={isCollapsed}
+            compareThreads={() => 0}
+            collapsedThreadIds={new Set()}
+            collapsedEnvironmentIds={collapsedEnvironmentIds}
+            isLocalPathInvalid={false}
+            onToggleProjectCollapsed={onToggleProjectCollapsed}
+            onToggleThreadCollapsed={vi.fn()}
+            onToggleEnvironmentCollapsed={onToggleEnvironmentCollapsed}
+          />
+        </MemoryRouter>
+      </QueryClientProvider>
     </TooltipProvider>,
   );
   return { ...result, onToggleEnvironmentCollapsed, onToggleProjectCollapsed };

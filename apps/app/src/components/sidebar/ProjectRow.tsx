@@ -51,7 +51,6 @@ import {
 } from "@/components/dialogs/EnvironmentRenameDialog";
 import {
   COARSE_POINTER_COMPACT_ROW_HEIGHT_CLASS,
-  COARSE_POINTER_GLYPH_BOX_CLASS,
   COARSE_POINTER_ICON_SIZE_CLASS,
   COARSE_POINTER_ROW_ACTION_SIZE_CLASS,
 } from "@bb/shared-ui/coarse-pointer-sizing";
@@ -922,27 +921,38 @@ function EnvironmentThreadGroupHeader({
   };
   const content = (
     <>
-      <span
-        className={cn(
-          "pointer-events-none relative z-10 inline-flex shrink-0 items-center justify-center text-subtle-foreground",
-          COARSE_POINTER_GLYPH_BOX_CLASS,
-        )}
-        aria-hidden="true"
-      >
-        <Icon
-          name={iconName}
-          className={COARSE_POINTER_ICON_SIZE_CLASS}
-          aria-hidden="true"
-        />
-      </span>
+      {/* Folder icon at rest, chevron on hover, folder again the instant the
+          cursor leaves (Cursor Repositories reference, 2026-08-22) — one
+          slot, not the previous two (a static decorative folder glyph here,
+          a separate always-visible chevron inside the title span). The
+          plugin's own always-visible-chevron !important override
+          (2026-08-19 directive, retired same day this landed) used to fight
+          any hover-fade here; now nothing does.
+
+          Positioned absolute, not in the text's own flow (Yegor, 2026-08-22
+          — title should start at the same X as the New thread/Extensions/
+          Automations/Canvas nav icons, measured live at 15.99px; this row's
+          own paddingLeft already puts an in-flow child there, but the icon
+          slot ahead of the title consumed another ~28px pushing it to
+          43.98px). Taking the icon out of flow — the same absolute-overlay
+          approach the New Track button already uses in the row's trailing
+          slot — lets the title reclaim that space instead of guessing at a
+          second padding value; row's own containing block (relative or
+          sticky, see className above) already supports it. */}
+      <SidebarChildToggleChevron
+        isCollapsed={isCollapsed}
+        expandLabel={`Expand ${displayName} threads`}
+        collapseLabel={`Collapse ${displayName} threads`}
+        onToggle={() => onToggleCollapsed(environmentId)}
+        restIcon={iconName}
+        style={{
+          position: "absolute",
+          left: 0,
+          top: "50%",
+          transform: "translateY(-50%)",
+        }}
+      />
       <span className="pointer-events-none relative z-10 flex min-w-0 flex-1 items-center gap-1.5 text-left text-subtle-foreground/80">
-        <SidebarChildToggleChevron
-          isCollapsed={isCollapsed}
-          expandLabel={`Expand ${displayName} threads`}
-          collapseLabel={`Collapse ${displayName} threads`}
-          onToggle={() => onToggleCollapsed(environmentId)}
-          revealOnHover
-        />
         <span className="min-w-0 truncate">
           <span>{displayName}</span>
         </span>
