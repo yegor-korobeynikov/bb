@@ -1364,12 +1364,22 @@ describe("ThreadRow chevron slot", () => {
     expect(placeholder.getAttribute("aria-hidden")).toBe("true");
   });
 
-  it("does not reserve a slot on a child row, which can never carry a chevron", () => {
+  it("reserves the slot on a default (non-parent) row too — a childless session renders with default options", () => {
+    // Regression for the first version of this fix, which gated the
+    // placeholder on parentOptions and was re-measured live as still broken:
+    // a session with no children comes through as kind "default", so the
+    // gate missed exactly the rows it existed for (x=67 vs 107 at the same
+    // depth). The slot is unconditional now — the contract is "title x is a
+    // function of depth only", which needs one row structure everywhere.
     const { container } = renderThreadRow({ options: DEFAULT_OPTIONS });
     expect(container.querySelector("[data-sidebar-child-toggle]")).toBeNull();
-    expect(
-      container.querySelector("[data-sidebar-child-toggle-placeholder]"),
-    ).toBeNull();
+    const placeholder = container.querySelector<HTMLElement>(
+      "[data-sidebar-child-toggle-placeholder]",
+    );
+    expect(placeholder).not.toBeNull();
+    expect(placeholder?.style.marginRight).toBe(
+      "calc(var(--tendo-sidebar-chevron-to-dot) - 0.375rem)",
+    );
   });
 
   it("exposes its depth for the visual-verify indent check", () => {

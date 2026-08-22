@@ -726,47 +726,49 @@ function ThreadRowComponent({
           !shortcut && SIDEBAR_HOVER_ACTIONS_INSET_CLASS,
         )}
       >
-        {parentOptions ? (
-          hasChildren ? (
-            <SidebarChildToggleChevron
-              isCollapsed={isParentCollapsed}
-              expandLabel={`Expand ${labelTitle} threads`}
-              collapseLabel={`Collapse ${labelTitle} threads`}
-              onToggle={() => parentOptions.onToggleCollapsed(thread.id)}
-              revealOnHover
-              // The row's flex container spaces every child with a uniform
-              // gap-1.5 (6px) — fine between the dot and the title, short of
-              // the canon's chevron-to-dot target. This adds the remainder on
-              // top of that shared gap rather than replacing it, so a change
-              // to gap-1.5 doesn't silently detune this number too.
-              style={{
-                marginRight:
-                  "calc(var(--tendo-sidebar-chevron-to-dot) - 0.375rem)",
-              }}
-            />
-          ) : (
-            // A row that CAN carry a chevron but has no children keeps the
-            // chevron's exact layout box, so its dot and title land where a
-            // sibling's do. Same hidden-not-removed rule as the status dot.
-            // Measured before this existed (tendo-visual-verify
-            // sidebarIndentDepthOnly, 2026-08-22): depth-0 rows without a
-            // chevron sat 40px left of rows with one — the whole slot —
-            // which is most of what read as "the indents are a zoo".
-            // Scoped to parentOptions rows on purpose: child rows never get
-            // a chevron, and their indent step is already tuned to sit under
-            // a chevron-bearing parent, so reserving here too would un-tune
-            // every child by the same 40px.
-            <span
-              aria-hidden="true"
-              data-sidebar-child-toggle-placeholder=""
-              className="inline-flex size-5 shrink-0"
-              style={{
-                marginRight:
-                  "calc(var(--tendo-sidebar-chevron-to-dot) - 0.375rem)",
-              }}
-            />
-          )
-        ) : null}
+        {parentOptions && hasChildren ? (
+          <SidebarChildToggleChevron
+            isCollapsed={isParentCollapsed}
+            expandLabel={`Expand ${labelTitle} threads`}
+            collapseLabel={`Collapse ${labelTitle} threads`}
+            onToggle={() => parentOptions.onToggleCollapsed(thread.id)}
+            revealOnHover
+            // The row's flex container spaces every child with a uniform
+            // gap-1.5 (6px) — fine between the dot and the title, short of
+            // the canon's chevron-to-dot target. This adds the remainder on
+            // top of that shared gap rather than replacing it, so a change
+            // to gap-1.5 doesn't silently detune this number too.
+            style={{
+              marginRight:
+                "calc(var(--tendo-sidebar-chevron-to-dot) - 0.375rem)",
+            }}
+          />
+        ) : (
+          // Every thread row without a real chevron keeps the chevron's exact
+          // layout box — unconditionally. The indent contract is "title x is a
+          // function of depth only", and that only holds if the row's
+          // internal structure (slot, dot, title) is identical at every depth
+          // and for every row; the visible indent between depths is then
+          // exactly --tendo-sidebar-indent-step, tunable as one token.
+          //
+          // Measured, not assumed (tendo-visual-verify sidebarIndentDepthOnly,
+          // 2026-08-22): before any reservation, sessions without a chevron
+          // sat 40px left of siblings with one. A first version reserved the
+          // slot only on `parentOptions` rows — and the live re-measure after
+          // delivery still showed a childless session at x=67 vs 107: a
+          // session with no children is rendered with default options, not
+          // parent options, so the gate missed exactly the rows it was for.
+          // Same hidden-not-removed rule as the status dot.
+          <span
+            aria-hidden="true"
+            data-sidebar-child-toggle-placeholder=""
+            className="inline-flex size-5 shrink-0"
+            style={{
+              marginRight:
+                "calc(var(--tendo-sidebar-chevron-to-dot) - 0.375rem)",
+            }}
+          />
+        )}
         <SidebarThreadStatusDot
           status={sidebarStatus}
           isReserved={sidebarStatus !== "blocked" && threadRuntimeBusy}
