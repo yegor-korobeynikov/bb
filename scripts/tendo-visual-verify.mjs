@@ -469,7 +469,13 @@ function send(ws, id, method, params = {}) {
 }
 
 async function main() {
-  const listRes = await fetch(`http://localhost:${port}/json/list`);
+  // 127.0.0.1, not localhost: on macOS `localhost` resolves to ::1 first, and
+  // a second headless browser can sit on [::1]:<port> while another holds
+  // 127.0.0.1:<port>. That exact split produced two contradictory readings
+  // of "the same page" on 2026-08-22 — one instrument on each loopback,
+  // each seeing a different build. Pin the family so every tool in this
+  // repo measures the same target.
+  const listRes = await fetch(`http://127.0.0.1:${port}/json/list`);
   const targets = await listRes.json();
   // Match any locally served Tendo page, not one hardcoded port: the daily
   // driver runs on 38886, but a dev instance derives its ports from the
