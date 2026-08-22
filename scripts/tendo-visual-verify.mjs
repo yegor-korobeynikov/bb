@@ -242,73 +242,79 @@ const CHECKS = {
   sidebarNewTrackHoverAction: `
     (() => {
       // Contract (Yegor, 2026-08-21, freeze rule — written BEFORE the
-      // implementation, not after): every top-level SESSION row (a row
-      // whose own thread has no parentThreadId — i.e. a task, not a
-      // track) must carry a hover-revealed 'New track' action, marked
-      // [data-bso-new-track-action], that calls the SAME create path as
-      // the native TrackTab 'New track' button (the openTrack RPC:
-      // taskId/projectId/title/prompt/isolate) — never a separate
-      // picker/form screen. One glyph, present on every session row,
-      // absent on every track (child) row.
+      // implementation, not after): a SESSION row (no parentThreadId) with
+      // NO existing track must carry a hover-revealed 'New track' action,
+      // [data-bso-new-track-action], calling the same openTrack path as
+      // TrackTab's native button — never a separate picker screen.
       //
-      // Extended same day, after item 3 (archive/menu overlap) closed as a
-      // false positive (archiveMenuOverlap: overlapCount=0, pass=true): the
-      // extension to sessions WITH an existing track (native chevron
-      // occupies the left slot there, so this one has to live in the
-      // right-side hover-actions zone alongside archive + actions-menu) now
-      // asserts NO overlap with either native button, reusing the same
-      // rectsOverlap geometry test as archiveMenuOverlap rather than
-      // trusting a guessed CSS offset.
+      // Extended 2026-08-21 to sessions WITH a track, then RETIRED same day
+      // after live measurement (Yegor, 2026-08-22): prepending a third
+      // button into archive+menu's shared right-side container grows that
+      // container without SIDEBAR_HOVER_ACTIONS_INSET_CLASS — the title
+      // span's own reserved space, sized natively for exactly two buttons —
+      // growing to match, so the button overlapped live title text
+      // (measured 2.9px-22.7px overlap, worse on longer titles). This
+      // contract now asserts the OPPOSITE of the 2026-08-21 version: zero
+      // action buttons inside any archive/menu container, and zero overlap
+      // between the (left-slot-only) action and its own row's title.
       const rectsOverlap = (a, b) =>
         a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
       const mountedRows = document.querySelectorAll('[class*="thread-row"]').length;
       const actions = Array.from(document.querySelectorAll('[data-bso-new-track-action]'));
-      const samples = actions.map((el) => {
-        const row = el.closest('[class*="thread-row"]');
-        const cs = getComputedStyle(el);
-        return {
-          rowText: row ? (row.textContent || '').trim().slice(0, 40) : null,
-          display: cs.display,
-          ariaLabel: el.getAttribute('aria-label'),
-          title: el.getAttribute('title'),
-        };
-      });
       const nativeButtons = Array.from(document.querySelectorAll('button')).filter((b) => {
         const label = (b.getAttribute('aria-label') || '').toLowerCase();
         return label.includes('archiv') || label.includes('actions') || label.includes('more') || label.includes('menu');
       });
-      const overlaps = [];
-      for (const action of actions) {
-        const row = action.closest('[class*="thread-row"]');
-        const ar = action.getBoundingClientRect();
-        for (const nb of nativeButtons) {
-          if (row && !row.contains(nb)) continue;
-          const nr = nb.getBoundingClientRect();
-          if (rectsOverlap(ar, nr)) {
-            overlaps.push({
-              rowText: row ? (row.textContent || '').trim().slice(0, 40) : null,
-              nativeLabel: nb.getAttribute('aria-label'),
+      const rightSlotLeaks = actions.filter((el) =>
+        nativeButtons.some((nb) => el.parentElement === nb.parentElement),
+      );
+      const titleOverlaps = [];
+      const samples = actions.map((el) => {
+        const row = el.closest('[class*="thread-row"]');
+        const cs = getComputedStyle(el);
+        const title = row ? row.querySelector('span.truncate, [class*="truncate"]') : null;
+        if (title) {
+          const ar = el.getBoundingClientRect();
+          const tr = title.getBoundingClientRect();
+          if (rectsOverlap(ar, tr)) {
+            titleOverlaps.push({
+              rowText: (row.textContent || '').trim().slice(0, 40),
               actionRect: { left: ar.left, right: ar.right },
-              nativeRect: { left: nr.left, right: nr.right },
+              titleRect: { left: tr.left, right: tr.right },
             });
           }
         }
-      }
+        return {
+          rowText: row ? (row.textContent || '').trim().slice(0, 40) : null,
+          display: cs.display,
+          width: cs.width,
+          position: cs.position,
+          left: cs.left,
+          zIndex: cs.zIndex,
+          ariaLabel: el.getAttribute('aria-label'),
+        };
+      });
+      // Every mounted action must render identically — one code path, one
+      // shape (Yegor, 2026-08-22: measured two different renders, 20x20
+      // static and 14x14 absolute z2, live evidence of two divergent code
+      // paths after the right-slot variant was removed there should only
+      // ever be one).
+      const shapes = new Set(samples.map((s) => \`\${s.width}|\${s.position}|\${s.left}|\${s.zIndex}\`));
       // Eligible-rendered proxy, CDP-only (no access to the plugin's own
       // parentThreadId data): a row without [data-sidebar-child-toggle] is
-      // a session with no track yet; a row WITH the toggle is either a
-      // track-having session (now also eligible, post-extension) or a
-      // track itself (not eligible) — mountedRows is the honest overall
-      // denominator, count vs it is reported not asserted equal, same
-      // reasoning as before.
+      // a session with no track yet — the only eligible case now.
       return {
         found: actions.length > 0,
         count: actions.length,
         mountedRows,
         inconclusive: mountedRows === 0,
-        overlapCount: overlaps.length,
-        overlapPass: overlaps.length === 0,
-        overlaps: overlaps.slice(0, 10),
+        rightSlotLeakCount: rightSlotLeaks.length,
+        rightSlotPass: rightSlotLeaks.length === 0,
+        titleOverlapCount: titleOverlaps.length,
+        titleOverlapPass: titleOverlaps.length === 0,
+        titleOverlaps: titleOverlaps.slice(0, 10),
+        distinctShapeCount: shapes.size,
+        onePathPass: shapes.size <= 1,
         samples: samples.slice(0, 15),
       };
     })()
