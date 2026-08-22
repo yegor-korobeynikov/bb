@@ -295,13 +295,32 @@ const CHECKS = {
       // reads (2026-08-22 fix — first version of this check produced
       // 5/14 false-positive overlaps, all traced to this), restore it after
       // each row so nothing outside this check's own read is left mutated.
+      //
+      // TWO elements in ThreadRow.tsx carry this exact attribute (the fade
+      // wrapper around the trailing indicator, AND the actual
+      // .bb-sidebar-hover-actions container with archive/menu/new-track) —
+      // each has its OWN CSS rule reacting to it. The first version of this
+      // fix used querySelector (singular), which always matched the FIRST
+      // one in DOM order (the fade wrapper, not the container the inset
+      // rule's :has() selector actually checks) — so it silently forced the
+      // wrong element and the inset rule never fired. querySelectorAll +
+      // force every match fixes that without needing to know which is which.
       const samples = actions.map((el) => {
         const row = el.closest('[class*="thread-row"]');
         const cs = getComputedStyle(el);
         const title = row ? row.querySelector('span.truncate, [class*="truncate"]') : null;
-        const hoverContainer = row ? row.querySelector('[data-sidebar-hover-actions-open]') : null;
-        const hadAttr = hoverContainer ? hoverContainer.getAttribute('data-sidebar-hover-actions-open') : null;
-        if (hoverContainer) hoverContainer.setAttribute('data-sidebar-hover-actions-open', 'true');
+        const hoverContainers = row ? Array.from(row.querySelectorAll('[data-sidebar-hover-actions-open]')) : [];
+        const hadAttrs = hoverContainers.map((c) => c.getAttribute('data-sidebar-hover-actions-open'));
+        hoverContainers.forEach((c) => c.setAttribute('data-sidebar-hover-actions-open', 'true'));
+        // Forced reflow between the attribute write and the rect reads
+        // (coordinator, 2026-08-22, confirmed live: manually reproducing
+        // this exact sequence — setAttribute, void offsetHeight, THEN
+        // getBoundingClientRect — measured a -16px gap, not a 32px overlap,
+        // on the same row this check flagged). The padding transition is
+        // 0ms duration, but a synchronous rect read immediately after the
+        // attribute write can still observe pre-transition layout in some
+        // engines; void row.offsetHeight forces layout to settle first.
+        if (row) void row.offsetHeight;
         if (title) {
           const ar = el.getBoundingClientRect();
           const tr = title.getBoundingClientRect();
