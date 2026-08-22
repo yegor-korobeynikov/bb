@@ -241,34 +241,46 @@ const CHECKS = {
   `,
   sidebarNewTrackHoverAction: `
     (() => {
-      // Contract (Yegor, 2026-08-21, freeze rule — written BEFORE the
-      // implementation, not after): a SESSION row (no parentThreadId) with
-      // NO existing track must carry a hover-revealed 'New track' action,
-      // [data-bso-new-track-action], calling the same openTrack path as
-      // TrackTab's native button — never a separate picker screen.
+      // Contract v3 (Yegor, 2026-08-22, freeze rule — written BEFORE the
+      // native implementation): New Track is core product, not a plugin
+      // add-on (decision, 2026-08-22) — openTrack and its button move
+      // natively next to Archive/actions-menu. Reverses v2 (which asserted
+      // the plugin's right-slot button should NOT exist, after it grew
+      // archive+menu's shared container without
+      // SIDEBAR_HOVER_ACTIONS_INSET_CLASS growing to match — 2.9px-22.7px
+      // measured title overlap). This version asserts the native fix:
+      // inset now reserves room for THREE buttons, so the same slot no
+      // longer overlaps text. History: v1 (2026-08-21, plugin-only,
+      // no-track sessions) -> v2 (2026-08-21, extended then reverted
+      // 2026-08-22) -> v3 (2026-08-22, native, all sessions).
       //
-      // Extended 2026-08-21 to sessions WITH a track, then RETIRED same day
-      // after live measurement (Yegor, 2026-08-22): prepending a third
-      // button into archive+menu's shared right-side container grows that
-      // container without SIDEBAR_HOVER_ACTIONS_INSET_CLASS — the title
-      // span's own reserved space, sized natively for exactly two buttons —
-      // growing to match, so the button overlapped live title text
-      // (measured 2.9px-22.7px overlap, worse on longer titles). This
-      // contract now asserts the OPPOSITE of the 2026-08-21 version: zero
-      // action buttons inside any archive/menu container, and zero overlap
-      // between the (left-slot-only) action and its own row's title.
+      // No [data-bso-*] marker anymore — this is native, found the same way
+      // archive/menu are found (aria-label match), not a plugin attribute.
+      // 'Session row' (eligible) vs 'track row' (not) is read from
+      // data-sidebar-thread-depth when present (same source backend's
+      // sidebarIndentDepthOnly check uses), falling back to computed
+      // padding-left otherwise.
       const rectsOverlap = (a, b) =>
         a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
       const mountedRows = document.querySelectorAll('[class*="thread-row"]').length;
-      const actions = Array.from(document.querySelectorAll('[data-bso-new-track-action]'));
-      const nativeButtons = Array.from(document.querySelectorAll('button')).filter((b) => {
-        const label = (b.getAttribute('aria-label') || '').toLowerCase();
-        return label.includes('archiv') || label.includes('actions') || label.includes('more') || label.includes('menu');
-      });
-      const rightSlotLeaks = actions.filter((el) =>
-        nativeButtons.some((nb) => el.parentElement === nb.parentElement),
-      );
+      const anchors = Array.from(document.querySelectorAll('[data-sidebar-thread-id]'));
+      const sessionRows = anchors
+        .map((a) => a.closest('[class*="thread-row"]') || a.parentElement)
+        .filter((row) => {
+          if (!row) return false;
+          const anchor = row.querySelector('[data-sidebar-thread-id]');
+          const depthAttr = anchor ? anchor.getAttribute('data-sidebar-thread-depth') : null;
+          if (depthAttr !== null) return Number(depthAttr) === 0;
+          return !row.closest('[class*="thread-row"] [class*="thread-row"]');
+        });
+      const findAction = (row) =>
+        Array.from(row.querySelectorAll('button')).find((b) =>
+          (b.getAttribute('aria-label') || '').toLowerCase().includes('new track'),
+        ) || null;
+      const missingOnSessionRows = sessionRows.filter((row) => !findAction(row));
+      const actions = sessionRows.map(findAction).filter(Boolean);
       const titleOverlaps = [];
+      const missingRadix = [];
       const samples = actions.map((el) => {
         const row = el.closest('[class*="thread-row"]');
         const cs = getComputedStyle(el);
@@ -284,6 +296,18 @@ const CHECKS = {
             });
           }
         }
+        // Same radix signature as Archive: no bare title attribute, has
+        // aria-label plus a data-state (the Tooltip Trigger's own marker) —
+        // that's the whole point of going native, per Yegor's original
+        // complaint about tooltip inconsistency.
+        const hasRadixTooltip = el.getAttribute('title') === null && el.hasAttribute('data-state');
+        if (!hasRadixTooltip) {
+          missingRadix.push({
+            rowText: row ? (row.textContent || '').trim().slice(0, 40) : null,
+            hasTitle: el.getAttribute('title') !== null,
+            hasDataState: el.hasAttribute('data-state'),
+          });
+        }
         return {
           rowText: row ? (row.textContent || '').trim().slice(0, 40) : null,
           display: cs.display,
@@ -292,24 +316,26 @@ const CHECKS = {
           left: cs.left,
           zIndex: cs.zIndex,
           ariaLabel: el.getAttribute('aria-label'),
+          hasRadixTooltip,
         };
       });
       // Every mounted action must render identically — one code path, one
       // shape (Yegor, 2026-08-22: measured two different renders, 20x20
       // static and 14x14 absolute z2, live evidence of two divergent code
-      // paths after the right-slot variant was removed there should only
-      // ever be one).
+      // paths — should never happen again once this is one native
+      // component instead of two plugin code paths).
       const shapes = new Set(samples.map((s) => \`\${s.width}|\${s.position}|\${s.left}|\${s.zIndex}\`));
-      // Eligible-rendered proxy, CDP-only (no access to the plugin's own
-      // parentThreadId data): a row without [data-sidebar-child-toggle] is
-      // a session with no track yet — the only eligible case now.
       return {
         found: actions.length > 0,
         count: actions.length,
+        sessionRowCount: sessionRows.length,
         mountedRows,
         inconclusive: mountedRows === 0,
-        rightSlotLeakCount: rightSlotLeaks.length,
-        rightSlotPass: rightSlotLeaks.length === 0,
+        missingOnSessionRowCount: missingOnSessionRows.length,
+        presentOnEverySessionRow: missingOnSessionRows.length === 0,
+        missingRadixTooltipCount: missingRadix.length,
+        radixTooltipPass: missingRadix.length === 0,
+        missingRadix: missingRadix.slice(0, 10),
         titleOverlapCount: titleOverlaps.length,
         titleOverlapPass: titleOverlaps.length === 0,
         titleOverlaps: titleOverlaps.slice(0, 10),
