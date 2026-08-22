@@ -296,8 +296,14 @@ export function ThreadArchiveQuickAction({
  * (decision-tendo-tracks-are-core-not-plugin-v1, 2026-08-22) — same
  * Tooltip component as Archive, same createTrack pipeline every other
  * thread creation uses via useCreateTrack, no plugin RPC in between.
- * Shares the task's environment (isolate: false); an isolated managed
- * worktree stays a menu-only choice, out of this one-click's scope.
+ * Isolated managed worktree (isolate: true), matching TrackTab's own
+ * "New track" button — parity, not a free choice: the decision this
+ * button implements was about WHERE the logic lives, not what track
+ * gets created, and a sidebar/panel pair with the same label doing
+ * different things would be exactly the inconsistency (Archive's
+ * tooltip vs this button's original bare title) that started this
+ * whole pass. Parallel tracks writing code need their own working
+ * tree — every one of Yegor's own tracks already runs this way.
  * `existingChildCount` is the caller's own childCount, not recomputed
  * here — ThreadRow already has it for the chevron/collapse state.
  */
@@ -328,7 +334,7 @@ export function ThreadNewTrackQuickAction({
             const result = await createTrack({
               parentThread: thread,
               existingChildCount,
-              isolate: false,
+              isolate: true,
             });
             if (!result.ok) {
               toast.error(
