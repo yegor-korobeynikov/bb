@@ -1111,7 +1111,14 @@ const EnvironmentThreadGroupRow = memo(function EnvironmentThreadGroupRow({
                     key={node.thread.id}
                     projectId={projectId}
                     node={node}
-                    depthOffset={depthOffset + 1}
+                    // No extra step under an environment header, for the same
+                    // reason the project tree root no longer adds one (see
+                    // getThreadRowDepth): the header is a container label, not
+                    // a row the threads hang off. Removing only the root
+                    // offset changed nothing on an env-grouped sidebar —
+                    // measured on the live build, sessions stayed at 32px —
+                    // because this +1 simply took the other one's place.
+                    depthOffset={depthOffset}
                     isEnvGrouped
                     selectedThreadId={selectedThreadId}
                     collapsedThreadIds={collapsedThreadIds}
