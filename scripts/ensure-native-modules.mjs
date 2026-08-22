@@ -1,7 +1,7 @@
 import { createRequire } from "node:module";
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { readFileSync, rmSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const defaultRepoRoot = resolve(fileURLToPath(import.meta.url), "../..");
@@ -144,6 +144,19 @@ export function ensureNativeModules({
       const pkgJsonPath = requireModule.resolve(`${name}/package.json`);
       const pkgDir = dirname(pkgJsonPath);
       const pkgRequire = createRequireImpl(pkgJsonPath);
+      // Delete the stale binary BEFORE the installer writes a replacement.
+      // Writing over the existing file keeps its vnode, and the macOS kernel
+      // caches code signatures per vnode — an in-place rewrite leaves a file
+      // whose on-disk signature verifies (`codesign -vv`: valid) while every
+      // dlopen gets SIGKILL (Code Signature Invalid) before Node can even
+      // report the real problem. That exact trap took down live-daemon
+      // restarts on 2026-08-22: a wrong-ABI in-place rebuild produced a
+      // binary that crashed *opaquely* instead of failing with the honest
+      // NODE_MODULE_VERSION error. Unlink first → the installer creates a
+      // fresh vnode and the kernel evaluates the new signature from scratch.
+      rmSync(join(pkgDir, "build", "Release", `${name.replace(/-/g, "_")}.node`), {
+        force: true,
+      });
       log(
         `[ensure-native-modules] Installing prebuilt ${name} for Node ${process.versions.node} (ABI ${process.versions.modules})`,
       );
