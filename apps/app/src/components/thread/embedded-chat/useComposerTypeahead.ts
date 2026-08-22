@@ -104,6 +104,7 @@ export function useComposerTypeahead({
       handleEditorFocus,
       promptMentions.isError,
       promptMentions.isLoading,
+      promptMentions.retryThreads,
       promptMentions.setQuery,
       promptMentions.suggestions,
       promptMentions.triggers,
