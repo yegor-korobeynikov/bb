@@ -485,18 +485,23 @@ function getProjectThreadTreeGroupLineClassName(): undefined {
   return undefined;
 }
 
-function getProjectThreadTreeRootDepthOffset(
-  variant: ProjectThreadTreeVariant,
-): number {
-  return variant === "section" ? 0 : 1;
-}
-
 function getThreadRowDepth({
   depthOffset,
   nodeDepth,
-  variant,
 }: GetThreadRowDepthArgs): number {
-  return getProjectThreadTreeRootDepthOffset(variant) + nodeDepth + depthOffset;
+  // No root offset for either variant (Yegor, 2026-08-22). The project row
+  // used to cost its threads one indent step, which put a session's first ink
+  // at 32px while every other first ink in the sidebar — the nav icons (New
+  // thread, Extensions, Canvas, Tasks) and the project row's own icon — sits
+  // at 16px, so the panel read as two competing left columns. With no offset a
+  // session's chevron lands on that same 16px column and a track lands one
+  // clean step in at 32px.
+  //
+  // The tradeoff was named before the change rather than discovered after it:
+  // a session label now sits flush with the project label (67px vs 66px), so
+  // the project row reads as a section header rather than as the session's
+  // parent. Yegor chose that over keeping the extra step.
+  return nodeDepth + depthOffset;
 }
 
 function getThreadRowOptions({
