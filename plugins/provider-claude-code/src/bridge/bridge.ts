@@ -1375,6 +1375,7 @@ async function closeClaudeThreadSession(
  */
 function buildSessionEnv(
   envOverrides: Record<string, string>,
+  accountConfigDir?: string,
 ): NodeJS.ProcessEnv {
   const sessionEnv: NodeJS.ProcessEnv = {
     ...withoutBridgeRuntimeEnv(process.env),
@@ -1382,6 +1383,9 @@ function buildSessionEnv(
     CLAUDE_CODE_ENTRYPOINT: "cli",
   };
   delete sessionEnv.CLAUDE_AGENT_SDK_CLIENT_APP;
+  if (accountConfigDir !== undefined) {
+    sessionEnv.CLAUDE_CONFIG_DIR = accountConfigDir;
+  }
   return sessionEnv;
 }
 
@@ -1393,6 +1397,19 @@ function readConfigEnvOverrides(
 ): Record<string, string> {
   const parsed = sessionConfigEnvVarsSchema.safeParse(config?.["envVars"]);
   return parsed.success ? parsed.data : {};
+}
+
+/**
+ * `configDir` for a non-default Claude Code account profile (see
+ * `server.ts`'s `~/.claude-*` discovery), carried opaquely in the canonical
+ * wire's `providerOptions` bag (`registerProvider`'s `bridgeOptions`, per
+ * provider id). Undefined means the default profile — today's behavior.
+ */
+function readAccountConfigDirOption(
+  providerOptions: Record<string, unknown> | undefined,
+): string | undefined {
+  const value = providerOptions?.["configDir"];
+  return typeof value === "string" && value.length > 0 ? value : undefined;
 }
 
 function parseClaudeSuggestedPermissionUpdates(
@@ -1910,10 +1927,20 @@ async function handleRequest(request: ClaudeCodeJsonRpcRequest): Promise<void> {
       sendResult(request.id, await listModelsMemoized());
       break;
     case "provider/health":
-      sendResult(request.id, await getClaudeProviderHealth());
+      sendResult(
+        request.id,
+        await getClaudeProviderHealth(
+          readAccountConfigDirOption(request.params.providerOptions),
+        ),
+      );
       break;
     case "provider/usage":
-      sendResult(request.id, await getClaudeProviderUsage());
+      sendResult(
+        request.id,
+        await getClaudeProviderUsage(
+          readAccountConfigDirOption(request.params.providerOptions),
+        ),
+      );
       break;
     case "provider/installation/status":
       sendResult(request.id, await getClaudeProviderInstallationStatus());
@@ -2000,7 +2027,10 @@ async function handleThreadStart(
     });
   }
 
-  const env = buildSessionEnv(readConfigEnvOverrides(params.config));
+  const env = buildSessionEnv(
+    readConfigEnvOverrides(params.config),
+    params.accountConfigDir,
+  );
   const sessionOptions = buildTrackedSessionOptions(params, env, threadIdRef);
   const providerThreadId = randomUUID();
   sessionOptions.sessionId = providerThreadId;
@@ -2090,7 +2120,10 @@ async function handleThreadResume(
     });
   }
 
-  const env = buildSessionEnv(readConfigEnvOverrides(params.config));
+  const env = buildSessionEnv(
+    readConfigEnvOverrides(params.config),
+    params.accountConfigDir,
+  );
   const threadIdRef = { current: threadId };
   const sessionOptions = buildTrackedSessionOptions(params, env, threadIdRef);
   sessionOptions.canUseTool = createCanUseTool(threadIdRef);
@@ -2166,7 +2199,10 @@ async function handleThreadFork(
     return;
   }
 
-  const env = buildSessionEnv(readConfigEnvOverrides(params.config));
+  const env = buildSessionEnv(
+    readConfigEnvOverrides(params.config),
+    params.accountConfigDir,
+  );
   const threadIdRef = { current: threadId };
   const sessionOptions = buildTrackedSessionOptions(params, env, threadIdRef);
   sessionOptions.canUseTool = createCanUseTool(threadIdRef);

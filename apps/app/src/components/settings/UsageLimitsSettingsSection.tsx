@@ -1,4 +1,4 @@
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import type { Host, ProviderInfo } from "@bb/domain";
 import type {
   ProviderUsage,
@@ -21,6 +21,13 @@ import {
 } from "@bb/shared-ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@bb/shared-ui/tooltip";
 import {
+  buildProviderCliIssue,
+  hasProviderCliAction,
+  useProviderCliInstallRunner,
+} from "@/components/provider-cli/provider-cli-install";
+import { providerCliJobKey } from "@/components/provider-cli/provider-cli-install-store";
+import {
+  useHostProviderCliStatus,
   useSystemConfig,
   useSystemProviderUsageLimits,
   useSystemProviders,
@@ -494,6 +501,33 @@ export function UsageLimitsSettingsSection() {
     enabled: systemConfigQuery.data !== undefined && providersQuery.isSuccess,
     providerIds: providers.map((provider) => provider.id),
   });
+
+  // This page is the one place an uninstalled provider is actually visible
+  // to the user (the composer's model picker only lists providers already
+  // "ready" - a not-installed provider never appears there, so it can never
+  // be selected to trigger an install). Auto-install the moment its "Not
+  // installed" row renders here instead. Guarded the same way as the
+  // composer's version: startProviderCliInstall dedupes by job key, and a
+  // recorded failure blocks re-firing until the user retries explicitly.
+  const cliStatusQuery = useHostProviderCliStatus({
+    hostId: usageHostId ?? null,
+    enabled: usageHostId !== undefined,
+  });
+  const { failuresByJobKey, startInstall } = useProviderCliInstallRunner();
+  useEffect(() => {
+    if (usageHostId === undefined) return;
+    const cliStatus = cliStatusQuery.data;
+    if (cliStatus === undefined) return;
+    for (const providerId of Object.keys(cliStatus)) {
+      const status = cliStatus[providerId];
+      if (status === undefined || status.installed) continue;
+      const issue = buildProviderCliIssue({ provider: providerId, status });
+      if (issue === null || !hasProviderCliAction(issue)) continue;
+      const jobKey = providerCliJobKey(usageHostId, providerId);
+      if (failuresByJobKey.has(jobKey)) continue;
+      startInstall({ hostId: usageHostId, issue });
+    }
+  }, [usageHostId, cliStatusQuery.data, failuresByJobKey, startInstall]);
 
   return (
     <UsageLimitsSettingsSectionContent

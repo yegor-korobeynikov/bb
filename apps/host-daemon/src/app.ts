@@ -679,6 +679,10 @@ export async function createHostDaemonApp(
       if (shellEnv === undefined) {
         return runtimeManager.getShellEnv();
       }
+      // Keep in-process `which`/`execFile` provider health checks (see
+      // provider-maintenance.ts across provider plugins) in sync with the
+      // refreshed user shell PATH, not just spawned agent subprocesses.
+      process.env.PATH = shellEnv.PATH;
       await runtimeManager.replaceBaseShellEnv(shellEnv);
       return runtimeManager.getShellEnv();
     })();

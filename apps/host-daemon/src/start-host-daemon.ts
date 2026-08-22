@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { dirname } from "node:path";
+import { mkdir } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import { loadHostDaemonStartConfig } from "@bb/config/host-daemon";
 import type { HostType } from "@bb/domain";
 import {
@@ -180,6 +181,12 @@ export async function startHostDaemon(
       }),
     );
     const hostWatcher = createHostWatcher();
+    // User-writable npm global prefix bb manages for provider CLI installs
+    // (e.g. Codex) so they never need the system npm prefix (often
+    // root-owned, forcing a terminal + sudo). See provider-codex's
+    // `managedNpmPrefix` / `npmGlobalPrefixArgs`.
+    const toolCacheDirectory = join(dataDir, "tool-cache");
+    await mkdir(join(toolCacheDirectory, "bin"), { recursive: true });
     const resolveRuntimeShellEnv = async () =>
       prepareRuntimeShellEnv({
         bbExecutableDirectory,
@@ -187,9 +194,16 @@ export async function startHostDaemon(
         hostDaemonPort: localApiConfig.port,
         inheritedPath: (await resolveUserShellPath()) ?? process.env.PATH,
         serverUrl: machineAuthProxy?.serverUrl ?? serverUrl,
+        toolCacheDirectory,
       });
     const runtimeShellEnv = await resolveRuntimeShellEnv();
     const runtimeShellEnvResolvedAtMs = Date.now();
+    // Provider health checks (provider-maintenance.ts `which`/`execFile`
+    // lookups) run in-process and inherit process.env, not runtimeShellEnv —
+    // without this, a daemon launched via launchd/LaunchAgent with a minimal
+    // PATH reports installed CLIs (codex, cursor-agent, etc.) as "not
+    // installed" even though they resolve fine in the user's login shell.
+    process.env.PATH = runtimeShellEnv.PATH;
     app = await createHostDaemonApp({
       dataDir,
       serverUrl,

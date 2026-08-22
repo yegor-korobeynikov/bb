@@ -630,6 +630,10 @@ export function useSystemProviderUsageLimits(
         }),
       enabled,
       ...FOCUS_OWNED_LIVE_QUERY_POLICY,
+      // Account switches happen inside the provider's own app (e.g. Claude
+      // Code), which never triggers this window's focus/reconnect events —
+      // poll so a stale exhausted-limit reading doesn't linger indefinitely.
+      refetchInterval: 15_000,
     })),
   });
   const usage: ProviderUsageResponse = {};

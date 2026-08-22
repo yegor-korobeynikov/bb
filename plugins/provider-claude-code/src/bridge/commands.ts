@@ -54,6 +54,7 @@ export const claudeThreadStartParamsSchema = z.object({
   permissionScope: bridgePermissionScopeSchema,
   permissionEscalation: bridgePermissionEscalationSchema,
   config: z.record(z.string(), z.unknown()).optional(),
+  accountConfigDir: z.string().min(1).optional(),
   model: z.string().optional(),
   reasoningLevel: reasoningLevelSchema.optional(),
   workflowsEnabled: z.boolean(),
