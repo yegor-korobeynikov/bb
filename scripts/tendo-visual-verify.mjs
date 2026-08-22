@@ -343,6 +343,114 @@ const CHECKS = {
       };
     })()
   `,
+  tendoRowLabelAlignment: `
+    (() => {
+      // Contract (Yegor, 2026-08-22 — three rounds of "looks fixed" that
+      // weren't): padding-left on the row CONTAINER being identical across
+      // rows at the same depth is NOT the same claim as "the visible label
+      // text starts at the same X." Every check above this one measures the
+      // former; Yegor's own screen measurements are of the latter — where
+      // the eye actually reads alignment. The gap between them is icon/
+      // glyph width (chevron+dot vs plain bullet vs status-dot-only vs
+      // section icon), which nothing upstream accounts for. This check
+      // measures the visible quantity directly, per mounted row, and is the
+      // one that must pass before anyone reports an indent fix as done.
+      //
+      // Sidebar is a flat virtualized list (see the relative-comparison
+      // contract above) — depth is read from the row's own
+      // --bb-sidebar-sticky-parent-level custom property when present,
+      // otherwise parsed from the depth multiplier baked into its inline
+      // padding-left calc() (both are written by the same source function
+      // now, so either is ground truth, not a guess). "Logical parent" for
+      // a child-direction check is the nearest PRECEDING mounted row one
+      // depth shallower — the flattening convention this virtualizer uses.
+      const rows = Array.from(document.querySelectorAll('[data-sidebar-windowed-item]'))
+        .filter(el => el.offsetParent !== null);
+
+      const parseDepth = (rowEl) => {
+        const levelAttr = rowEl.style.getPropertyValue('--bb-sidebar-sticky-parent-level');
+        if (levelAttr) return Number(levelAttr);
+        const pl = rowEl.style.paddingLeft || '';
+        const m = pl.match(/\\*\\s*(\\d+)\\)/);
+        return m ? Number(m[1]) : null;
+      };
+
+      const items = rows.map((wrapper) => {
+        const rowEl = wrapper.querySelector('[class*="thread-row"], [data-sidebar-sticky-tier]') || wrapper.firstElementChild;
+        if (!rowEl) return null;
+        const label = rowEl.querySelector('span.min-w-0.truncate, span[class*="truncate"]');
+        if (!label) return null;
+        const rowRect = rowEl.getBoundingClientRect();
+        const labelRect = label.getBoundingClientRect();
+        return {
+          text: label.textContent.trim().slice(0, 40),
+          depth: parseDepth(rowEl),
+          rowLeft: Math.round(rowRect.left * 100) / 100,
+          labelLeft: Math.round(labelRect.left * 100) / 100,
+          visibleIndent: Math.round((labelRect.left - rowRect.left) * 100) / 100,
+        };
+      }).filter(Boolean);
+
+      // Group by depth, check consistency of the VISIBLE indent (label.left
+      // relative to the row's own left edge) within each depth.
+      const byDepth = {};
+      for (const it of items) {
+        const key = it.depth === null ? 'unknown' : String(it.depth);
+        (byDepth[key] = byDepth[key] || []).push(it);
+      }
+      const depthConsistency = Object.entries(byDepth).map(([depth, group]) => {
+        const values = group.map(g => g.labelLeft);
+        const min = Math.min(...values);
+        const max = Math.max(...values);
+        return {
+          depth,
+          rowCount: group.length,
+          labelLeftMin: min,
+          labelLeftMax: max,
+          spreadPx: Math.round((max - min) * 100) / 100,
+          consistent: max - min <= 2,
+          samples: group.slice(0, 5),
+        };
+      });
+
+      // Direction check: every child must sit strictly right of its nearest
+      // shallower-depth predecessor. Flags the exact "track shifted left of
+      // its session parent" complaint.
+      const directionViolations = [];
+      for (let i = 0; i < items.length; i++) {
+        const cur = items[i];
+        if (cur.depth === null || cur.depth === 0) continue;
+        let parent = null;
+        for (let j = i - 1; j >= 0; j--) {
+          if (items[j].depth !== null && items[j].depth < cur.depth) { parent = items[j]; break; }
+        }
+        if (parent && cur.labelLeft <= parent.labelLeft) {
+          directionViolations.push({
+            child: { text: cur.text, depth: cur.depth, labelLeft: cur.labelLeft },
+            parent: { text: parent.text, depth: parent.depth, labelLeft: parent.labelLeft },
+          });
+        }
+      }
+
+      // Wasted-left-space: how far the shallowest mounted row's label sits
+      // from the sidebar's own scroll-container left edge.
+      const sidebarContainer = document.querySelector('[data-sidebar="content"], [data-sidebar="menu"]');
+      const containerLeft = sidebarContainer ? sidebarContainer.getBoundingClientRect().left : null;
+      const shallowest = items.reduce((min, it) => (it.depth !== null && (min === null || it.depth < min.depth) ? it : min), null);
+
+      return {
+        mountedRowCount: items.length,
+        depthConsistency,
+        allDepthsConsistent: depthConsistency.every(d => d.consistent),
+        directionViolationCount: directionViolations.length,
+        directionPass: directionViolations.length === 0,
+        directionViolations: directionViolations.slice(0, 10),
+        containerLeft,
+        shallowestRowLabelLeft: shallowest ? shallowest.labelLeft : null,
+        wastedLeftSpacePx: (containerLeft !== null && shallowest) ? Math.round((shallowest.labelLeft - containerLeft) * 100) / 100 : null,
+      };
+    })()
+  `,
 };
 
 function send(ws, id, method, params = {}) {
