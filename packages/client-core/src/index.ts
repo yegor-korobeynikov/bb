@@ -36,6 +36,7 @@ export * from "./prompt/mentions/find-active-trigger.js";
 export * from "./prompt/mentions/command-trigger.js";
 export * from "./prompt/fork-thread-request.js";
 export * from "./prompt/thread-handoff-request.js";
+export * from "./thread/track-thread-request.js";
 
 // Timeline: row policy and the loaded-window merge.
 export * from "./timeline/thread-runtime-status.js";
