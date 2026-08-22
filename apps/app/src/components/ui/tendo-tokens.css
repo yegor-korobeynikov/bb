@@ -22,8 +22,20 @@
   --tendo-status-idle-border: var(--muted-foreground);
   --tendo-status-dot-size: 5px;
 
-  /* Sidebar row spacing — CDP-measured targets. */
-  --tendo-sidebar-edge-to-dot: 40px;
+  /* Sidebar row spacing — CDP-measured targets.
+   *
+   * edge-to-dot was 40px while it was the ONLY thing between a row's left
+   * edge and its status dot. Reserving the chevron slot on every row
+   * (54e9ff42f) made that premise false: the slot plus its chevron-to-dot
+   * margin now supply that separation on every row, so the 40px was counted
+   * twice and showed up as dead gutter. Measured 2026-08-22 — a depth-1
+   * session row put its first visible ink (the dot; the chevron is
+   * reveal-on-hover) 104px from the sidebar edge, and the project-header ->
+   * session step read 49px against the 16px step used everywhere else. At
+   * 8px the whole chain reads as one cascade: project 66px -> session 83px
+   * -> track 99px. Yegor picked 8 over 0 and 16 on those numbers.
+   */
+  --tendo-sidebar-edge-to-dot: 8px;
   --tendo-sidebar-chevron-to-dot: 20px;
   --tendo-sidebar-indent-step: 16px;
 
