@@ -296,20 +296,25 @@ const CHECKS = {
       // 5/14 false-positive overlaps, all traced to this), restore it after
       // each row so nothing outside this check's own read is left mutated.
       //
-      // TWO elements in ThreadRow.tsx carry this exact attribute (the fade
-      // wrapper around the trailing indicator, AND the actual
-      // .bb-sidebar-hover-actions container with archive/menu/new-track) —
-      // each has its OWN CSS rule reacting to it. The first version of this
-      // fix used querySelector (singular), which always matched the FIRST
-      // one in DOM order (the fade wrapper, not the container the inset
-      // rule's :has() selector actually checks) — so it silently forced the
-      // wrong element and the inset rule never fired. querySelectorAll +
-      // force every match fixes that without needing to know which is which.
+      // Selected by CLASS (.bb-sidebar-hover-actions), not by the
+      // data-sidebar-hover-actions-open ATTRIBUTE (backend, 2026-08-22,
+      // caught the real bug: React renders that attribute conditionally —
+      // {isActionsOpen ? "true" : undefined} — so at rest, with no menu
+      // open, the attribute doesn't exist in the DOM AT ALL. A [attr]
+      // existence selector against it found zero elements at rest, so
+      // setAttribute never ran, inset never activated, and the check kept
+      // measuring the true rest-state overlap while believing it had
+      // forced hover-state. The class is unconditional
+      // (className={cn(SIDEBAR_HOVER_ACTIONS_CLASS, ...)}) — present at
+      // rest and at hover alike — so selecting by it always finds the
+      // container the CSS :has() rule actually checks, then this check
+      // ADDS the attribute (which doesn't exist yet) rather than toggling
+      // an existing one.
       const samples = actions.map((el) => {
         const row = el.closest('[class*="thread-row"]');
         const cs = getComputedStyle(el);
         const title = row ? row.querySelector('span.truncate, [class*="truncate"]') : null;
-        const hoverContainers = row ? Array.from(row.querySelectorAll('[data-sidebar-hover-actions-open]')) : [];
+        const hoverContainers = row ? Array.from(row.querySelectorAll('.bb-sidebar-hover-actions')) : [];
         const hadAttrs = hoverContainers.map((c) => c.getAttribute('data-sidebar-hover-actions-open'));
         hoverContainers.forEach((c) => c.setAttribute('data-sidebar-hover-actions-open', 'true'));
         // Forced reflow between the attribute write and the rect reads
@@ -332,10 +337,10 @@ const CHECKS = {
             });
           }
         }
-        if (hoverContainer) {
-          if (hadAttr === null) hoverContainer.removeAttribute('data-sidebar-hover-actions-open');
-          else hoverContainer.setAttribute('data-sidebar-hover-actions-open', hadAttr);
-        }
+        hoverContainers.forEach((c, i) => {
+          if (hadAttrs[i] === null) c.removeAttribute('data-sidebar-hover-actions-open');
+          else c.setAttribute('data-sidebar-hover-actions-open', hadAttrs[i]);
+        });
         // Same radix signature as Archive: no bare title attribute, has
         // aria-label plus a data-state (the Tooltip Trigger's own marker) —
         // that's the whole point of going native, per Yegor's original
