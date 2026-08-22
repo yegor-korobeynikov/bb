@@ -947,12 +947,36 @@ function EnvironmentThreadGroupHeader({
         restIcon={iconName}
         style={{
           position: "absolute",
-          left: 0,
+          // Not 0 (Yegor's point B, live CDP confirmed twice, coordinator +
+          // backend independently): every OTHER leading glyph in the
+          // sidebar — nav icons, a session row's chevron — sits in one
+          // shared 16px column, driven by var(--tendo-sidebar-edge-to-dot)
+          // for ThreadRow (getTendoSidebarThreadRowPaddingLeft). This row
+          // still uses the OLDER getSidebarThreadRowPaddingLeft formula for
+          // its own paddingLeft (untouched, out of today's scope per the
+          // comment on that function), so `left: 0` measured against ITS
+          // padding-box landed the glyph 4px off that shared column (12px
+          // vs 16px) instead of a second guessed pixel value, this
+          // references the SAME token the rest of the sidebar's leading
+          // column already uses.
+          left: "var(--tendo-sidebar-edge-to-dot)",
           top: "50%",
           transform: "translateY(-50%)",
         }}
       />
-      <span className="pointer-events-none relative z-10 flex min-w-0 flex-1 items-center gap-1.5 text-left text-subtle-foreground/80">
+      {/* Live CDP screenshot, 2026-08-22 (coordinator): the icon slot's own
+          footprint (12px wide, per that same measurement) physically
+          overlapped the label's first letter — taking the icon out of flow
+          (above) removed the gap-1.5 spacing it used to provide as an
+          in-flow sibling, and nothing replaced it. marginLeft below is that
+          spacing restored explicitly: 1.25rem matches the button's own
+          size-5 footprint, 0.375rem is the same gap-1.5 value every other
+          leading-glyph-to-label pairing in this file already uses — not a
+          new guessed number, the same two existing constants summed. */}
+      <span
+        className="pointer-events-none relative z-10 flex min-w-0 flex-1 items-center text-left text-subtle-foreground/80"
+        style={{ marginLeft: "calc(1.25rem + 0.375rem)" }}
+      >
         <span className="min-w-0 truncate">
           <span>{displayName}</span>
         </span>
