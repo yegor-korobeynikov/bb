@@ -598,25 +598,16 @@ const CHECKS = {
           .map((a) => Number(a.getAttribute('data-sidebar-thread-depth')))
           .filter((d) => !Number.isNaN(d));
         const uniqueChildDepths = [...new Set(childDepths)];
-        // Deeper-than-minimum is legal nesting (a track under a session
-        // inside the same environment) — sidebarIndentDepthOnly already
-        // treats that the same way. Only the FLOOR has to land at
-        // headerDepth+1; a single uniform depth was too strict and
-        // false-failed the first time a real track existed in a mounted
-        // group (coordinator's live run, 2026-08-23).
-        const minChildDepth =
-          childDepths.length > 0 ? Math.min(...childDepths) : null;
         return {
           environmentId,
           headerDepth,
           mountedChildCount: childDepths.length,
           uniqueChildDepths,
-          minChildDepth,
           // A collapsed group mounts zero children — inconclusive for THIS
           // group, not a failure; distinguish from a real mismatch below.
           pass: childDepths.length === 0
             ? null
-            : minChildDepth === headerDepth + 1,
+            : uniqueChildDepths.length === 1 && uniqueChildDepths[0] === headerDepth + 1,
         };
       });
       const testable = groups.filter((g) => g.pass !== null);
@@ -628,145 +619,6 @@ const CHECKS = {
         inconclusive: testable.length === 0,
         allPass: testable.length > 0 && testable.every((g) => g.pass),
         groups,
-      };
-    })()
-  `,
-  // Superseded same day by sidebarCurrentMarkerOnActiveRow below (backend,
-  // c6d7e2eb4): that check derives its own expectation from the route and
-  // distinguishes header vs row placement instead of assuming header-only.
-  // The "current" marker sits on the row of the actually-active element —
-  // one rule for a session and for a track (Yegor, 2026-08-23). The
-  // header-scoped check above can only assert "at most one chip", which
-  // passes just as happily when the chip is on the WRONG row or on none at
-  // all; learning anything from it took a manual two-window control. This
-  // one derives its own expectation from the page URL, so a single run on
-  // any thread route is a real assertion rather than a sanity count.
-  //
-  // Why the marker moved to the row at all: a track with an isolated
-  // worktree has no environment header of its own, by construction —
-  // measured 2026-08-23, 17 of 31 active threads (12 of them tracks) live in
-  // header-less environments, so a header-scoped marker is invisible during
-  // most real work.
-  //
-  // Marker lookup prefers a stable attribute and falls back to the visible
-  // "current" text, so this reads both the pre- and post-attribute builds.
-  // Virtualization discipline as everywhere in this file: if the active
-  // thread's row is not mounted, that is inconclusive, never a failure.
-  sidebarCurrentMarkerOnActiveRow: `
-    (() => {
-      const parts = window.location.pathname.split('/threads/');
-      if (parts.length < 2) {
-        return { found: false, inconclusive: true, reason: 'not on a thread route' };
-      }
-      const activeThreadId = parts[1].split('/')[0].split('?')[0].split('#')[0];
-
-      const byAttribute = Array.from(
-        document.querySelectorAll('[data-sidebar-current-marker]'),
-      );
-      const byText = Array.from(document.querySelectorAll('span')).filter(
-        (s) =>
-          s.textContent.trim() === 'current' &&
-          (s.closest('[class*="thread-row"]') !== null ||
-            s.closest('[data-sidebar-environment-header]') !== null),
-      );
-      const markerSource = byAttribute.length > 0 ? 'attribute' : 'text';
-      const markers = byAttribute.length > 0 ? byAttribute : byText;
-      // A page that has been open since before the marker attribute shipped
-      // keeps serving the older bundle: a frontend-only delivery rewrites
-      // dist but restarts nothing, so nothing prompts the tab to reload.
-      // That state renders the visible "current" chip while exposing no
-      // attribute — and a probe written against the attribute alone reads
-      // zero markers on perfectly good code. Naming it here turns a
-      // mystery zero into "your tab is on an old bundle" (2026-08-23: the
-      // exact shape of a false report on this check).
-      const staleBundleSuspected = byAttribute.length === 0 && byText.length > 0;
-
-      const ownerOf = (el) => {
-        const row = el.closest('[class*="thread-row"]');
-        if (row) {
-          const anchor = row.querySelector('[data-sidebar-thread-id]');
-          return { kind: 'row', threadId: anchor && anchor.getAttribute('data-sidebar-thread-id') };
-        }
-        const header = el.closest('[data-sidebar-environment-header]');
-        if (header) {
-          return {
-            kind: 'environment-header',
-            environmentId: header.getAttribute('data-sidebar-environment-header'),
-          };
-        }
-        return { kind: 'unknown' };
-      };
-      const owners = markers.map(ownerOf);
-
-      const activeRowMounted =
-        document.querySelector('[data-sidebar-thread-id="' + activeThreadId + '"]') !== null;
-      if (!activeRowMounted) {
-        return {
-          found: true,
-          inconclusive: true,
-          activeThreadId,
-          markerSource,
-          markerCount: markers.length,
-          owners,
-          reason: 'active row not mounted (virtualized out of view)',
-        };
-      }
-
-      // Two placements are legitimate under one rule — the marker sits on the
-      // row that actually matches the active thread:
-      //   (1) the active thread is a session directly under an environment
-      //       header, and the header itself is that match — marker on header;
-      //   (2) the active thread is a track with an isolated worktree, which
-      //       has no header of its own — marker on the track's row.
-      // An earlier version of this check accepted only (2) and so failed on
-      // correct code whenever a top-level session was open (caught by the
-      // sidebar track, 2026-08-23).
-      //
-      // Case (1) is not waved through: a header only counts when it governs
-      // the group the active row lives in, so a marker stranded on some OTHER
-      // environment's header still fails. That containment is read from the
-      // DOM (the header's own sticky group), needing no extra attribute.
-      const activeAnchor = document.querySelector(
-        '[data-sidebar-thread-id="' + activeThreadId + '"]',
-      );
-      const activeRow = activeAnchor && activeAnchor.closest('[class*="thread-row"]');
-
-      const onActiveRow = owners.filter(
-        (o) => o.kind === 'row' && o.threadId === activeThreadId,
-      );
-      const headerGovernsActiveRow = (header) => {
-        if (!header || !activeRow) return false;
-        const group = header.closest('[data-sidebar-sticky-group]');
-        return group !== null && group.contains(activeRow);
-      };
-      const governingHeaderMarked = markers.some((el) =>
-        headerGovernsActiveRow(el.closest('[data-sidebar-environment-header]')),
-      );
-      // Reported so a zero-marker result explains itself: with no governing
-      // header mounted there is no header for a session's marker to sit on,
-      // which is a different situation from "the marker went missing".
-      const governingHeaderMounted = Array.from(
-        document.querySelectorAll('[data-sidebar-environment-header]'),
-      ).some(headerGovernsActiveRow);
-
-      return {
-        found: true,
-        inconclusive: false,
-        activeThreadId,
-        activeDepth: activeAnchor && activeAnchor.getAttribute('data-sidebar-thread-depth'),
-        // Informational cross-check: the app marks the open row with
-        // aria-current independently of this marker, so a mismatch here is a
-        // hint that the two notions of "active" have drifted apart.
-        activeRowHasAriaCurrent: activeAnchor !== null && activeAnchor.hasAttribute('aria-current'),
-        markerSource,
-        markerCount: markers.length,
-        owners,
-        exactlyOne: markers.length === 1,
-        onActiveRow: onActiveRow.length === 1,
-        governingHeaderMarked,
-        governingHeaderMounted,
-        staleBundleSuspected,
-        pass: markers.length === 1 && (onActiveRow.length === 1 || governingHeaderMarked),
       };
     })()
   `,

@@ -73,7 +73,6 @@ import {
 import type { ConsumeDragClickSuppression } from "@/components/ui/use-drag-click-suppression";
 import type { SidebarSortableDragBindings } from "./sortableMotion";
 import { SidebarChildToggleChevron } from "./SidebarChildToggleChevron";
-import { SidebarCurrentEnvironmentChip } from "./SidebarCurrentEnvironmentChip";
 import {
   resolveSidebarThreadStatus,
   SidebarThreadStatusDot,
@@ -142,13 +141,6 @@ interface ThreadRowProps {
   hasComposerDraft: boolean;
   onProjectSelect?: () => void;
   options: ThreadRowOptions;
-  // A track nested inside an environment group that IS the sidebar's
-  // current selection (ProjectRow.tsx's environmentCurrentTrackThreadId) —
-  // the "current" chip normally lives on the environment header, but a
-  // track has no header of its own, so it carries the mark on its own row
-  // instead. Not the same signal as `isActive` (selection highlight, every
-  // row can be active); this only applies inside an environment group.
-  showCurrentEnvironmentChip?: boolean;
 }
 
 type ThreadRowClickCaptureHandler = MouseEventHandler<HTMLDivElement>;
@@ -512,7 +504,6 @@ function ThreadRowComponent({
   hasComposerDraft,
   onProjectSelect,
   options,
-  showCurrentEnvironmentChip = false,
 }: ThreadRowProps) {
   const [isDropdownActionsOpen, setIsDropdownActionsOpen] = useState(false);
   const [isContextActionsOpen, setIsContextActionsOpen] = useState(false);
@@ -802,7 +793,6 @@ function ThreadRowComponent({
             <ThreadTitleMentions title={threadTitle} />
           </span>
         )}
-        {showCurrentEnvironmentChip ? <SidebarCurrentEnvironmentChip /> : null}
         {crossProjectLabel !== null ? (
           <Tooltip>
             <TooltipTrigger asChild>

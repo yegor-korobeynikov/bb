@@ -117,7 +117,6 @@ import {
 import type { ConsumeDragClickSuppression } from "@/components/ui/use-drag-click-suppression";
 import type { NeighborReorderRequest } from "@bb/client-core";
 import { SidebarChildToggleChevron } from "./SidebarChildToggleChevron";
-import { SidebarCurrentEnvironmentChip } from "./SidebarCurrentEnvironmentChip";
 import { SidebarSectionOrderList } from "./SidebarSectionOrderList";
 import {
   collectSectionThreadDndLookup,
@@ -276,13 +275,6 @@ interface ThreadTreeNodeRowProps {
   node: ProjectThreadNode;
   depthOffset: number;
   isEnvGrouped: boolean;
-  // Set only within an environment group's own render tree: the thread id
-  // of a nested track that IS the sidebar's current selection, when that
-  // selection isn't one of the environment's top-level sessions (those get
-  // the marker on the environment header instead). Undefined everywhere
-  // else — a track outside any environment has no "current environment" to
-  // mark.
-  environmentCurrentTrackThreadId?: string;
   selectedThreadId?: string;
   collapsedThreadIds: Set<string>;
   collapsedEnvironmentIds: Set<string>;
@@ -300,7 +292,6 @@ interface ThreadTreeItemRowProps {
   projectId: string;
   item: ProjectThreadItem;
   depthOffset: number;
-  environmentCurrentTrackThreadId?: string;
   selectedThreadId?: string;
   collapsedThreadIds: Set<string>;
   collapsedEnvironmentIds: Set<string>;
@@ -402,7 +393,6 @@ interface EnvironmentThreadGroupHeaderProps {
   onCreateNewThread: () => void;
   onRenameEnvironment: () => void;
   onToggleCollapsed: (environmentId: string) => void;
-  isCurrentSession: boolean;
 }
 
 interface EnvironmentThreadGroupHeaderActionsProps {
@@ -900,7 +890,6 @@ function EnvironmentThreadGroupHeader({
   onCreateNewThread,
   onRenameEnvironment,
   onToggleCollapsed,
-  isCurrentSession,
 }: EnvironmentThreadGroupHeaderProps) {
   const [isActionsOpen, setIsActionsOpen] = useState(false);
   const environmentName = representativeThread.environmentName;
@@ -985,13 +974,12 @@ function EnvironmentThreadGroupHeader({
           leading-glyph-to-label pairing in this file already uses — not a
           new guessed number, the same two existing constants summed. */}
       <span
-        className="pointer-events-none relative z-10 flex min-w-0 flex-1 items-center gap-1.5 text-left text-subtle-foreground/80"
+        className="pointer-events-none relative z-10 flex min-w-0 flex-1 items-center text-left text-subtle-foreground/80"
         style={{ marginLeft: "calc(1.25rem + 0.375rem)" }}
       >
         <span className="min-w-0 truncate">
           <span>{displayName}</span>
         </span>
-        {isCurrentSession ? <SidebarCurrentEnvironmentChip /> : null}
       </span>
       <span
         className={cn(
@@ -1091,31 +1079,6 @@ const EnvironmentThreadGroupRow = memo(function EnvironmentThreadGroupRow({
     environmentId,
   });
   const threads = useMemo(() => nodes.map((node) => node.thread), [nodes]);
-  // (а) per Yegor 2026-08-23: "current" answers "where am I in the tree
-  // right now", read from route state — NOT which environment happens to
-  // have a live agent process. An open thread always has route state; a
-  // process-based signal would blink or go undefined for an environment
-  // with no thread currently running.
-  const isCurrentSession =
-    selectedThreadId !== undefined &&
-    threads.some((thread) => thread.id === selectedThreadId);
-  // Revision, same day (Yegor, live-count 17/31 threads): the selected
-  // thread is often a TRACK nested under one of this environment's own
-  // sessions, not a session itself — isCurrentSession above only matches
-  // the top-level case (nodes are session-level; a track only appears in
-  // node.children). A track has no header of its own to carry the mark, so
-  // when the match is nested rather than top-level, thread the target id
-  // down through the render tree instead of marking the (wrong) header.
-  const environmentCurrentTrackThreadId =
-    !isCurrentSession &&
-    selectedThreadId !== undefined &&
-    nodes.some((node) =>
-      node.children.some((child) =>
-        projectThreadItemContainsThread(child, selectedThreadId),
-      ),
-    )
-      ? selectedThreadId
-      : undefined;
   const { archiveThreadsPending, onArchiveThreads } =
     useArchiveEnvironmentThreadGroupAction({
       environmentId,
@@ -1171,7 +1134,6 @@ const EnvironmentThreadGroupRow = memo(function EnvironmentThreadGroupRow({
           onCreateNewThread={handleCreateNewThread}
           onRenameEnvironment={onRenameEnvironment}
           onToggleCollapsed={onToggleEnvironmentCollapsed}
-          isCurrentSession={isCurrentSession}
         />
         {!isCollapsed ? (
           <div className="relative space-y-px">
@@ -1210,9 +1172,6 @@ const EnvironmentThreadGroupRow = memo(function EnvironmentThreadGroupRow({
                     onProjectSelect={onProjectSelect}
                     onToggleThreadCollapsed={onToggleThreadCollapsed}
                     onToggleEnvironmentCollapsed={onToggleEnvironmentCollapsed}
-                    environmentCurrentTrackThreadId={
-                      environmentCurrentTrackThreadId
-                    }
                   />
                 );
               }}
@@ -1235,7 +1194,6 @@ const ThreadTreeItemRow = memo(function ThreadTreeItemRow({
   projectId,
   item,
   depthOffset,
-  environmentCurrentTrackThreadId,
   selectedThreadId,
   collapsedThreadIds,
   collapsedEnvironmentIds,
@@ -1287,7 +1245,6 @@ const ThreadTreeItemRow = memo(function ThreadTreeItemRow({
         node={item.node}
         depthOffset={depthOffset}
         isEnvGrouped={false}
-        environmentCurrentTrackThreadId={environmentCurrentTrackThreadId}
         selectedThreadId={selectedThreadId}
         collapsedThreadIds={collapsedThreadIds}
         collapsedEnvironmentIds={collapsedEnvironmentIds}
@@ -1647,7 +1604,6 @@ export const ThreadTreeNodeRow = memo(function ThreadTreeNodeRow({
   node,
   depthOffset,
   isEnvGrouped,
-  environmentCurrentTrackThreadId,
   selectedThreadId,
   collapsedThreadIds,
   collapsedEnvironmentIds,
@@ -1722,9 +1678,6 @@ export const ThreadTreeNodeRow = memo(function ThreadTreeNodeRow({
       hasComposerDraft={hasComposerDraft}
       onProjectSelect={onProjectSelect}
       options={options}
-      showCurrentEnvironmentChip={
-        environmentCurrentTrackThreadId === node.thread.id
-      }
     />
   );
 
@@ -1757,9 +1710,6 @@ export const ThreadTreeNodeRow = memo(function ThreadTreeNodeRow({
                   projectId={rowProjectId}
                   item={item}
                   depthOffset={depthOffset}
-                  environmentCurrentTrackThreadId={
-                    environmentCurrentTrackThreadId
-                  }
                   selectedThreadId={selectedThreadId}
                   collapsedThreadIds={collapsedThreadIds}
                   collapsedEnvironmentIds={collapsedEnvironmentIds}
