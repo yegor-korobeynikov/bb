@@ -658,6 +658,91 @@ const CHECKS = {
       };
     })()
   `,
+  // The "current" marker sits on the row of the actually-active element —
+  // one rule for a session and for a track (Yegor, 2026-08-23). The
+  // header-scoped check above can only assert "at most one chip", which
+  // passes just as happily when the chip is on the WRONG row or on none at
+  // all; learning anything from it took a manual two-window control. This
+  // one derives its own expectation from the page URL, so a single run on
+  // any thread route is a real assertion rather than a sanity count.
+  //
+  // Why the marker moved to the row at all: a track with an isolated
+  // worktree has no environment header of its own, by construction —
+  // measured 2026-08-23, 17 of 31 active threads (12 of them tracks) live in
+  // header-less environments, so a header-scoped marker is invisible during
+  // most real work.
+  //
+  // Marker lookup prefers a stable attribute and falls back to the visible
+  // "current" text, so this reads both the pre- and post-attribute builds.
+  // Virtualization discipline as everywhere in this file: if the active
+  // thread's row is not mounted, that is inconclusive, never a failure.
+  sidebarCurrentMarkerOnActiveRow: `
+    (() => {
+      const parts = window.location.pathname.split('/threads/');
+      if (parts.length < 2) {
+        return { found: false, inconclusive: true, reason: 'not on a thread route' };
+      }
+      const activeThreadId = parts[1].split('/')[0].split('?')[0].split('#')[0];
+
+      let markerSource = 'attribute';
+      let markers = Array.from(document.querySelectorAll('[data-sidebar-current-marker]'));
+      if (markers.length === 0) {
+        markerSource = 'text';
+        markers = Array.from(document.querySelectorAll('span')).filter(
+          (s) =>
+            s.textContent.trim() === 'current' &&
+            (s.closest('[class*="thread-row"]') !== null ||
+              s.closest('[data-sidebar-environment-header]') !== null),
+        );
+      }
+
+      const ownerOf = (el) => {
+        const row = el.closest('[class*="thread-row"]');
+        if (row) {
+          const anchor = row.querySelector('[data-sidebar-thread-id]');
+          return { kind: 'row', threadId: anchor && anchor.getAttribute('data-sidebar-thread-id') };
+        }
+        const header = el.closest('[data-sidebar-environment-header]');
+        if (header) {
+          return {
+            kind: 'environment-header',
+            environmentId: header.getAttribute('data-sidebar-environment-header'),
+          };
+        }
+        return { kind: 'unknown' };
+      };
+      const owners = markers.map(ownerOf);
+
+      const activeRowMounted =
+        document.querySelector('[data-sidebar-thread-id="' + activeThreadId + '"]') !== null;
+      if (!activeRowMounted) {
+        return {
+          found: true,
+          inconclusive: true,
+          activeThreadId,
+          markerSource,
+          markerCount: markers.length,
+          owners,
+          reason: 'active row not mounted (virtualized out of view)',
+        };
+      }
+
+      const onActiveRow = owners.filter(
+        (o) => o.kind === 'row' && o.threadId === activeThreadId,
+      );
+      return {
+        found: true,
+        inconclusive: false,
+        activeThreadId,
+        markerSource,
+        markerCount: markers.length,
+        owners,
+        exactlyOne: markers.length === 1,
+        onActiveRow: onActiveRow.length === 1,
+        pass: markers.length === 1 && onActiveRow.length === 1,
+      };
+    })()
+  `,
 };
 
 function send(ws, id, method, params = {}) {
