@@ -219,6 +219,16 @@ export const PROJECT_LIST_ACTION_BUTTON_CLASS = cn(
   SIDEBAR_ROW_INTERACTIVE_STATE_CLASS,
   COARSE_POINTER_ROW_HEIGHT_CLASS,
   "min-w-0 cursor-pointer justify-start overflow-hidden font-normal ring-sidebar-ring focus-visible:ring-2 disabled:cursor-default disabled:opacity-70 max-md:pointer-coarse:[&_svg]:size-5",
+  // These nav rows share the sidebar's leading column with everything below
+  // them, so they take it from the same token rather than the generic pl-2 —
+  // at 8px their icons sat 4px right of every project, environment and thread
+  // glyph, and the panel read as two competing left edges.
+  //
+  // The gap is the rest of that chain rather than a second guess: a thread row
+  // spends the space after its glyph on the status dot and then the shared
+  // glyph-to-label gap, so a nav row spends exactly the same, and every name
+  // in the sidebar starts at one x.
+  "pl-(--tendo-sidebar-edge-to-dot) gap-[calc(var(--tendo-status-dot-size)+0.375rem)]",
 );
 
 const PROJECT_LIST_ACTION_ICON_BUTTON_CLASS = cn(
