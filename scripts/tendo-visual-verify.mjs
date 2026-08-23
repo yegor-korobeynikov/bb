@@ -660,17 +660,26 @@ const CHECKS = {
       }
       const activeThreadId = parts[1].split('/')[0].split('?')[0].split('#')[0];
 
-      let markerSource = 'attribute';
-      let markers = Array.from(document.querySelectorAll('[data-sidebar-current-marker]'));
-      if (markers.length === 0) {
-        markerSource = 'text';
-        markers = Array.from(document.querySelectorAll('span')).filter(
-          (s) =>
-            s.textContent.trim() === 'current' &&
-            (s.closest('[class*="thread-row"]') !== null ||
-              s.closest('[data-sidebar-environment-header]') !== null),
-        );
-      }
+      const byAttribute = Array.from(
+        document.querySelectorAll('[data-sidebar-current-marker]'),
+      );
+      const byText = Array.from(document.querySelectorAll('span')).filter(
+        (s) =>
+          s.textContent.trim() === 'current' &&
+          (s.closest('[class*="thread-row"]') !== null ||
+            s.closest('[data-sidebar-environment-header]') !== null),
+      );
+      const markerSource = byAttribute.length > 0 ? 'attribute' : 'text';
+      const markers = byAttribute.length > 0 ? byAttribute : byText;
+      // A page that has been open since before the marker attribute shipped
+      // keeps serving the older bundle: a frontend-only delivery rewrites
+      // dist but restarts nothing, so nothing prompts the tab to reload.
+      // That state renders the visible "current" chip while exposing no
+      // attribute — and a probe written against the attribute alone reads
+      // zero markers on perfectly good code. Naming it here turns a
+      // mystery zero into "your tab is on an old bundle" (2026-08-23: the
+      // exact shape of a false report on this check).
+      const staleBundleSuspected = byAttribute.length === 0 && byText.length > 0;
 
       const ownerOf = (el) => {
         const row = el.closest('[class*="thread-row"]');
@@ -725,12 +734,20 @@ const CHECKS = {
       const onActiveRow = owners.filter(
         (o) => o.kind === 'row' && o.threadId === activeThreadId,
       );
-      const governingHeaderMarked = markers.some((el) => {
-        const header = el.closest('[data-sidebar-environment-header]');
+      const headerGovernsActiveRow = (header) => {
         if (!header || !activeRow) return false;
         const group = header.closest('[data-sidebar-sticky-group]');
         return group !== null && group.contains(activeRow);
-      });
+      };
+      const governingHeaderMarked = markers.some((el) =>
+        headerGovernsActiveRow(el.closest('[data-sidebar-environment-header]')),
+      );
+      // Reported so a zero-marker result explains itself: with no governing
+      // header mounted there is no header for a session's marker to sit on,
+      // which is a different situation from "the marker went missing".
+      const governingHeaderMounted = Array.from(
+        document.querySelectorAll('[data-sidebar-environment-header]'),
+      ).some(headerGovernsActiveRow);
 
       return {
         found: true,
@@ -747,6 +764,8 @@ const CHECKS = {
         exactlyOne: markers.length === 1,
         onActiveRow: onActiveRow.length === 1,
         governingHeaderMarked,
+        governingHeaderMounted,
+        staleBundleSuspected,
         pass: markers.length === 1 && (onActiveRow.length === 1 || governingHeaderMarked),
       };
     })()
