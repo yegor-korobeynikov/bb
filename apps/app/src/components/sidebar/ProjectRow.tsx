@@ -959,7 +959,11 @@ function EnvironmentThreadGroupHeader({
           // vs 16px) instead of a second guessed pixel value, this
           // references the SAME token the rest of the sidebar's leading
           // column already uses.
-          left: "var(--tendo-sidebar-edge-to-dot)",
+          // Minus the button's 4px hit-area overhang, so it is the GLYPH and
+          // not the box around it that lands on the leading column — the same
+          // correction ThreadRow's chevron makes. Without it this header's
+          // glyph sat 4px right of every thread glyph below it.
+          left: "calc(var(--tendo-sidebar-edge-to-dot) - 0.25rem)",
           top: "50%",
           transform: "translateY(-50%)",
         }}
@@ -975,7 +979,16 @@ function EnvironmentThreadGroupHeader({
           new guessed number, the same two existing constants summed. */}
       <span
         className="pointer-events-none relative z-10 flex min-w-0 flex-1 items-center text-left text-subtle-foreground/80"
-        style={{ marginLeft: "calc(1.25rem + 0.375rem)" }}
+        style={{
+          // Derived from the same chain every row below uses — leading
+          // column, then chevron-to-dot, then the dot's own width, then the
+          // shared glyph-to-label gap — less this row's own pl-2, since the
+          // margin is measured from the padding edge. Previously a sum of
+          // the button width and the gap, which put this name 3px right of
+          // the names it heads.
+          marginLeft:
+            "calc(var(--tendo-sidebar-edge-to-dot) + var(--tendo-sidebar-chevron-to-dot) + var(--tendo-status-dot-size) + 0.375rem - 0.5rem)",
+        }}
       >
         <span className="min-w-0 truncate">
           <span>{displayName}</span>

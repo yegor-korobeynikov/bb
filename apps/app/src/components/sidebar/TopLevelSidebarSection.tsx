@@ -187,6 +187,19 @@ export function TopLevelSidebarSection({
                 "relative z-20 inline-flex size-5 shrink-0 cursor-pointer items-center justify-center rounded-md text-subtle-foreground outline-none ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2",
                 LIST_HOVER_TRANSITION,
               )}
+              style={{
+                // Put this row on the same two columns as a thread row below
+                // it, derived rather than nudged. The tier's own pl-2 (8px)
+                // and the button's 4px hit-area overhang both push the glyph
+                // right of the leading column, so both come back out here;
+                // the right margin then cancels the flex gap the same way
+                // ThreadRow's chevron does, so the reserved dot slot that
+                // follows lands exactly chevron-to-dot from the glyph.
+                marginLeft:
+                  "calc(var(--tendo-sidebar-edge-to-dot) - 0.5rem - 0.25rem)",
+                marginRight:
+                  "calc(var(--tendo-sidebar-chevron-to-dot) - 1.25rem + 0.25rem - 0.375rem)",
+              }}
               onClick={handleCollapseControlClick}
               onPointerDown={stopCollapseControlPointerDown}
               onKeyDown={stopCollapseControlKeyDown}
@@ -227,6 +240,17 @@ export function TopLevelSidebarSection({
               )}
             </button>
           ) : null}
+          {/* A header carries no status of its own, but it reserves the dot's
+              width anyway. Without it the name would start one dot and one
+              gap left of every name below, and a column that holds for the
+              threads but breaks at their header is the ragged edge this row
+              had in the first place. */}
+          <span
+            aria-hidden="true"
+            data-sidebar-status-dot-placeholder=""
+            className="inline-block shrink-0"
+            style={{ width: "var(--tendo-status-dot-size)" }}
+          />
           <span className="min-w-0 truncate" title={label}>
             {label}
           </span>
