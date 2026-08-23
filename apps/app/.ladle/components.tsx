@@ -9,6 +9,11 @@ import { AppToaster } from "../src/components/AppToaster";
 import { RouteNavigationProvider } from "../src/components/ui/app-route-anchor";
 import { TooltipProvider } from "@bb/shared-ui/tooltip";
 import { setPreferredTheme } from "../src/hooks/useTheme";
+import { applyGalleryTheme } from "../src/lib/themes/gallery-theme";
+// Palette of the bb instance this checkout runs, resolved at dev-server start.
+// The gallery shows the product's real colors or it is not worth looking at.
+// @ts-expect-error -- virtual module served by .ladle/vite-active-theme.ts
+import { activeThemeCss } from "virtual:bb-active-theme";
 import {
   createDiffWorker,
   getDiffWorkerPoolSize,
@@ -37,6 +42,10 @@ export const Provider: GlobalProvider = ({ globalState, children }) => {
   const isDark = globalState.theme === ThemeState.Dark;
   useEffect(() => {
     setPreferredTheme(isDark ? "dark" : "light");
+    // Re-applied on every mode flip: Vite's dev server appends its own <style>
+    // tags after mount, which would out-order the palette and silently restore
+    // base theme.css tokens.
+    applyGalleryTheme(activeThemeCss as string);
   }, [isDark]);
   const store = useMemo(() => createStore(), []);
   const queryClient = useMemo(

@@ -7,6 +7,12 @@
    the plugin's CSS separately. */
 @source "../../../plugins/automations";
 @source "../../../plugins/provider-retry";
+/* Tendo's own plugins are checked out outside this repo (see the @tendo-plugins
+   alias in .ladle/vite.config.ts). Without this, their utility classes are only
+   generated when the app happens to use the same ones — the idle status dot's
+   bg-muted-foreground/40 rendered fully transparent, i.e. the gallery showed a
+   state the product does not have. A gallery that lies is worse than none. */
+@source "./tendo-plugins";
 
 .ladle-main {
   padding: 0;
