@@ -15,11 +15,24 @@
  * design decision, not a mechanical port.
  */
 :root {
-  /* Status dot: filled = real state, outline = idle (never absent). */
-  --tendo-status-blocked: #e0532b;
-  --tendo-status-unread: #2c7c8c;
-  --tendo-status-done: #6e7b33;
-  --tendo-status-idle-border: var(--muted-foreground);
+  /* Status dot: filled = real state, outline = asleep. Never absent —
+     "working" is a state with a colour, not a reason to hide the dot.
+     Scheme agreed with Yegor 2026-08-23 against a prototype. */
+  --tendo-status-working: #d6a32e; /* the agent is working here */
+  --tendo-status-done: #2c7c8c; /* it considers the task finished; your turn */
+  --tendo-status-blocked: #e0532b; /* it needs an answer from you */
+  --tendo-status-idle-border: var(--muted-foreground); /* asleep */
+  /* Teal rather than the olive this state used to be. Measured in CIELAB:
+     amber-vs-olive was the weakest pair in the whole set at dE 41.6, with
+     their hues only 31 degrees apart — two warm yellow-greens to tell apart
+     in a 5px dot. Teal puts that pair at 86.6 and lifts the set's worst
+     pair from 41.6 to 49.2, so the scheme gets more even rather than merely
+     different. It also drops the green-vs-orange pairing, the one that
+     collapses under the common forms of colour blindness. And it is the
+     colour this meaning already has for anyone who uses Claude Code.
+     Olive is deliberately left free: if "confirmed and closed" ever needs
+     separating from "finished, go look", it belongs there. */
+  --tendo-status-reserved-olive: #6e7b33;
   --tendo-status-dot-size: 5px;
 
   /* Sidebar row spacing — CDP-measured targets.
@@ -35,8 +48,14 @@
    * 8px the whole chain reads as one cascade: project 66px -> session 83px
    * -> track 99px. Yegor picked 8 over 0 and 16 on those numbers.
    */
-  --tendo-sidebar-edge-to-dot: 8px;
-  --tendo-sidebar-chevron-to-dot: 20px;
+  /* Chosen on the prototype (Yegor, 2026-08-23), where every column was a
+     slider and the numbers were read off the rendered result rather than
+     copied from another editor.
+     edge-to-dot is where the leading GLYPH column starts, not the button
+     box around it — the button overhangs it for hit area, see ThreadRow.
+     chevron-to-dot is glyph-left to dot-left. */
+  --tendo-sidebar-edge-to-dot: 4px;
+  --tendo-sidebar-chevron-to-dot: 16px;
   --tendo-sidebar-indent-step: 16px;
 
   /* Typography scale. */

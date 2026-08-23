@@ -77,6 +77,7 @@ import {
   resolveSidebarThreadStatus,
   SidebarThreadStatusDot,
 } from "./SidebarThreadStatusDot";
+import { useCoarseClock } from "./useCoarseClock";
 import { useSidebarThreadShortcut } from "./sidebarThreadShortcuts";
 import { SplitPaneMiniMap } from "./SplitPaneMiniMap";
 import { usePaneContentSplitIndicator } from "./paneContentSplitIndicator";
@@ -516,6 +517,9 @@ function ThreadRowComponent({
   const showActive = isActive;
   const hasPendingInteraction = thread.hasPendingInteraction;
   const threadRuntimeBusy = isRuntimeBusyThread(thread);
+  // Only the fade-to-asleep threshold needs this; every other state is
+  // derived from the thread itself and re-renders when the thread changes.
+  const nowMs = useCoarseClock();
   const threadWorkflowActive = hasActiveWorkflowActivity(thread);
   const threadBackgroundAgentActive = hasActiveBackgroundAgentActivity(thread);
   const threadBackgroundCommandActive =
@@ -525,8 +529,10 @@ function ThreadRowComponent({
   const threadUnreadDone = isUnreadDoneThread(thread);
   const sidebarStatus = resolveSidebarThreadStatus({
     hasPendingInteraction,
+    isRuntimeBusy: threadRuntimeBusy,
     isUnread: threadUnreadDone,
-    isChildThread: thread.parentThreadId !== null,
+    lastActivityAtMs: thread.updatedAt,
+    nowMs,
   });
   const threadUnreadError = threadUnreadDone && thread.status === "error";
   const threadUnreadSuccess = threadUnreadDone && !threadUnreadError;
@@ -746,8 +752,17 @@ function ThreadRowComponent({
             // top of that shared gap rather than replacing it, so a change
             // to gap-1.5 doesn't silently detune this number too.
             style={{
+              // The 20px box is hit area; the glyph inside it is 12px. Both
+              // margins below exist to make the GLYPH, not the box, sit on
+              // the column the tokens describe: pull the box 4px left so its
+              // centred glyph lands on the row's padding edge, then take the
+              // same 4px plus the row's shared gap-1.5 back out on the right
+              // so glyph-left to dot-left is exactly chevron-to-dot. Without
+              // this the hit area silently widened the column by its own
+              // overhang, and the token no longer meant what it says.
+              marginLeft: "-0.25rem",
               marginRight:
-                "calc(var(--tendo-sidebar-chevron-to-dot) - 0.375rem)",
+                "calc(var(--tendo-sidebar-chevron-to-dot) - 1.25rem + 0.25rem - 0.375rem)",
             }}
           />
         ) : (
@@ -771,15 +786,21 @@ function ThreadRowComponent({
             data-sidebar-child-toggle-placeholder=""
             className="inline-flex size-5 shrink-0"
             style={{
+              // The 20px box is hit area; the glyph inside it is 12px. Both
+              // margins below exist to make the GLYPH, not the box, sit on
+              // the column the tokens describe: pull the box 4px left so its
+              // centred glyph lands on the row's padding edge, then take the
+              // same 4px plus the row's shared gap-1.5 back out on the right
+              // so glyph-left to dot-left is exactly chevron-to-dot. Without
+              // this the hit area silently widened the column by its own
+              // overhang, and the token no longer meant what it says.
+              marginLeft: "-0.25rem",
               marginRight:
-                "calc(var(--tendo-sidebar-chevron-to-dot) - 0.375rem)",
+                "calc(var(--tendo-sidebar-chevron-to-dot) - 1.25rem + 0.25rem - 0.375rem)",
             }}
           />
         )}
-        <SidebarThreadStatusDot
-          status={sidebarStatus}
-          isReserved={sidebarStatus !== "blocked" && threadRuntimeBusy}
-        />
+        <SidebarThreadStatusDot status={sidebarStatus} />
         {isEditing ? (
           <span className="relative z-10 min-w-0 flex-1 overflow-visible">
             {editor}

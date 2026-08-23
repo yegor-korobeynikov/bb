@@ -255,13 +255,71 @@ const CHECKS = {
       };
     })()
   `,
-  sidebarUnreadDotColor: `
+  // Replaces a check that looked for [data-testid*=status] and
+  // [class*=status-dot] — neither of which this app has ever rendered, so it
+  // reported "nothing found" on every run and asserted nothing at all.
+  //
+  // Two things it now actually pins, both from the 2026-08-23 scheme:
+  //  - every mounted row paints a visible dot, working included. The dot used
+  //    to be drawn with visibility:hidden while a row ran its own spinner,
+  //    which is the gap that appeared in front of a name and came and went by
+  //    itself.
+  //  - the painted colour matches the state the row reports, against the
+  //    canon tokens rather than literals repeated here.
+  sidebarStatusDotAlwaysPainted: `
     (() => {
-      const dots = Array.from(document.querySelectorAll('[data-testid*="status" i], [class*="status-dot" i]'));
+      const dots = Array.from(document.querySelectorAll('[data-sidebar-thread-status-dot]'));
+      const mountedRows = document.querySelectorAll('[data-sidebar-thread-id]').length;
+      if (dots.length === 0) {
+        return { found: false, inconclusive: mountedRows === 0, mountedRows, count: 0 };
+      }
+      const root = getComputedStyle(document.documentElement);
+      const token = (name) => root.getPropertyValue(name).trim().toLowerCase();
+      const rgb = (hex) => {
+        const h = hex.replace('#', '');
+        const n = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
+        return 'rgb(' + [0, 2, 4].map((i) => parseInt(n.slice(i, i + 2), 16)).join(', ') + ')';
+      };
+      const EXPECTED = {
+        working: rgb(token('--tendo-status-working')),
+        done: rgb(token('--tendo-status-done')),
+        blocked: rgb(token('--tendo-status-blocked')),
+      };
+      const byState = {};
+      const invisible = [];
+      const wrongColour = [];
+      for (const d of dots) {
+        const state = d.getAttribute('data-sidebar-thread-status-dot');
+        byState[state] = (byState[state] || 0) + 1;
+        const cs = getComputedStyle(d);
+        if (cs.visibility !== 'visible' || cs.display === 'none' || cs.opacity === '0') {
+          invisible.push(state);
+          continue;
+        }
+        if (state === 'asleep') {
+          // Hollow: transparent fill, a visible ring, and the same footprint
+          // as a filled dot (border-box, not a wider outline).
+          if (cs.backgroundColor !== 'rgba(0, 0, 0, 0)' || cs.borderTopWidth === '0px') {
+            wrongColour.push({ state, bg: cs.backgroundColor, border: cs.borderTopWidth });
+          }
+          continue;
+        }
+        const want = EXPECTED[state];
+        if (want && cs.backgroundColor !== want) {
+          wrongColour.push({ state, got: cs.backgroundColor, want });
+        }
+      }
       return {
-        found: dots.length > 0,
+        found: true,
+        mountedRows,
         count: dots.length,
-        samples: dots.slice(0, 5).map(el => ({ bg: getComputedStyle(el).backgroundColor })),
+        byState,
+        everyRowHasDot: dots.length >= mountedRows,
+        invisibleCount: invisible.length,
+        invisible: invisible.slice(0, 5),
+        wrongColourCount: wrongColour.length,
+        wrongColour: wrongColour.slice(0, 5),
+        pass: dots.length >= mountedRows && invisible.length === 0 && wrongColour.length === 0,
       };
     })()
   `,

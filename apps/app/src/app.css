@@ -138,7 +138,7 @@
   /*
    * Pasting a URL over a selection turns it into a link (prompt-editor-
    * extensions.ts, linkOnPaste) — #2C7C8C is a fixed brand value for this
-   * one interaction, not aliased to --tendo-status-unread even though the two
+   * one interaction, not aliased to --tendo-status-done even though the two
    * happen to share a hex today: that token is scoped to the sidebar status
    * dot and tendo-tokens.css explicitly treats each status color as its own
    * design decision, so tying link color to its lifecycle would be an
