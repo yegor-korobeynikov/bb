@@ -631,33 +631,9 @@ const CHECKS = {
       };
     })()
   `,
-  // Contract (Yegor, 2026-08-23): at most one environment header shows the
-  // "current" chip (text/px-1.5/border-hairline, not a dot — see the
-  // comment on the chip itself) at a time. No assertion on WHICH one, or
-  // that it matches the route — that depends on runtime navigation state
-  // this check doesn't control and no existing DOM signal marks the
-  // selected row for a script to cross-check against (checked: ThreadRow
-  // has no aria-current or dedicated active-row class). Only the shape
-  // this check CAN verify without guessing: the chip renders at all when
-  // eligible headers are mounted, and never on more than one header.
-  sidebarCurrentEnvironmentChip: `
-    (() => {
-      const headers = Array.from(document.querySelectorAll('[data-sidebar-environment-header]'));
-      if (headers.length === 0) {
-        return { found: false, inconclusive: true, chipCount: 0 };
-      }
-      const chipped = headers.filter((h) =>
-        Array.from(h.querySelectorAll('span')).some((s) => s.textContent.trim() === 'current'),
-      );
-      return {
-        found: true,
-        headerCount: headers.length,
-        chipCount: chipped.length,
-        atMostOne: chipped.length <= 1,
-        chippedEnvironmentIds: chipped.map((h) => h.getAttribute('data-sidebar-environment-header')),
-      };
-    })()
-  `,
+  // Superseded same day by sidebarCurrentMarkerOnActiveRow below (backend,
+  // c6d7e2eb4): that check derives its own expectation from the route and
+  // distinguishes header vs row placement instead of assuming header-only.
   // The "current" marker sits on the row of the actually-active element —
   // one rule for a session and for a track (Yegor, 2026-08-23). The
   // header-scoped check above can only assert "at most one chip", which
