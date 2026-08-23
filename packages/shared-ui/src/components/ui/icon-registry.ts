@@ -97,6 +97,7 @@ export const EXTENDED_ICON_NAMES = [
   "SideChat",
   "Smartphone",
   "Sort",
+  "Split",
   "Square",
   "SquareUnlock02",
   "Star",

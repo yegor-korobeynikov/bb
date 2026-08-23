@@ -352,7 +352,13 @@ export function ThreadNewTrackQuickAction({
             );
           }}
         >
-          <Icon name="Plus" className={COARSE_POINTER_ICON_SIZE_CLASS} />
+          {/* The track glyph, not a generic plus (Yegor picked hugeicons
+              "Split", 2026-08-19). It was unavailable to host-rendered
+              surfaces until now: bb resolves icons from a curated map that had
+              no "Split", which is why bb-plugin-task-tabs draws the same shape
+              from raw path data. Registering the name is the fix — the drawn
+              copy can retire rather than the two of them drifting apart. */}
+          <Icon name="Split" className={COARSE_POINTER_ICON_SIZE_CLASS} />
         </Button>
       </TooltipTrigger>
       <TooltipContent side="bottom">New track</TooltipContent>

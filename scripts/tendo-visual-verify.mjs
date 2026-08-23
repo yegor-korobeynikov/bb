@@ -483,6 +483,19 @@ const CHECKS = {
         titleOverlaps: titleOverlaps.slice(0, 10),
         distinctShapeCount: shapes.size,
         onePathPass: shapes.size <= 1,
+        // The button carries the track glyph, not a generic plus (Yegor
+        // picked hugeicons "Split", 2026-08-19). Asserted by the icon's own
+        // name attribute rather than by its path data, so re-drawing or
+        // re-versioning the artwork does not break the check while a silent
+        // swap back to Plus still does.
+        glyphNames: [...new Set(actions.map((el) => {
+          const svg = el.querySelector('svg');
+          return svg ? (svg.getAttribute('data-icon') || 'unnamed') : 'none';
+        }))],
+        trackGlyphPass: actions.length === 0 || actions.every((el) => {
+          const svg = el.querySelector('svg');
+          return svg !== null && svg.getAttribute('data-icon') === 'Split';
+        }),
         samples: samples.slice(0, 15),
       };
     })()
