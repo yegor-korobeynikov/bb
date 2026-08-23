@@ -29,6 +29,12 @@
   --tendo-status-blocked: #d6a32e; /* it is asking you something */
   --tendo-status-done: #2c7c8c; /* it finished; your turn */
   --tendo-status-quiet-border: var(--muted-foreground); /* nothing for you */
+  /* Working is the SAME neutral as quiet, filled instead of hollow: the row
+     wants nothing from you either way, so it takes no colour of its own and
+     does not compete with the three that do. Fill versus ring is the part
+     that reads in peripheral vision — the pulse is the second cue, not the
+     first, which is why the state survives prefers-reduced-motion. */
+  --tendo-status-working: var(--muted-foreground); /* it is running */
   /* Teal for "done" rather than the olive it used to be. Measured in CIELAB:
      amber-vs-olive was the weakest pair in the set at dE 41.6, with their
      hues only 31 degrees apart — two warm yellow-greens to tell apart in a
@@ -67,4 +73,25 @@
   --tendo-type-body-weight: 300;
   --tendo-type-muted-weight: 300;
   --tendo-type-heading-weight: 600;
+}
+
+/* The running row's dot: the same neutral fill as any other, breathing.
+ * Movement is the second cue and never the only one — the fill/ring
+ * difference already separates running from asleep, so switching the
+ * animation off costs no information. Slow on purpose: the runtime spinner
+ * at the row's trailing edge turns continuously, and two fast animations on
+ * one row read as agitation rather than as two facts. */
+@keyframes tendo-status-dot-breathe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+.tendo-status-dot-working {
+  animation: tendo-status-dot-breathe 1.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tendo-status-dot-working {
+    animation: none;
+  }
 }

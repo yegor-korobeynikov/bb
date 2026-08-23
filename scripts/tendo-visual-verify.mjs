@@ -273,18 +273,24 @@ const CHECKS = {
       if (dots.length === 0) {
         return { found: false, inconclusive: mountedRows === 0, mountedRows, count: 0 };
       }
-      const root = getComputedStyle(document.documentElement);
-      const token = (name) => root.getPropertyValue(name).trim().toLowerCase();
-      const rgb = (hex) => {
-        const h = hex.replace('#', '');
-        const n = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
-        return 'rgb(' + [0, 2, 4].map((i) => parseInt(n.slice(i, i + 2), 16)).join(', ') + ')';
+      // Resolved through a probe element rather than by parsing the token
+      // text: some of these tokens are hex, but the working one is a
+      // reference to another token, and only the browser can flatten that.
+      const probe = document.createElement('span');
+      probe.style.display = 'none';
+      document.body.appendChild(probe);
+      const resolve = (name) => {
+        probe.style.color = 'var(' + name + ')';
+        return getComputedStyle(probe).color;
       };
       const EXPECTED = {
-        failed: rgb(token('--tendo-status-failed')),
-        done: rgb(token('--tendo-status-done')),
-        blocked: rgb(token('--tendo-status-blocked')),
+        failed: resolve('--tendo-status-failed'),
+        done: resolve('--tendo-status-done'),
+        blocked: resolve('--tendo-status-blocked'),
+        working: resolve('--tendo-status-working'),
       };
+      const QUIET_RING = resolve('--tendo-status-quiet-border');
+      probe.remove();
       const byState = {};
       const invisible = [];
       const wrongColour = [];
@@ -297,10 +303,17 @@ const CHECKS = {
           continue;
         }
         if (state === 'quiet') {
-          // Hollow: transparent fill, a visible ring, and the same footprint
-          // as a filled dot (border-box, not a wider outline).
-          if (cs.backgroundColor !== 'rgba(0, 0, 0, 0)' || cs.borderTopWidth === '0px') {
-            wrongColour.push({ state, bg: cs.backgroundColor, border: cs.borderTopWidth });
+          // Hollow: transparent fill, a visible ring in the neutral, and the
+          // same footprint as a filled dot (border-box, not a wider outline).
+          // The ring must match the working fill: running and asleep are the
+          // same neutral and differ only in weight, which is the whole reason
+          // running takes no colour of its own.
+          if (
+            cs.backgroundColor !== 'rgba(0, 0, 0, 0)' ||
+            cs.borderTopWidth === '0px' ||
+            cs.borderTopColor !== QUIET_RING
+          ) {
+            wrongColour.push({ state, bg: cs.backgroundColor, border: cs.borderTopColor });
           }
           continue;
         }

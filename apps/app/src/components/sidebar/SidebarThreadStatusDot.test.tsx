@@ -51,13 +51,25 @@ describe("resolveSidebarThreadStatus", () => {
     ).toBe("blocked");
   });
 
-  it("keeps the dot out of a row that is merely running", () => {
-    // Working is not one of this dot's states: the runtime's own spinner
-    // already says so, and a colour here would compete with the three that
-    // mean "act on me". A running row asks nothing of you, so it reads quiet.
+  it("marks a running row without giving it a colour of its own", () => {
     expect(resolveSidebarThreadStatus({ ...base, isRuntimeBusy: true })).toBe(
-      "quiet",
+      "working",
     );
+  });
+
+  it("keeps a running row out of both 'finished' and 'asleep'", () => {
+    // Running used to fall through to whichever of those two the timestamp
+    // happened to produce, so a row you were watching work read as finished.
+    expect(
+      resolveSidebarThreadStatus({
+        ...base,
+        isRuntimeBusy: true,
+        lastActivityAtMs: longAgo,
+      }),
+    ).toBe("working");
+    expect(
+      resolveSidebarThreadStatus({ ...base, isRuntimeBusy: true, isUnread: true }),
+    ).toBe("working");
   });
 
   it("still shows a running row's failure and its question", () => {
@@ -145,7 +157,13 @@ describe("SidebarThreadStatusDot", () => {
     // row ran its own spinner the dot was painted with visibility:hidden, so
     // a name appeared with nothing in front of it and the gap came and went
     // on its own. The slot is always occupied by something you can see.
-    for (const status of ["failed", "blocked", "done", "quiet"] as const) {
+    for (const status of [
+      "failed",
+      "blocked",
+      "done",
+      "working",
+      "quiet",
+    ] as const) {
       cleanup();
       render(<SidebarThreadStatusDot status={status} />);
       const dot = screen.getByRole("img");
@@ -158,6 +176,22 @@ describe("SidebarThreadStatusDot", () => {
   it("names its state for a screen reader", () => {
     render(<SidebarThreadStatusDot status="failed" />);
     expect(screen.getByRole("img").getAttribute("aria-label")).toBe("Failed");
+  });
+
+  it("separates running from asleep by fill, not only by motion", () => {
+    // The animation is a second cue: under prefers-reduced-motion it is
+    // switched off in CSS, and the state has to survive that. Filled versus
+    // hollow is what carries it.
+    render(<SidebarThreadStatusDot status="working" />);
+    const working = screen.getByRole("img");
+    expect(working.style.background).toBe("var(--tendo-status-working)");
+    expect(working.className).toContain("tendo-status-dot-working");
+    cleanup();
+
+    render(<SidebarThreadStatusDot status="quiet" />);
+    const quiet = screen.getByRole("img");
+    expect(quiet.style.background).toBe("transparent");
+    expect(quiet.className).not.toContain("tendo-status-dot-working");
   });
 
   it("draws every size and colour from the canon tokens, never a literal", () => {

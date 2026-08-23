@@ -13,16 +13,20 @@
  *   failed   Hot Accent  — it broke; nothing will proceed until you look
  *   blocked  Amber Rule  — it is asking you something and is waiting
  *   done     Teal Blue   — it finished; your turn to read and close it out
- *   quiet    hollow      — nothing for you here
+ *   working  grey, filled, breathing — running; nothing for you yet
+ *   quiet    grey, hollow           — nothing for you here
  *
  * Two things follow from framing it that way rather than as "what is the
  * agent doing".
  *
- * The agent WORKING is not a state of this dot. A row that is running asks
- * nothing of you, and the runtime already says so with its own spinner at
- * the row's trailing edge; a colour here would be a second voice saying the
- * same thing, competing with the three that say something you have to act
- * on. A working row is therefore hollow — quiet, in the sense that matters.
+ * A running row takes NO colour of its own. It asks nothing of you, so
+ * giving it one of the three action colours would put it in competition with
+ * the rows that do. Instead it takes the same neutral as `quiet` and differs
+ * only in weight — filled rather than hollow — which is the difference that
+ * actually reads in peripheral vision, where a colour hue at 5px does not.
+ * The breathing is the second cue, never the only one: with motion switched
+ * off the fill still separates a running row from a sleeping one, which is
+ * why the state survives `prefers-reduced-motion`.
  *
  * Only `quiet` can be reached by the passage of time. Anything that wants
  * you keeps its colour however old it gets: an unanswered question going
@@ -32,18 +36,25 @@
  * Ink Plates palette rather than stock red/amber/green.
  */
 
-export type SidebarThreadStatus = "failed" | "blocked" | "done" | "quiet";
+export type SidebarThreadStatus =
+  | "failed"
+  | "blocked"
+  | "done"
+  | "working"
+  | "quiet";
 
 const STATUS_COLOR: Record<Exclude<SidebarThreadStatus, "quiet">, string> = {
   failed: "var(--tendo-status-failed)",
   blocked: "var(--tendo-status-blocked)",
   done: "var(--tendo-status-done)",
+  working: "var(--tendo-status-working)",
 };
 
 const STATUS_LABEL: Record<SidebarThreadStatus, string> = {
   failed: "Failed",
   blocked: "Needs your input",
   done: "Finished — waiting for you to look",
+  working: "Working",
   quiet: "Nothing waiting on you",
 };
 
@@ -67,6 +78,9 @@ export function SidebarThreadStatusDot({
   return (
     <span
       data-sidebar-thread-status-dot={status}
+      // The animation lives in a class because keyframes cannot be expressed
+      // inline, and it is switched off under prefers-reduced-motion there.
+      className={status === "working" ? "tendo-status-dot-working" : undefined}
       role="img"
       aria-label={STATUS_LABEL[status]}
       title={STATUS_LABEL[status]}
@@ -117,9 +131,8 @@ export function SidebarThreadStatusDot({
  * Which marker a row gets.
  *
  * The order is the priority these states have for the reader: something
- * broken outranks something asking, which outranks something merely
- * finished. A running row deliberately falls past all three — see the file
- * comment on why "working" is not one of these states.
+ * broken outranks something asking, which outranks a row that is merely
+ * running, which outranks anything about how long ago it last moved.
  */
 export function resolveSidebarThreadStatus(args: {
   hasFailed: boolean;
@@ -135,10 +148,11 @@ export function resolveSidebarThreadStatus(args: {
   if (args.hasPendingInteraction) {
     return "blocked";
   }
-  // Running: the trailing spinner is already saying this, and the row is not
-  // asking for anything, so the dot stays out of it.
+  // Running. Below the two states that want you, above everything that does
+  // not: a row you are already watching work should not also read as
+  // "finished" or as "asleep for hours".
   if (args.isRuntimeBusy) {
-    return "quiet";
+    return "working";
   }
   // Unread means it finished and you have not looked yet — squarely your
   // turn, and it never fades however long it sits.
