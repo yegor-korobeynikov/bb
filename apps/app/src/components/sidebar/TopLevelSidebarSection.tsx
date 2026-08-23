@@ -53,9 +53,9 @@ export interface TopLevelSidebarSectionProps {
    * thread section is just a name, and an empty slot there would be a hole
    * rather than an alignment.
    *
-   * It is also what gives the label column its left edge on the rows that
-   * have one: the indent is then a consequence of the icon's width and the
-   * row's gap, rather than a hardcoded number chosen to look similar.
+   * It shares the collapse control's slot rather than adding one, so it
+   * costs the label no horizontal space; with no collapse control there is
+   * no slot to share and the icon is not rendered.
    */
   icon?: IconName;
   children: ReactNode;
@@ -170,7 +170,11 @@ export function TopLevelSidebarSection({
                   : `Collapse ${label} section`
               }
               className={cn(
-                !collapseControl.isCollapsed && SIDEBAR_HOVER_ACTIONS_CLASS,
+                // An icon in this slot means the slot always shows
+                // something, so there is no rest-invisible state to fade in.
+                !icon &&
+                  !collapseControl.isCollapsed &&
+                  SIDEBAR_HOVER_ACTIONS_CLASS,
                 "relative z-20 inline-flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md text-subtle-foreground outline-none ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2",
                 LIST_HOVER_TRANSITION,
               )}
@@ -178,27 +182,41 @@ export function TopLevelSidebarSection({
               onPointerDown={stopCollapseControlPointerDown}
               onKeyDown={stopCollapseControlKeyDown}
             >
-              <Icon
-                name="ChevronRight"
-                className={cn(
-                  "size-3 transition-transform duration-150",
-                  !collapseControl.isCollapsed && "rotate-90",
-                )}
-                aria-hidden="true"
-              />
+              {icon ? (
+                // The icon shares the chevron's slot rather than taking one
+                // of its own — same swap the environment header already
+                // uses (SidebarChildToggleChevron's restIcon): the glyph
+                // rests, the chevron appears under the cursor. A second
+                // slot would push the label right by its whole width, which
+                // is the opposite of aligning the column.
+                <span
+                  data-sidebar-section-icon=""
+                  className="bb-sidebar-row-icon-swap"
+                  aria-hidden="true"
+                >
+                  <Icon
+                    name={icon}
+                    className="size-3 bb-sidebar-row-icon-rest"
+                  />
+                  <Icon
+                    name="ChevronRight"
+                    className={cn(
+                      "size-3 bb-sidebar-row-icon-hover transition-transform duration-150",
+                      !collapseControl.isCollapsed && "rotate-90",
+                    )}
+                  />
+                </span>
+              ) : (
+                <Icon
+                  name="ChevronRight"
+                  className={cn(
+                    "size-3 transition-transform duration-150",
+                    !collapseControl.isCollapsed && "rotate-90",
+                  )}
+                  aria-hidden="true"
+                />
+              )}
             </button>
-          ) : null}
-          {icon ? (
-            // The attribute rides on a wrapper, not on Icon: Icon forwards
-            // only name/className/aria-*, and a hyphenated attribute passed
-            // to a component is not flagged by the compiler, so it type-
-            // checked and then silently vanished at runtime.
-            <span
-              data-sidebar-section-icon=""
-              className="inline-flex shrink-0 items-center text-subtle-foreground"
-            >
-              <Icon name={icon} className="size-3.5" aria-hidden="true" />
-            </span>
           ) : null}
           <span className="min-w-0 truncate" title={label}>
             {label}
