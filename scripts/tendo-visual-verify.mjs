@@ -703,19 +703,51 @@ const CHECKS = {
         };
       }
 
+      // Two placements are legitimate under one rule — the marker sits on the
+      // row that actually matches the active thread:
+      //   (1) the active thread is a session directly under an environment
+      //       header, and the header itself is that match — marker on header;
+      //   (2) the active thread is a track with an isolated worktree, which
+      //       has no header of its own — marker on the track's row.
+      // An earlier version of this check accepted only (2) and so failed on
+      // correct code whenever a top-level session was open (caught by the
+      // sidebar track, 2026-08-23).
+      //
+      // Case (1) is not waved through: a header only counts when it governs
+      // the group the active row lives in, so a marker stranded on some OTHER
+      // environment's header still fails. That containment is read from the
+      // DOM (the header's own sticky group), needing no extra attribute.
+      const activeAnchor = document.querySelector(
+        '[data-sidebar-thread-id="' + activeThreadId + '"]',
+      );
+      const activeRow = activeAnchor && activeAnchor.closest('[class*="thread-row"]');
+
       const onActiveRow = owners.filter(
         (o) => o.kind === 'row' && o.threadId === activeThreadId,
       );
+      const governingHeaderMarked = markers.some((el) => {
+        const header = el.closest('[data-sidebar-environment-header]');
+        if (!header || !activeRow) return false;
+        const group = header.closest('[data-sidebar-sticky-group]');
+        return group !== null && group.contains(activeRow);
+      });
+
       return {
         found: true,
         inconclusive: false,
         activeThreadId,
+        activeDepth: activeAnchor && activeAnchor.getAttribute('data-sidebar-thread-depth'),
+        // Informational cross-check: the app marks the open row with
+        // aria-current independently of this marker, so a mismatch here is a
+        // hint that the two notions of "active" have drifted apart.
+        activeRowHasAriaCurrent: activeAnchor !== null && activeAnchor.hasAttribute('aria-current'),
         markerSource,
         markerCount: markers.length,
         owners,
         exactlyOne: markers.length === 1,
         onActiveRow: onActiveRow.length === 1,
-        pass: markers.length === 1 && onActiveRow.length === 1,
+        governingHeaderMarked,
+        pass: markers.length === 1 && (onActiveRow.length === 1 || governingHeaderMarked),
       };
     })()
   `,
