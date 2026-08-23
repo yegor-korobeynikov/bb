@@ -4,7 +4,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   resolveSidebarThreadStatus,
-  SIDEBAR_THREAD_ASLEEP_AFTER_MS,
+  SIDEBAR_THREAD_QUIET_AFTER_MS,
   SidebarThreadStatusDot,
 } from "./SidebarThreadStatusDot";
 
@@ -15,6 +15,7 @@ afterEach(() => {
 const NOW = 1_700_000_000_000;
 
 const base = {
+  hasFailed: false,
   hasPendingInteraction: false,
   isRuntimeBusy: false,
   isUnread: false,
@@ -22,10 +23,23 @@ const base = {
   nowMs: NOW,
 };
 
-const longAgo = NOW - SIDEBAR_THREAD_ASLEEP_AFTER_MS - 1;
+const longAgo = NOW - SIDEBAR_THREAD_QUIET_AFTER_MS - 1;
 
 describe("resolveSidebarThreadStatus", () => {
-  it("treats a pending interaction as blocked, whatever else is true", () => {
+  it("puts a failure above everything else", () => {
+    expect(
+      resolveSidebarThreadStatus({
+        ...base,
+        hasFailed: true,
+        hasPendingInteraction: true,
+        isRuntimeBusy: true,
+        isUnread: true,
+        lastActivityAtMs: longAgo,
+      }),
+    ).toBe("failed");
+  });
+
+  it("treats a pending interaction as blocked when nothing has broken", () => {
     expect(
       resolveSidebarThreadStatus({
         ...base,
@@ -37,10 +51,27 @@ describe("resolveSidebarThreadStatus", () => {
     ).toBe("blocked");
   });
 
-  it("reads a busy runtime as working", () => {
+  it("keeps the dot out of a row that is merely running", () => {
+    // Working is not one of this dot's states: the runtime's own spinner
+    // already says so, and a colour here would compete with the three that
+    // mean "act on me". A running row asks nothing of you, so it reads quiet.
     expect(resolveSidebarThreadStatus({ ...base, isRuntimeBusy: true })).toBe(
-      "working",
+      "quiet",
     );
+  });
+
+  it("still shows a running row's failure and its question", () => {
+    // Falling through on "busy" must not swallow the two states that matter.
+    expect(
+      resolveSidebarThreadStatus({ ...base, isRuntimeBusy: true, hasFailed: true }),
+    ).toBe("failed");
+    expect(
+      resolveSidebarThreadStatus({
+        ...base,
+        isRuntimeBusy: true,
+        hasPendingInteraction: true,
+      }),
+    ).toBe("blocked");
   });
 
   it("reads a finished-but-unopened thread as done", () => {
@@ -50,7 +81,7 @@ describe("resolveSidebarThreadStatus", () => {
   it("fades a read, quiet thread once the threshold has passed", () => {
     expect(
       resolveSidebarThreadStatus({ ...base, lastActivityAtMs: longAgo }),
-    ).toBe("asleep");
+    ).toBe("quiet");
   });
 
   it("does NOT fade an old thread that still wants something from you", () => {
@@ -58,9 +89,9 @@ describe("resolveSidebarThreadStatus", () => {
     // never one that is waiting on you. An unanswered question going quiet is
     // exactly when it must stay visible.
     for (const wanting of [
+      { hasFailed: true },
       { hasPendingInteraction: true },
       { isUnread: true },
-      { isRuntimeBusy: true },
     ]) {
       expect(
         resolveSidebarThreadStatus({
@@ -68,7 +99,7 @@ describe("resolveSidebarThreadStatus", () => {
           ...wanting,
           lastActivityAtMs: longAgo,
         }),
-      ).not.toBe("asleep");
+      ).not.toBe("quiet");
     }
   });
 
@@ -76,7 +107,7 @@ describe("resolveSidebarThreadStatus", () => {
     expect(
       resolveSidebarThreadStatus({
         ...base,
-        lastActivityAtMs: NOW - SIDEBAR_THREAD_ASLEEP_AFTER_MS + 1,
+        lastActivityAtMs: NOW - SIDEBAR_THREAD_QUIET_AFTER_MS + 1,
       }),
     ).toBe("done");
   });
@@ -97,24 +128,24 @@ describe("SidebarThreadStatusDot", () => {
     expect(dot.style.background).toBe("var(--tendo-status-blocked)");
     // jsdom serialises `border: none` as `border: medium`; the meaningful
     // assertion is that the outline variant's token is not in play.
-    expect(dot.style.border).not.toContain("var(--tendo-status-idle-border)");
+    expect(dot.style.border).not.toContain("var(--tendo-status-quiet-border)");
   });
 
-  it("paints the asleep marker as an outline of the same footprint", () => {
-    render(<SidebarThreadStatusDot status="asleep" />);
+  it("paints the quiet marker as an outline of the same footprint", () => {
+    render(<SidebarThreadStatusDot status="quiet" />);
     const dot = screen.getByRole("img");
     expect(dot.style.background).toBe("transparent");
-    expect(dot.style.border).toContain("var(--tendo-status-idle-border)");
+    expect(dot.style.border).toContain("var(--tendo-status-quiet-border)");
     // border-box is what keeps the outline from growing past the filled size.
     expect(dot.style.boxSizing).toBe("border-box");
   });
 
-  it("is visible in every state, working included", () => {
+  it("is visible in every state", () => {
     // Regression guard for the defect that started this rewrite: while the
     // row ran its own spinner the dot was painted with visibility:hidden, so
     // a name appeared with nothing in front of it and the gap came and went
-    // on its own. Working is a state; it gets a colour.
-    for (const status of ["working", "done", "blocked", "asleep"] as const) {
+    // on its own. The slot is always occupied by something you can see.
+    for (const status of ["failed", "blocked", "done", "quiet"] as const) {
       cleanup();
       render(<SidebarThreadStatusDot status={status} />);
       const dot = screen.getByRole("img");
@@ -125,8 +156,8 @@ describe("SidebarThreadStatusDot", () => {
   });
 
   it("names its state for a screen reader", () => {
-    render(<SidebarThreadStatusDot status="working" />);
-    expect(screen.getByRole("img").getAttribute("aria-label")).toBe("Working");
+    render(<SidebarThreadStatusDot status="failed" />);
+    expect(screen.getByRole("img").getAttribute("aria-label")).toBe("Failed");
   });
 
   it("draws every size and colour from the canon tokens, never a literal", () => {

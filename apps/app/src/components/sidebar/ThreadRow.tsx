@@ -528,6 +528,7 @@ function ThreadRowComponent({
   const threadGoalActive = hasActiveGoalActivity(thread);
   const threadUnreadDone = isUnreadDoneThread(thread);
   const sidebarStatus = resolveSidebarThreadStatus({
+    hasFailed: thread.status === "error",
     hasPendingInteraction,
     isRuntimeBusy: threadRuntimeBusy,
     isUnread: threadUnreadDone,

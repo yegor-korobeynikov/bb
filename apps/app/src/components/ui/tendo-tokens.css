@@ -15,23 +15,27 @@
  * design decision, not a mechanical port.
  */
 :root {
-  /* Status dot: filled = real state, outline = asleep. Never absent —
-     "working" is a state with a colour, not a reason to hide the dot.
-     Scheme agreed with Yegor 2026-08-23 against a prototype. */
-  --tendo-status-working: #d6a32e; /* the agent is working here */
-  --tendo-status-done: #2c7c8c; /* it considers the task finished; your turn */
-  --tendo-status-blocked: #e0532b; /* it needs an answer from you */
-  --tendo-status-idle-border: var(--muted-foreground); /* asleep */
-  /* Teal rather than the olive this state used to be. Measured in CIELAB:
-     amber-vs-olive was the weakest pair in the whole set at dE 41.6, with
-     their hues only 31 degrees apart — two warm yellow-greens to tell apart
-     in a 5px dot. Teal puts that pair at 86.6 and lifts the set's worst
-     pair from 41.6 to 49.2, so the scheme gets more even rather than merely
-     different. It also drops the green-vs-orange pairing, the one that
-     collapses under the common forms of colour blindness. And it is the
-     colour this meaning already has for anyone who uses Claude Code.
-     Olive is deliberately left free: if "confirmed and closed" ever needs
-     separating from "finished, go look", it belongs there. */
+  /* Status dot. Filled = this row wants something from you, graded by how
+     badly; hollow = it does not. Never absent. Scheme agreed with Yegor
+     2026-08-23/24 against a live prototype.
+
+     The severity order is what picks the colours, not habit: Hot Accent is
+     the loudest thing in the palette, so it is spent on an actual failure
+     rather than on a routine question. Amber then carries "it is asking
+     you" — the same colour that role has in Claude Code, so it arrives
+     already learned. Teal is the quietest of the three because "finished,
+     go look" is the least urgent thing that still needs you. */
+  --tendo-status-failed: #e0532b; /* it broke */
+  --tendo-status-blocked: #d6a32e; /* it is asking you something */
+  --tendo-status-done: #2c7c8c; /* it finished; your turn */
+  --tendo-status-quiet-border: var(--muted-foreground); /* nothing for you */
+  /* Teal for "done" rather than the olive it used to be. Measured in CIELAB:
+     amber-vs-olive was the weakest pair in the set at dE 41.6, with their
+     hues only 31 degrees apart — two warm yellow-greens to tell apart in a
+     5px dot. Teal puts that pair at 86.6, and it drops the green-vs-orange
+     pairing, the one that collapses under the common forms of colour
+     blindness. Olive is deliberately left free: if "confirmed and closed"
+     ever needs separating from "finished, go look", it belongs there. */
   --tendo-status-reserved-olive: #6e7b33;
   --tendo-status-dot-size: 5px;
 

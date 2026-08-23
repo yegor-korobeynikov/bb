@@ -281,7 +281,7 @@ const CHECKS = {
         return 'rgb(' + [0, 2, 4].map((i) => parseInt(n.slice(i, i + 2), 16)).join(', ') + ')';
       };
       const EXPECTED = {
-        working: rgb(token('--tendo-status-working')),
+        failed: rgb(token('--tendo-status-failed')),
         done: rgb(token('--tendo-status-done')),
         blocked: rgb(token('--tendo-status-blocked')),
       };
@@ -296,7 +296,7 @@ const CHECKS = {
           invisible.push(state);
           continue;
         }
-        if (state === 'asleep') {
+        if (state === 'quiet') {
           // Hollow: transparent fill, a visible ring, and the same footprint
           // as a filled dot (border-box, not a wider outline).
           if (cs.backgroundColor !== 'rgba(0, 0, 0, 0)' || cs.borderTopWidth === '0px') {

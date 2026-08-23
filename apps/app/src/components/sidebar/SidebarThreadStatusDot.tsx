@@ -7,53 +7,53 @@
  * correction below were measured during that plugin's life; the states are
  * Yegor's, agreed 2026-08-23 against a prototype.
  *
- * Four states. The dot reports what the AGENT is doing and nothing else —
- * in particular it no longer goes hollow merely because the row is a child.
- * A track and a session in the same state look the same, because to the
- * reader they mean the same thing:
+ * The dot answers one question — **does this row want something from me?** —
+ * and the answer is graded by how badly:
  *
- *   working  Amber Rule  — the agent is working in this session
- *   done     Field Olive — the agent considers the task finished; your turn
- *   blocked  Hot Accent  — it cannot go on without an answer from you
- *   asleep   hollow      — read, nothing pending, and quiet for a while
+ *   failed   Hot Accent  — it broke; nothing will proceed until you look
+ *   blocked  Amber Rule  — it is asking you something and is waiting
+ *   done     Teal Blue   — it finished; your turn to read and close it out
+ *   quiet    hollow      — nothing for you here
  *
- * Two rules make the scheme readable rather than decorative:
+ * Two things follow from framing it that way rather than as "what is the
+ * agent doing".
  *
- * 1. The dot is ALWAYS painted. It used to be hidden outright while the row
- *    ran its own spinner, which is what produced a name with nothing in
- *    front of it that came and went on its own. "Working" is a state, so it
- *    gets a colour like every other state.
- * 2. Only a session that needs nothing from you fades. Anything awaiting
- *    your input or your review keeps its colour indefinitely, however old
- *    it is — fading is for things you are done with, never a way for
- *    something that wants you to quietly disappear.
+ * The agent WORKING is not a state of this dot. A row that is running asks
+ * nothing of you, and the runtime already says so with its own spinner at
+ * the row's trailing edge; a colour here would be a second voice saying the
+ * same thing, competing with the three that say something you have to act
+ * on. A working row is therefore hollow — quiet, in the sense that matters.
+ *
+ * Only `quiet` can be reached by the passage of time. Anything that wants
+ * you keeps its colour however old it gets: an unanswered question going
+ * quiet is exactly when it must stay visible.
  *
  * The colours resolve from `--tendo-*` in tendo-tokens.css, drawn from the
  * Ink Plates palette rather than stock red/amber/green.
  */
 
-export type SidebarThreadStatus = "working" | "done" | "blocked" | "asleep";
+export type SidebarThreadStatus = "failed" | "blocked" | "done" | "quiet";
 
-const STATUS_COLOR: Record<Exclude<SidebarThreadStatus, "asleep">, string> = {
-  working: "var(--tendo-status-working)",
-  done: "var(--tendo-status-done)",
+const STATUS_COLOR: Record<Exclude<SidebarThreadStatus, "quiet">, string> = {
+  failed: "var(--tendo-status-failed)",
   blocked: "var(--tendo-status-blocked)",
+  done: "var(--tendo-status-done)",
 };
 
 const STATUS_LABEL: Record<SidebarThreadStatus, string> = {
-  working: "Working",
-  done: "Finished — waiting for you to look",
+  failed: "Failed",
   blocked: "Needs your input",
-  asleep: "Idle",
+  done: "Finished — waiting for you to look",
+  quiet: "Nothing waiting on you",
 };
 
 /**
- * How long a session that needs nothing from you stays coloured before it
- * fades to the hollow marker (Yegor, 2026-08-23). Deliberately hours rather
- * than days: a week-old session usually no longer exists, so a multi-day
- * threshold would have meant the hollow state was never reached in practice.
+ * How long a row that needs nothing from you stays coloured before it goes
+ * hollow (Yegor, 2026-08-23). Deliberately hours rather than days: a session
+ * untouched for a week has usually been archived already, so a multi-day
+ * threshold would have meant the hollow state was never reached.
  */
-export const SIDEBAR_THREAD_ASLEEP_AFTER_MS = 8 * 60 * 60 * 1000;
+export const SIDEBAR_THREAD_QUIET_AFTER_MS = 8 * 60 * 60 * 1000;
 
 export interface SidebarThreadStatusDotProps {
   status: SidebarThreadStatus;
@@ -62,7 +62,7 @@ export interface SidebarThreadStatusDotProps {
 export function SidebarThreadStatusDot({
   status,
 }: SidebarThreadStatusDotProps) {
-  const isOutline = status === "asleep";
+  const isOutline = status === "quiet";
 
   return (
     <span
@@ -106,7 +106,7 @@ export function SidebarThreadStatusDot({
         verticalAlign: "middle",
         background: isOutline ? "transparent" : STATUS_COLOR[status],
         border: isOutline
-          ? "1px solid var(--tendo-status-idle-border)"
+          ? "1px solid var(--tendo-status-quiet-border)"
           : "none",
       }}
     />
@@ -116,38 +116,43 @@ export function SidebarThreadStatusDot({
 /**
  * Which marker a row gets.
  *
- * Order matters and encodes the priority these states have for the reader:
- * being asked something outranks the agent being busy, which outranks
- * anything about how long ago the row last moved. Only the last case can
- * fade, which is the point of the ordering — a row that wants something
- * from you can never age out of view.
+ * The order is the priority these states have for the reader: something
+ * broken outranks something asking, which outranks something merely
+ * finished. A running row deliberately falls past all three — see the file
+ * comment on why "working" is not one of these states.
  */
 export function resolveSidebarThreadStatus(args: {
+  hasFailed: boolean;
   hasPendingInteraction: boolean;
   isRuntimeBusy: boolean;
   isUnread: boolean;
   lastActivityAtMs: number | null;
   nowMs: number;
 }): SidebarThreadStatus {
+  if (args.hasFailed) {
+    return "failed";
+  }
   if (args.hasPendingInteraction) {
     return "blocked";
   }
+  // Running: the trailing spinner is already saying this, and the row is not
+  // asking for anything, so the dot stays out of it.
   if (args.isRuntimeBusy) {
-    return "working";
+    return "quiet";
   }
-  // Unread means the agent finished and you have not looked yet, so this is
-  // squarely your turn and never fades, however long it sits.
+  // Unread means it finished and you have not looked yet — squarely your
+  // turn, and it never fades however long it sits.
   if (args.isUnread) {
     return "done";
   }
-  // Read, quiet, nothing pending: the only state allowed to age out. A row
-  // with no timestamp at all is treated as still fresh rather than assumed
-  // stale — inventing an age would fade rows for want of data.
+  // Read, quiet, nothing pending: the only state that can age out. A row with
+  // no timestamp is treated as fresh rather than assumed stale — fading for
+  // want of data would retire rows that are merely undated.
   if (
     args.lastActivityAtMs !== null &&
-    args.nowMs - args.lastActivityAtMs >= SIDEBAR_THREAD_ASLEEP_AFTER_MS
+    args.nowMs - args.lastActivityAtMs >= SIDEBAR_THREAD_QUIET_AFTER_MS
   ) {
-    return "asleep";
+    return "quiet";
   }
   return "done";
 }
