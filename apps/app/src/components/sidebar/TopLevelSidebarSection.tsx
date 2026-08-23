@@ -175,7 +175,12 @@ export function TopLevelSidebarSection({
                 !icon &&
                   !collapseControl.isCollapsed &&
                   SIDEBAR_HOVER_ACTIONS_CLASS,
-                "relative z-20 inline-flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md text-subtle-foreground outline-none ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2",
+                // size-5, matching the environment header's own toggle
+                // (SidebarChildToggleChevron). Both buttons start at the
+                // same x; this one was 24px wide against that one's 20, so
+                // its centred glyph landed 2px further right and the two
+                // header levels read as two different columns.
+                "relative z-20 inline-flex size-5 shrink-0 cursor-pointer items-center justify-center rounded-md text-subtle-foreground outline-none ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2",
                 LIST_HOVER_TRANSITION,
               )}
               onClick={handleCollapseControlClick}
