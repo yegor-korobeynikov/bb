@@ -569,6 +569,59 @@ const CHECKS = {
       };
     })()
   `,
+  // Contract (Yegor, 2026-08-23, freeze rule — written before the code):
+  // reversal of the same-morning root-offset removal for ENVIRONMENT groups
+  // specifically. That removal (see the comment this replaces in
+  // ProjectRow.tsx) made an environment header and its own child threads
+  // share one indent column, indistinguishable from an unrelated top-level
+  // session rendered at the same depth — "one flat ribbon" per Yegor's
+  // report. Fix is depthOffset+1 on env-grouped children only; this check
+  // asserts data-sidebar-thread-depth on a header (data-sidebar-environment-
+  // header, added alongside this check) is exactly one less than
+  // data-sidebar-thread-depth on its own children, for every environment
+  // group currently mounted.
+  environmentGroupChildDepthStep: `
+    (() => {
+      const headers = Array.from(document.querySelectorAll('[data-sidebar-environment-header]'));
+      const mountedRows = document.querySelectorAll('[class*="thread-row"]').length;
+      if (headers.length === 0) {
+        return { found: false, inconclusive: true, mountedRows, groups: [] };
+      }
+      const groups = headers.map((header) => {
+        const environmentId = header.getAttribute('data-sidebar-environment-header');
+        const headerDepth = Number(header.getAttribute('data-sidebar-thread-depth'));
+        const stickyGroup = header.closest('[data-sidebar-sticky-group]');
+        const childAnchors = stickyGroup
+          ? Array.from(stickyGroup.querySelectorAll('[data-sidebar-thread-id][data-sidebar-thread-depth]'))
+          : [];
+        const childDepths = childAnchors
+          .map((a) => Number(a.getAttribute('data-sidebar-thread-depth')))
+          .filter((d) => !Number.isNaN(d));
+        const uniqueChildDepths = [...new Set(childDepths)];
+        return {
+          environmentId,
+          headerDepth,
+          mountedChildCount: childDepths.length,
+          uniqueChildDepths,
+          // A collapsed group mounts zero children — inconclusive for THIS
+          // group, not a failure; distinguish from a real mismatch below.
+          pass: childDepths.length === 0
+            ? null
+            : uniqueChildDepths.length === 1 && uniqueChildDepths[0] === headerDepth + 1,
+        };
+      });
+      const testable = groups.filter((g) => g.pass !== null);
+      return {
+        found: true,
+        mountedRows,
+        groupCount: groups.length,
+        testableGroupCount: testable.length,
+        inconclusive: testable.length === 0,
+        allPass: testable.length > 0 && testable.every((g) => g.pass),
+        groups,
+      };
+    })()
+  `,
 };
 
 function send(ws, id, method, params = {}) {

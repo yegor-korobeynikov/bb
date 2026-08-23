@@ -1024,6 +1024,8 @@ function EnvironmentThreadGroupHeader({
         level={stickyLevel}
         className={className}
         style={style}
+        data-sidebar-environment-header={environmentId}
+        data-sidebar-thread-depth={rowDepth}
       >
         {content}
       </SidebarStickyTier>
@@ -1031,7 +1033,12 @@ function EnvironmentThreadGroupHeader({
   }
 
   return (
-    <div className={className} style={style}>
+    <div
+      className={className}
+      style={style}
+      data-sidebar-environment-header={environmentId}
+      data-sidebar-thread-depth={rowDepth}
+    >
       {content}
     </div>
   );
@@ -1145,14 +1152,18 @@ const EnvironmentThreadGroupRow = memo(function EnvironmentThreadGroupRow({
                     key={node.thread.id}
                     projectId={projectId}
                     node={node}
-                    // No extra step under an environment header, for the same
-                    // reason the project tree root no longer adds one (see
-                    // getThreadRowDepth): the header is a container label, not
-                    // a row the threads hang off. Removing only the root
-                    // offset changed nothing on an env-grouped sidebar —
-                    // measured on the live build, sessions stayed at 32px —
-                    // because this +1 simply took the other one's place.
-                    depthOffset={depthOffset}
+                    // One step deeper than the header (Yegor, 2026-08-23,
+                    // reversing the 2026-08-22 comment above this line): with
+                    // no offset at all, an environment's own threads land in
+                    // the exact same indent column as the header AND as
+                    // unrelated top-level sessions outside any environment —
+                    // the sidebar reads as one flat ribbon with no visual
+                    // boundary between environments. depthOffset (not
+                    // nodeDepth) carries the +1 so the header's own rowDepth,
+                    // and everything this morning's alignment work touched
+                    // (edge-to-dot, nav-icon column), stays untouched — only
+                    // an environment's children shift.
+                    depthOffset={depthOffset + 1}
                     isEnvGrouped
                     selectedThreadId={selectedThreadId}
                     collapsedThreadIds={collapsedThreadIds}
