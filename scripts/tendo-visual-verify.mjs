@@ -598,16 +598,25 @@ const CHECKS = {
           .map((a) => Number(a.getAttribute('data-sidebar-thread-depth')))
           .filter((d) => !Number.isNaN(d));
         const uniqueChildDepths = [...new Set(childDepths)];
+        // Deeper-than-minimum is legal nesting (a track under a session
+        // inside the same environment) — sidebarIndentDepthOnly already
+        // treats that the same way. Only the FLOOR has to land at
+        // headerDepth+1; a single uniform depth was too strict and
+        // false-failed the first time a real track existed in a mounted
+        // group (coordinator's live run, 2026-08-23).
+        const minChildDepth =
+          childDepths.length > 0 ? Math.min(...childDepths) : null;
         return {
           environmentId,
           headerDepth,
           mountedChildCount: childDepths.length,
           uniqueChildDepths,
+          minChildDepth,
           // A collapsed group mounts zero children — inconclusive for THIS
           // group, not a failure; distinguish from a real mismatch below.
           pass: childDepths.length === 0
             ? null
-            : uniqueChildDepths.length === 1 && uniqueChildDepths[0] === headerDepth + 1,
+            : minChildDepth === headerDepth + 1,
         };
       });
       const testable = groups.filter((g) => g.pass !== null);
@@ -619,6 +628,33 @@ const CHECKS = {
         inconclusive: testable.length === 0,
         allPass: testable.length > 0 && testable.every((g) => g.pass),
         groups,
+      };
+    })()
+  `,
+  // Contract (Yegor, 2026-08-23): at most one environment header shows the
+  // "current" chip (text/px-1.5/border-hairline, not a dot — see the
+  // comment on the chip itself) at a time. No assertion on WHICH one, or
+  // that it matches the route — that depends on runtime navigation state
+  // this check doesn't control and no existing DOM signal marks the
+  // selected row for a script to cross-check against (checked: ThreadRow
+  // has no aria-current or dedicated active-row class). Only the shape
+  // this check CAN verify without guessing: the chip renders at all when
+  // eligible headers are mounted, and never on more than one header.
+  sidebarCurrentEnvironmentChip: `
+    (() => {
+      const headers = Array.from(document.querySelectorAll('[data-sidebar-environment-header]'));
+      if (headers.length === 0) {
+        return { found: false, inconclusive: true, chipCount: 0 };
+      }
+      const chipped = headers.filter((h) =>
+        Array.from(h.querySelectorAll('span')).some((s) => s.textContent.trim() === 'current'),
+      );
+      return {
+        found: true,
+        headerCount: headers.length,
+        chipCount: chipped.length,
+        atMostOne: chipped.length <= 1,
+        chippedEnvironmentIds: chipped.map((h) => h.getAttribute('data-sidebar-environment-header')),
       };
     })()
   `,

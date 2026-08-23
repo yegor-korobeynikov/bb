@@ -393,6 +393,7 @@ interface EnvironmentThreadGroupHeaderProps {
   onCreateNewThread: () => void;
   onRenameEnvironment: () => void;
   onToggleCollapsed: (environmentId: string) => void;
+  isCurrentSession: boolean;
 }
 
 interface EnvironmentThreadGroupHeaderActionsProps {
@@ -890,6 +891,7 @@ function EnvironmentThreadGroupHeader({
   onCreateNewThread,
   onRenameEnvironment,
   onToggleCollapsed,
+  isCurrentSession,
 }: EnvironmentThreadGroupHeaderProps) {
   const [isActionsOpen, setIsActionsOpen] = useState(false);
   const environmentName = representativeThread.environmentName;
@@ -974,12 +976,27 @@ function EnvironmentThreadGroupHeader({
           leading-glyph-to-label pairing in this file already uses — not a
           new guessed number, the same two existing constants summed. */}
       <span
-        className="pointer-events-none relative z-10 flex min-w-0 flex-1 items-center text-left text-subtle-foreground/80"
+        className="pointer-events-none relative z-10 flex min-w-0 flex-1 items-center gap-1.5 text-left text-subtle-foreground/80"
         style={{ marginLeft: "calc(1.25rem + 0.375rem)" }}
       >
         <span className="min-w-0 truncate">
           <span>{displayName}</span>
         </span>
+        {/* Reads as metadata, not status (Yegor's call, 2026-08-23): a
+            neutral text chip, not a color or a dot — a dot risked blending
+            into the row's own status dots once the group is expanded and
+            its threads' status glyphs sit in the same visual band. Same
+            chrome language as the rest of the sidebar (border-hairline,
+            subtle-foreground), not a new accent. "Current" = this
+            environment holds the thread the sidebar's own route currently
+            points at (selectedThreadId), not where any agent process
+            happens to be running — see the environment-boundary task
+            decision this same day. */}
+        {isCurrentSession ? (
+          <span className="shrink-0 rounded-full border border-border-hairline px-1.5 py-px text-[10px] leading-none text-subtle-foreground/60">
+            current
+          </span>
+        ) : null}
       </span>
       <span
         className={cn(
@@ -1079,6 +1096,14 @@ const EnvironmentThreadGroupRow = memo(function EnvironmentThreadGroupRow({
     environmentId,
   });
   const threads = useMemo(() => nodes.map((node) => node.thread), [nodes]);
+  // (а) per Yegor 2026-08-23: "current" answers "where am I in the tree
+  // right now", read from route state — NOT which environment happens to
+  // have a live agent process. An open thread always has route state; a
+  // process-based signal would blink or go undefined for an environment
+  // with no thread currently running.
+  const isCurrentSession =
+    selectedThreadId !== undefined &&
+    threads.some((thread) => thread.id === selectedThreadId);
   const { archiveThreadsPending, onArchiveThreads } =
     useArchiveEnvironmentThreadGroupAction({
       environmentId,
@@ -1134,6 +1159,7 @@ const EnvironmentThreadGroupRow = memo(function EnvironmentThreadGroupRow({
           onCreateNewThread={handleCreateNewThread}
           onRenameEnvironment={onRenameEnvironment}
           onToggleCollapsed={onToggleEnvironmentCollapsed}
+          isCurrentSession={isCurrentSession}
         />
         {!isCollapsed ? (
           <div className="relative space-y-px">
