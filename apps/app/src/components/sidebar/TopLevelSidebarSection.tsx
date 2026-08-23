@@ -189,12 +189,16 @@ export function TopLevelSidebarSection({
             </button>
           ) : null}
           {icon ? (
-            <Icon
-              name={icon}
+            // The attribute rides on a wrapper, not on Icon: Icon forwards
+            // only name/className/aria-*, and a hyphenated attribute passed
+            // to a component is not flagged by the compiler, so it type-
+            // checked and then silently vanished at runtime.
+            <span
               data-sidebar-section-icon=""
-              className="size-3.5 shrink-0 text-subtle-foreground"
-              aria-hidden="true"
-            />
+              className="inline-flex shrink-0 items-center text-subtle-foreground"
+            >
+              <Icon name={icon} className="size-3.5" aria-hidden="true" />
+            </span>
           ) : null}
           <span className="min-w-0 truncate" title={label}>
             {label}
