@@ -2403,6 +2403,11 @@ function ProjectRowComponent({
       >
         <TopLevelSidebarSection
           label={project.name}
+          // A project IS a folder on disk, so the row says so. This also
+          // fills the gap that used to sit between the chevron and the
+          // name: the slot was empty here while every row below carries a
+          // glyph, which read as a stray indent rather than a hierarchy.
+          icon="FolderOpen"
           actions={projectActions}
           actionsAlwaysVisible
           actionsMobileAlways

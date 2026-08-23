@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { cn } from "@bb/shared-ui/lib/utils";
-import { Icon } from "@bb/shared-ui/icon";
+import { Icon, type IconName } from "@bb/shared-ui/icon";
 import { LIST_HOVER_TRANSITION } from "@bb/shared-ui/motion";
 import { CHROME_SECTION_LABEL_CLASS } from "@bb/shared-ui/chrome-style-tokens";
 import {
@@ -47,6 +47,17 @@ interface TopLevelSidebarSectionCollapseControl {
 
 export interface TopLevelSidebarSectionProps {
   label: string;
+  /**
+   * Glyph in the slot between the collapse chevron and the label. Optional
+   * because not every first-level group is a thing with an icon — a plain
+   * thread section is just a name, and an empty slot there would be a hole
+   * rather than an alignment.
+   *
+   * It is also what gives the label column its left edge on the rows that
+   * have one: the indent is then a consequence of the icon's width and the
+   * row's gap, rather than a hardcoded number chosen to look similar.
+   */
+  icon?: IconName;
   children: ReactNode;
   /** Stable identity for a persisted thread section. Built-in groups omit it. */
   sectionId?: string;
@@ -70,6 +81,7 @@ export interface TopLevelSidebarSectionProps {
  */
 export function TopLevelSidebarSection({
   label,
+  icon,
   children,
   sectionId,
   actions,
@@ -175,6 +187,14 @@ export function TopLevelSidebarSection({
                 aria-hidden="true"
               />
             </button>
+          ) : null}
+          {icon ? (
+            <Icon
+              name={icon}
+              data-sidebar-section-icon=""
+              className="size-3.5 shrink-0 text-subtle-foreground"
+              aria-hidden="true"
+            />
           ) : null}
           <span className="min-w-0 truncate" title={label}>
             {label}
