@@ -598,16 +598,24 @@ const CHECKS = {
           .map((a) => Number(a.getAttribute('data-sidebar-thread-depth')))
           .filter((d) => !Number.isNaN(d));
         const uniqueChildDepths = [...new Set(childDepths)];
+        // The assertion is about the FIRST step down from the header, not
+        // about the group being flat: an environment's own sessions sit one
+        // level below it, and their tracks sit below those, so a healthy
+        // group legitimately mounts several depths. Requiring a single
+        // depth failed every group that had a track open anywhere in it.
+        const minChildDepth =
+          childDepths.length > 0 ? Math.min(...childDepths) : null;
         return {
           environmentId,
           headerDepth,
           mountedChildCount: childDepths.length,
           uniqueChildDepths,
+          minChildDepth,
           // A collapsed group mounts zero children — inconclusive for THIS
           // group, not a failure; distinguish from a real mismatch below.
           pass: childDepths.length === 0
             ? null
-            : uniqueChildDepths.length === 1 && uniqueChildDepths[0] === headerDepth + 1,
+            : minChildDepth === headerDepth + 1,
         };
       });
       const testable = groups.filter((g) => g.pass !== null);
