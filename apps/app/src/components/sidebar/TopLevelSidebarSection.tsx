@@ -156,7 +156,11 @@ export function TopLevelSidebarSection({
         {...dragBindings?.attributes}
         {...(dragBindings?.listeners ?? {})}
       >
-        <span className="relative z-10 flex min-w-0 flex-1 items-center gap-1 text-left">
+        {/* gap-1.5, not gap-1: 0.375rem is the glyph-to-label spacing the
+            environment header sets explicitly, and every other leading-
+            glyph-to-label pairing in the sidebar already uses. At gap-1 a
+            project's name sat 2px left of the header's. */}
+        <span className="relative z-10 flex min-w-0 flex-1 items-center gap-1.5 text-left">
           {collapseControl ? (
             <button
               type="button"
