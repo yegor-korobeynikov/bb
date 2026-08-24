@@ -43,11 +43,40 @@ async function requireEmptyOrMissingTarget(targetPath: string): Promise<void> {
   }
 }
 
+/**
+ * Canonical on-disk form of a host directory: absolute and symlink-resolved.
+ *
+ * A directory bb stores as a project source or an unmanaged workspace becomes
+ * that workspace's identity: environments are matched by (host, path), and
+ * every file command is bounded against the declared root. Both hold only when
+ * the stored path is the real one — a symlinked entry point names the same
+ * tree a second time, and the daemon refuses a declared root that is itself a
+ * symlink, because such a root can be retargeted underneath the trust bb
+ * placed in it. Resolving on the way in lets a checkout keep symlinked entry
+ * points on disk while bb records the directory they point at.
+ *
+ * A path that does not exist yet is returned absolute and normalized: what a
+ * missing directory means is the caller's decision, not this helper's.
+ */
+export async function canonicalizeHostDirectoryPath(
+  directoryPath: string,
+): Promise<string> {
+  const resolvedPath = path.resolve(directoryPath);
+  try {
+    return await fs.realpath(resolvedPath);
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+      return resolvedPath;
+    }
+    throw error;
+  }
+}
+
 export async function inspectProjectPath(projectPath: string): Promise<{
   path: string;
   gitRemoteUrl: string | null;
 }> {
-  const resolvedPath = path.resolve(projectPath);
+  const resolvedPath = await canonicalizeHostDirectoryPath(projectPath);
   const result = await runGit(["remote", "get-url", "origin"], {
     cwd: resolvedPath,
     allowFailure: true,

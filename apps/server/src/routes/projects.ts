@@ -310,23 +310,33 @@ function projectSourceHostConflict(): ApiError {
   );
 }
 
-async function inspectProjectGitRemoteBestEffort(
+/**
+ * Ask the host what this directory really is. The daemon answers with the
+ * canonical path (absolute, symlink-resolved) alongside the Git remote, and
+ * the canonical form is what bb stores: a project source is a workspace
+ * identity, and an identity that still names a symlink duplicates the tree it
+ * points at and cannot serve as a declared file-command root.
+ *
+ * Best effort in both fields — an unreachable host leaves the requested path
+ * and no remote anchor, exactly as before.
+ */
+async function inspectProjectSourceBestEffort(
   deps: AppDeps,
   args: { hostId: string; path: string },
-): Promise<string | null> {
+): Promise<{ path: string; gitRemoteUrl: string | null }> {
   try {
     const inspection = await callHostRetryableOnlineRpc(deps, {
       hostId: args.hostId,
       timeoutMs: COMMAND_TIMEOUT_MS,
       command: { type: "project.inspect", path: args.path },
     });
-    return inspection.gitRemoteUrl;
+    return { path: inspection.path, gitRemoteUrl: inspection.gitRemoteUrl };
   } catch (error) {
     deps.logger.warn(
       { err: error, hostId: args.hostId, path: args.path },
       "Unable to inspect project source; continuing without a Git remote anchor",
     );
-    return null;
+    return { path: args.path, gitRemoteUrl: null };
   }
 }
 
@@ -364,20 +374,27 @@ export function registerProjectRoutes(app: Hono, deps: AppDeps): void {
       requireNonDestroyedHostWithStatus(deps, source.hostId);
       assertUsableHostId(deps, { hostId: source.hostId });
     }
-    const existingProject = getPublicProjectByLocalPathSource(deps.db, source);
+    // Canonicalize before the dedupe lookup: a symlinked path and its target
+    // are one directory, so they must resolve to one project rather than two.
+    const inspection = await inspectProjectSourceBestEffort(deps, source);
+    const canonicalSource = { ...source, path: inspection.path };
+    const gitRemoteUrl = inspection.gitRemoteUrl;
+    const existingProject = getPublicProjectByLocalPathSource(
+      deps.db,
+      canonicalSource,
+    );
     if (existingProject) {
       return context.json(
         buildProjectResponses(deps, existingProject.id)[0],
         201,
       );
     }
-    const gitRemoteUrl = await inspectProjectGitRemoteBestEffort(deps, source);
     const { project } = findOrCreateProjectByLocalPathSource(
       deps.db,
       deps.hub,
       {
         name: payload.name,
-        source,
+        source: canonicalSource,
       },
     );
     if (gitRemoteUrl !== null) {
@@ -501,10 +518,7 @@ export function registerProjectRoutes(app: Hono, deps: AppDeps): void {
         },
       });
     } else {
-      resolved = {
-        path: payload.path,
-        gitRemoteUrl: await inspectProjectGitRemoteBestEffort(deps, payload),
-      };
+      resolved = await inspectProjectSourceBestEffort(deps, payload);
     }
     let source;
     try {
@@ -556,6 +570,10 @@ export function registerProjectRoutes(app: Hono, deps: AppDeps): void {
         `Source type mismatch: source is ${existing.type} but request specifies ${payload.type}`,
       );
     }
+    // Repointing takes the path as given: unlike creating a source, this route
+    // asks the host nothing, and it is not worth a round trip that stalls the
+    // edit whenever the host is away. A path that arrives here uncanonical
+    // still works — the daemon resolves a user-declared root on use.
     const source = updateProjectSource(
       deps.db,
       deps.hub,

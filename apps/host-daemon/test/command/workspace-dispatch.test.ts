@@ -129,9 +129,7 @@ describe("workspace command dispatch", () => {
 
     expect(result.outcome).toBe("available");
     expect(refreshed.state.statusReads).toBe(1);
-    expect(
-      harness.manager.get("env-late-git")?.workspace.isGitRepo,
-    ).toBe(true);
+    expect(harness.manager.get("env-late-git")?.workspace.isGitRepo).toBe(true);
   });
 
   it("covers workspace.pull_request", async () => {
@@ -480,7 +478,7 @@ describe("workspace command dispatch", () => {
     expect(result.truncated).toBe(false);
   });
 
-  it("rejects host.list_files when path itself is a symlink", async () => {
+  it("rejects host.list_files when a directory bb owns is a symlink", async () => {
     const tempDir = await makeTempDir("bb-dispatch-host-list-symlink-root-");
     const targetRoot = path.join(tempDir, "target-root");
     const symlinkRoot = path.join(tempDir, "root-link");
@@ -497,7 +495,7 @@ describe("workspace command dispatch", () => {
           path: symlinkRoot,
           limit: 1000,
         },
-        harness.dispatchOptions(),
+        harness.dispatchOptions({ dataDir: tempDir }),
       ),
     ).rejects.toMatchObject({
       code: "invalid_path",
@@ -705,7 +703,7 @@ describe("workspace command dispatch", () => {
     });
   });
 
-  it("rejects host.read_file_relative when rootPath itself is a symlink", async () => {
+  it("rejects host.read_file_relative when a root bb owns is a symlink", async () => {
     const tempDir = await makeTempDir(
       "bb-dispatch-host-read-relative-root-symlink-",
     );
@@ -725,7 +723,7 @@ describe("workspace command dispatch", () => {
           path: "index.html",
           dotfiles: "deny",
         },
-        harness.dispatchOptions(),
+        harness.dispatchOptions({ dataDir: tempDir }),
       ),
     ).rejects.toMatchObject({
       code: "invalid_path",
@@ -831,7 +829,9 @@ describe("workspace command dispatch", () => {
     });
   });
 
-  it("rejects host.read_file when rootPath itself is a symlink", async () => {
+  // Inside bb's own data dir a symlinked root is a retargeted trusted root;
+  // a checkout the user pointed bb at is covered by symlinked-workspace-root.
+  it("rejects host.read_file when a root bb owns is a symlink", async () => {
     const tempDir = await makeTempDir("bb-dispatch-host-read-root-symlink-");
     const targetRoot = path.join(tempDir, "target-root");
     const symlinkRoot = path.join(tempDir, "root-link");
@@ -849,7 +849,7 @@ describe("workspace command dispatch", () => {
           path: filePath,
           rootPath: symlinkRoot,
         },
-        harness.dispatchOptions(),
+        harness.dispatchOptions({ dataDir: tempDir }),
       ),
     ).rejects.toMatchObject({
       code: "invalid_path",

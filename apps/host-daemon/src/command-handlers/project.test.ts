@@ -55,8 +55,12 @@ describe("project.clone", () => {
       remoteUrl,
     });
 
+    // The reported path is the canonical one — what bb stores as the project's
+    // identity, with every symlink on the way already resolved.
     expect(result).toEqual({
-      path: path.join(root, "data", "checkouts", "my-project"),
+      path: await fs.realpath(
+        path.join(root, "data", "checkouts", "my-project"),
+      ),
       gitRemoteUrl: remoteUrl,
     });
     await expect(

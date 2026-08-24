@@ -21,7 +21,10 @@ import {
   readFileMetadataForTransport,
   readRootRelativeFileForTransport,
 } from "./file-read.js";
-import { resolveNonSymlinkDirectoryPath } from "./root-path.js";
+import {
+  resolveDeclaredDirectoryPath,
+  type DataDirOption,
+} from "./root-path.js";
 
 /**
  * Conservative subset of git's ref name grammar. We only need to refuse
@@ -61,13 +64,15 @@ function assertAbsoluteHostDiskPathCommand(command: HostDiskPathCommand): void {
 
 export async function listHostFiles(
   command: CommandOf<"host.list_files">,
+  options: DataDirOption,
 ): Promise<HostDaemonOnlineRpcResult<"host.list_files">> {
   if (!path.isAbsolute(command.path)) {
     throw new CommandDispatchError("invalid_path", "Path must be absolute");
   }
 
   try {
-    const realRootPath = await resolveNonSymlinkDirectoryPath({
+    const realRootPath = await resolveDeclaredDirectoryPath({
+      dataDir: options.dataDir,
       description: "Path",
       path: command.path,
     });
@@ -87,13 +92,15 @@ export async function listHostFiles(
 
 export async function listHostPaths(
   command: CommandOf<"host.list_paths">,
+  options: DataDirOption,
 ): Promise<HostDaemonOnlineRpcResult<"host.list_paths">> {
   if (!path.isAbsolute(command.path)) {
     throw new CommandDispatchError("invalid_path", "Path must be absolute");
   }
 
   try {
-    const realRootPath = await resolveNonSymlinkDirectoryPath({
+    const realRootPath = await resolveDeclaredDirectoryPath({
+      dataDir: options.dataDir,
       description: "Path",
       path: command.path,
     });
@@ -194,6 +201,7 @@ export async function checkHostPathsExist(
 
 export async function readHostFile(
   command: CommandOf<"host.read_file">,
+  options: DataDirOption,
 ): Promise<HostDaemonOnlineRpcResult<"host.read_file">> {
   assertAbsoluteHostDiskPathCommand(command);
 
@@ -214,6 +222,7 @@ export async function readHostFile(
   }
 
   return readFileForTransport({
+    dataDir: options.dataDir,
     resolvedPath: command.path,
     resultPath: command.path,
     ...(command.rootPath !== undefined ? { rootPath: command.rootPath } : {}),
@@ -222,9 +231,11 @@ export async function readHostFile(
 
 export async function readHostFileMetadata(
   command: CommandOf<"host.file_metadata">,
+  options: DataDirOption,
 ): Promise<HostDaemonOnlineRpcResult<"host.file_metadata">> {
   assertAbsoluteHostDiskPathCommand(command);
   return readFileMetadataForTransport({
+    dataDir: options.dataDir,
     resolvedPath: command.path,
     resultPath: command.path,
     ...(command.rootPath !== undefined ? { rootPath: command.rootPath } : {}),
@@ -233,8 +244,10 @@ export async function readHostFileMetadata(
 
 export async function readHostRelativeFile(
   command: CommandOf<"host.read_file_relative">,
+  options: DataDirOption,
 ): Promise<HostDaemonOnlineRpcResult<"host.read_file_relative">> {
   return readRootRelativeFileForTransport({
+    dataDir: options.dataDir,
     rootPath: command.rootPath,
     relativePath: command.path,
     dotfiles: command.dotfiles,
@@ -246,7 +259,10 @@ async function pathExists(path: string): Promise<boolean> {
     await fs.stat(path);
     return true;
   } catch (error) {
-    if (isFsErrorWithCode(error, "ENOENT") || isFsErrorWithCode(error, "ENOTDIR")) {
+    if (
+      isFsErrorWithCode(error, "ENOENT") ||
+      isFsErrorWithCode(error, "ENOTDIR")
+    ) {
       return false;
     }
     // Permission denied / loops / etc. — we can't tell, but the entry exists

@@ -339,15 +339,18 @@ export async function writeHostSkill(
       `Skill "${command.name}" not found`,
     );
   }
-  const result = await writeHostFile({
-    type: "host.write_file",
-    path: skillFilePath,
-    rootPath: realTarget,
-    content: command.content,
-    contentEncoding: "utf8",
-    createParents: false,
-    expectedSha256: command.expectedSha256,
-  });
+  const result = await writeHostFile(
+    {
+      type: "host.write_file",
+      path: skillFilePath,
+      rootPath: realTarget,
+      content: command.content,
+      contentEncoding: "utf8",
+      createParents: false,
+      expectedSha256: command.expectedSha256,
+    },
+    { dataDir: options.dataDir },
+  );
   if (result.outcome === "conflict") {
     return result;
   }

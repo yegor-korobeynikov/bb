@@ -10,7 +10,7 @@ import {
 } from "../command-dispatch-support.js";
 import { isFsErrorWithCode } from "../fs-errors.js";
 import { sha256Hex } from "../sha256-hex.js";
-import { resolveNonSymlinkDirectoryPath } from "./root-path.js";
+import { resolveDeclaredDirectoryPath } from "./root-path.js";
 
 const IMAGE_FILE_SIZE_LIMIT_BYTES = 10 * 1024 * 1024;
 export const NON_IMAGE_FILE_SIZE_LIMIT_BYTES = 25 * 1024 * 1024;
@@ -34,18 +34,22 @@ interface ReadFileMetadataForTransportResult {
 }
 
 interface ReadFileForTransportArgs {
+  /** Daemon data dir — tells a root bb minted from one the user chose. */
+  dataDir: string;
   resolvedPath: string;
   resultPath: string;
   rootPath?: string;
 }
 
 interface ReadRootRelativeFileForTransportArgs {
+  dataDir: string;
   rootPath: string;
   relativePath: string;
   dotfiles: HostReadFileRelativeDotfilePolicy;
 }
 
 interface ResolveRootPathForReadArgs {
+  dataDir: string;
   resultPath: string;
   rootPath: string;
 }
@@ -163,7 +167,8 @@ async function resolveRootPathOrThrowMissingPath(
   args: ResolveRootPathForReadArgs,
 ): Promise<string> {
   try {
-    return await resolveNonSymlinkDirectoryPath({
+    return await resolveDeclaredDirectoryPath({
+      dataDir: args.dataDir,
       description: "Root path",
       path: args.rootPath,
     });
@@ -189,6 +194,7 @@ async function throwMissingTargetOrRethrow(
   }
 
   await resolveRootPathOrThrowMissingPath({
+    dataDir: args.dataDir,
     resultPath: args.resultPath,
     rootPath,
   });
@@ -205,6 +211,7 @@ async function resolveReadablePath(
   }
 
   const realRootPath = await resolveRootPathOrThrowMissingPath({
+    dataDir: args.dataDir,
     resultPath: args.resultPath,
     rootPath,
   });
@@ -352,6 +359,7 @@ export async function readRootRelativeFileForTransport(
   });
   const resolvedPath = path.join(args.rootPath, ...relativePath.segments);
   const readArgs: ReadFileForTransportArgs = {
+    dataDir: args.dataDir,
     resolvedPath,
     resultPath: relativePath.resultPath,
     rootPath: args.rootPath,

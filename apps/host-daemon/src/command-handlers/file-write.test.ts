@@ -11,6 +11,8 @@ import {
 import { writeHostFile } from "./file-write.js";
 import { readHostFile } from "./host-files.js";
 
+const TEST_DISPATCH_OPTIONS = { dataDir: "/tmp/bb-test-data" };
+
 const tempDirs: string[] = [];
 
 async function makeTempDir(prefix: string): Promise<string> {
@@ -48,7 +50,7 @@ async function captureWriteError(
   command: CommandOf<"host.write_file">,
 ): Promise<unknown> {
   try {
-    await writeHostFile(command);
+    await writeHostFile(command, TEST_DISPATCH_OPTIONS);
   } catch (error) {
     return error;
   }
@@ -62,6 +64,7 @@ describe("writeHostFile", () => {
 
     const result = await writeHostFile(
       writeCommand({ path: target, content: "# Hello" }),
+      TEST_DISPATCH_OPTIONS,
     );
 
     expect(result).toEqual({
@@ -83,6 +86,7 @@ describe("writeHostFile", () => {
         content: "new",
         expectedSha256: sha256("old"),
       }),
+      TEST_DISPATCH_OPTIONS,
     );
 
     expect(result).toEqual({
@@ -106,6 +110,7 @@ describe("writeHostFile", () => {
           content: "first",
           expectedSha256,
         }),
+        TEST_DISPATCH_OPTIONS,
       ),
       writeHostFile(
         writeCommand({
@@ -113,6 +118,7 @@ describe("writeHostFile", () => {
           content: "second",
           expectedSha256,
         }),
+        TEST_DISPATCH_OPTIONS,
       ),
     ]);
 
@@ -136,6 +142,7 @@ describe("writeHostFile", () => {
         content: "mine",
         expectedSha256: sha256("stale"),
       }),
+      TEST_DISPATCH_OPTIONS,
     );
 
     expect(result).toEqual({
@@ -153,6 +160,7 @@ describe("writeHostFile", () => {
         path: path.join(dir, "gone.md"),
         expectedSha256: sha256("anything"),
       }),
+      TEST_DISPATCH_OPTIONS,
     );
 
     expect(result).toEqual({ outcome: "conflict", currentSha256: null });
@@ -164,11 +172,13 @@ describe("writeHostFile", () => {
 
     const created = await writeHostFile(
       writeCommand({ path: target, expectedSha256: null }),
+      TEST_DISPATCH_OPTIONS,
     );
     expect(created).toMatchObject({ outcome: "written" });
 
     const conflicted = await writeHostFile(
       writeCommand({ path: target, expectedSha256: null }),
+      TEST_DISPATCH_OPTIONS,
     );
     expect(conflicted).toEqual({
       outcome: "conflict",
@@ -186,6 +196,7 @@ describe("writeHostFile", () => {
         content: Buffer.from([0, 1, 2, 255]).toString("base64"),
         contentEncoding: "base64",
       }),
+      TEST_DISPATCH_OPTIONS,
     );
 
     expect(result).toMatchObject({ outcome: "written", sizeBytes: 4 });
@@ -211,6 +222,7 @@ describe("writeHostFile", () => {
 
     const result = await writeHostFile(
       writeCommand({ path: target, createParents: true }),
+      TEST_DISPATCH_OPTIONS,
     );
 
     expect(result).toMatchObject({ outcome: "written" });
@@ -260,6 +272,7 @@ describe("writeHostFile", () => {
         rootPath: rootDir,
         createParents: true,
       }),
+      TEST_DISPATCH_OPTIONS,
     );
 
     expect(result).toMatchObject({ outcome: "written" });
@@ -268,13 +281,19 @@ describe("writeHostFile", () => {
   it("uses mode for creation without chmodding an existing file", async () => {
     const dir = await makeTempDir("bb-file-write-mode-");
     const created = path.join(dir, "created.env");
-    await writeHostFile(writeCommand({ path: created, mode: 0o600 }));
+    await writeHostFile(
+      writeCommand({ path: created, mode: 0o600 }),
+      TEST_DISPATCH_OPTIONS,
+    );
     expect((await fs.stat(created)).mode & 0o777).toBe(0o600);
 
     const existing = path.join(dir, "existing.env");
     await fs.writeFile(existing, "old", { mode: 0o644 });
     await fs.chmod(existing, 0o644);
-    await writeHostFile(writeCommand({ path: existing, mode: 0o600 }));
+    await writeHostFile(
+      writeCommand({ path: existing, mode: 0o600 }),
+      TEST_DISPATCH_OPTIONS,
+    );
     expect((await fs.stat(existing)).mode & 0o777).toBe(0o644);
   });
 
@@ -301,17 +320,24 @@ describe("writeHostFile", () => {
     const target = path.join(dir, "note.md");
     await fs.writeFile(target, "v1");
 
-    const read = await readHostFile({ type: "host.read_file", path: target });
+    const read = await readHostFile(
+      { type: "host.read_file", path: target },
+      TEST_DISPATCH_OPTIONS,
+    );
     const result = await writeHostFile(
       writeCommand({
         path: target,
         content: "v2",
         expectedSha256: read.sha256,
       }),
+      TEST_DISPATCH_OPTIONS,
     );
 
     expect(result).toMatchObject({ outcome: "written" });
-    const reread = await readHostFile({ type: "host.read_file", path: target });
+    const reread = await readHostFile(
+      { type: "host.read_file", path: target },
+      TEST_DISPATCH_OPTIONS,
+    );
     expect(reread.content).toBe("v2");
     expect(reread.sha256).toBe(sha256("v2"));
   });

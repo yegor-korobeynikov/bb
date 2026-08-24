@@ -3,7 +3,10 @@ import path from "node:path";
 import type { HostDaemonOnlineRpcResult } from "@bb/host-daemon-contract";
 import { CommandDispatchError } from "../command-dispatch-support.js";
 import type { CommandOf } from "../command-dispatch-support.js";
-import { resolveNonSymlinkDirectoryPath } from "./root-path.js";
+import {
+  resolveDeclaredDirectoryPath,
+  type DataDirOption,
+} from "./root-path.js";
 import { isPathWithinRoot } from "./file-read.js";
 import { resolveWriteTarget } from "./file-write.js";
 
@@ -15,10 +18,12 @@ function assertAbsolute(value: string, field: string): void {
 
 async function requireRoot(
   rootPath: string | undefined,
+  dataDir: string,
 ): Promise<string | null> {
   if (rootPath === undefined) return null;
   assertAbsolute(rootPath, "rootPath");
-  return resolveNonSymlinkDirectoryPath({
+  return resolveDeclaredDirectoryPath({
+    dataDir,
     description: "Root path",
     path: rootPath,
   });
@@ -27,6 +32,7 @@ async function requireRoot(
 async function requireExistingWithin(
   targetPath: string,
   rootPath: string | undefined,
+  dataDir: string,
 ): Promise<{ target: string; root: string | null }> {
   assertAbsolute(targetPath, "Path");
   const targetInfo = await fs.lstat(targetPath);
@@ -38,7 +44,7 @@ async function requireExistingWithin(
   }
   const [target, root] = await Promise.all([
     fs.realpath(targetPath),
-    requireRoot(rootPath),
+    requireRoot(rootPath, dataDir),
   ]);
   if (root !== null && !isPathWithinRoot(target, root)) {
     throw new CommandDispatchError(
@@ -52,11 +58,12 @@ async function requireExistingWithin(
 async function requireDestinationWithin(
   destinationPath: string,
   rootPath: string | undefined,
+  dataDir: string,
 ): Promise<string> {
   assertAbsolute(destinationPath, "destinationPath");
   const [parent, root] = await Promise.all([
     fs.realpath(path.dirname(destinationPath)),
-    requireRoot(rootPath),
+    requireRoot(rootPath, dataDir),
   ]);
   const target = path.join(parent, path.basename(destinationPath));
   if (root !== null && !isPathWithinRoot(target, root)) {
@@ -70,9 +77,10 @@ async function requireDestinationWithin(
 
 export async function mkdirHostPath(
   command: CommandOf<"host.mkdir">,
+  options: DataDirOption,
 ): Promise<HostDaemonOnlineRpcResult<"host.mkdir">> {
   assertAbsolute(command.path, "Path");
-  const root = await requireRoot(command.rootPath);
+  const root = await requireRoot(command.rootPath, options.dataDir);
   const target = await resolveWriteTarget(command.path, command.path);
   if (root !== null && !isPathWithinRoot(target.writePath, root)) {
     throw new CommandDispatchError(
@@ -86,14 +94,17 @@ export async function mkdirHostPath(
 
 export async function moveHostPath(
   command: CommandOf<"host.move_path">,
+  options: DataDirOption,
 ): Promise<HostDaemonOnlineRpcResult<"host.move_path">> {
   const { target: source } = await requireExistingWithin(
     command.sourcePath,
     command.rootPath,
+    options.dataDir,
   );
   const destination = await requireDestinationWithin(
     command.destinationPath,
     command.rootPath,
+    options.dataDir,
   );
   try {
     await fs.lstat(destination);
@@ -116,10 +127,12 @@ export async function moveHostPath(
 
 export async function removeHostPath(
   command: CommandOf<"host.remove_path">,
+  options: DataDirOption,
 ): Promise<HostDaemonOnlineRpcResult<"host.remove_path">> {
   const { target, root } = await requireExistingWithin(
     command.path,
     command.rootPath,
+    options.dataDir,
   );
   if (root !== null && target === root) {
     throw new CommandDispatchError(

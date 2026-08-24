@@ -16,6 +16,8 @@ import {
   readHostRelativeFile,
 } from "./host-files.js";
 
+const TEST_DISPATCH_OPTIONS = { dataDir: "/tmp/bb-test-data" };
+
 const execFileAsync = promisify(execFile);
 const tempDirs: string[] = [];
 
@@ -45,7 +47,7 @@ async function captureReadHostFileError(
   command: CommandOf<"host.read_file">,
 ): Promise<unknown> {
   try {
-    await readHostFile(command);
+    await readHostFile(command, TEST_DISPATCH_OPTIONS);
   } catch (error) {
     return error;
   }
@@ -57,7 +59,7 @@ async function captureReadHostRelativeFileError(
   command: CommandOf<"host.read_file_relative">,
 ): Promise<unknown> {
   try {
-    await readHostRelativeFile(command);
+    await readHostRelativeFile(command, TEST_DISPATCH_OPTIONS);
   } catch (error) {
     return error;
   }
@@ -80,10 +82,13 @@ describe("readHostFile (no ref — disk read)", () => {
     const filePath = path.join(repoPath, "host-notes.md");
     await fs.writeFile(filePath, "host notes", "utf8");
 
-    const result = await readHostFile({
-      type: "host.read_file",
-      path: filePath,
-    });
+    const result = await readHostFile(
+      {
+        type: "host.read_file",
+        path: filePath,
+      },
+      TEST_DISPATCH_OPTIONS,
+    );
 
     expect(result.path).toBe(filePath);
     expect(result.content).toBe("host notes");
@@ -96,11 +101,14 @@ describe("readHostFile (no ref — disk read)", () => {
     const filePath = path.join(repoPath, "hello.txt");
     await fs.writeFile(filePath, "hello world", "utf8");
 
-    const result = await readHostFile({
-      type: "host.read_file",
-      path: filePath,
-      rootPath: repoPath,
-    });
+    const result = await readHostFile(
+      {
+        type: "host.read_file",
+        path: filePath,
+        rootPath: repoPath,
+      },
+      TEST_DISPATCH_OPTIONS,
+    );
 
     expect(result.content).toBe("hello world");
     expect(result.contentEncoding).toBe("utf8");
@@ -109,11 +117,14 @@ describe("readHostFile (no ref — disk read)", () => {
 
   it("rejects relative paths", async () => {
     await expect(
-      readHostFile({
-        type: "host.read_file",
-        path: "relative/file.txt",
-        rootPath: "/tmp",
-      }),
+      readHostFile(
+        {
+          type: "host.read_file",
+          path: "relative/file.txt",
+          rootPath: "/tmp",
+        },
+        TEST_DISPATCH_OPTIONS,
+      ),
     ).rejects.toBeInstanceOf(CommandDispatchError);
   });
 
@@ -191,10 +202,13 @@ describe("readHostFile (no ref — disk read)", () => {
     const repoPath = await initRepo();
 
     await expect(
-      readHostFile({
-        type: "host.read_file",
-        path: repoPath,
-      }),
+      readHostFile(
+        {
+          type: "host.read_file",
+          path: repoPath,
+        },
+        TEST_DISPATCH_OPTIONS,
+      ),
     ).rejects.toMatchObject({
       code: "invalid_path",
       message: "Path is a directory, not a file",
@@ -208,11 +222,14 @@ describe("readHostFileMetadata", () => {
     const filePath = path.join(repoPath, "large-preferences.md");
     await fs.writeFile(filePath, Buffer.alloc(25 * 1024 * 1024 + 1));
 
-    const result = await readHostFileMetadata({
-      type: "host.file_metadata",
-      path: filePath,
-      rootPath: repoPath,
-    });
+    const result = await readHostFileMetadata(
+      {
+        type: "host.file_metadata",
+        path: filePath,
+        rootPath: repoPath,
+      },
+      TEST_DISPATCH_OPTIONS,
+    );
 
     expect(result.path).toBe(filePath);
     expect(result.sizeBytes).toBe(25 * 1024 * 1024 + 1);
@@ -227,11 +244,14 @@ describe("readHostFileMetadata", () => {
     await fs.symlink(outsidePath, symlinkPath);
 
     await expect(
-      readHostFileMetadata({
-        type: "host.file_metadata",
-        path: symlinkPath,
-        rootPath: repoPath,
-      }),
+      readHostFileMetadata(
+        {
+          type: "host.file_metadata",
+          path: symlinkPath,
+          rootPath: repoPath,
+        },
+        TEST_DISPATCH_OPTIONS,
+      ),
     ).rejects.toMatchObject({
       code: "invalid_path",
       message: expect.stringContaining("escapes read root"),
@@ -315,11 +335,14 @@ describe("readHostFile (with ref — git history read)", () => {
     const repoPath = await initRepo();
 
     await expect(
-      readHostFile({
-        type: "host.read_file",
-        path: path.join(repoPath, "tracked.txt"),
-        ref: "HEAD",
-      }),
+      readHostFile(
+        {
+          type: "host.read_file",
+          path: path.join(repoPath, "tracked.txt"),
+          ref: "HEAD",
+        },
+        TEST_DISPATCH_OPTIONS,
+      ),
     ).rejects.toMatchObject({
       code: "invalid_path",
       message: "rootPath is required when ref is set",
@@ -336,12 +359,15 @@ describe("readHostFile (with ref — git history read)", () => {
     // Mutate on disk so HEAD differs from the working tree.
     await fs.writeFile(filePath, "version 2\n", "utf8");
 
-    const result = await readHostFile({
-      type: "host.read_file",
-      path: filePath,
-      rootPath: repoPath,
-      ref: "HEAD",
-    });
+    const result = await readHostFile(
+      {
+        type: "host.read_file",
+        path: filePath,
+        rootPath: repoPath,
+        ref: "HEAD",
+      },
+      TEST_DISPATCH_OPTIONS,
+    );
 
     expect(result.content).toBe("version 1\n");
     expect(result.contentEncoding).toBe("utf8");
@@ -355,12 +381,15 @@ describe("readHostFile (with ref — git history read)", () => {
     await runGit(["add", "seed.txt"], { cwd: repoPath });
     await runGit(["commit", "-m", "seed"], { cwd: repoPath });
 
-    const result = await readHostFile({
-      type: "host.read_file",
-      path: path.join(repoPath, "missing.txt"),
-      rootPath: repoPath,
-      ref: "HEAD",
-    });
+    const result = await readHostFile(
+      {
+        type: "host.read_file",
+        path: path.join(repoPath, "missing.txt"),
+        rootPath: repoPath,
+        ref: "HEAD",
+      },
+      TEST_DISPATCH_OPTIONS,
+    );
 
     expect(result.content).toBe("");
     expect(result.sizeBytes).toBe(0);
@@ -373,24 +402,30 @@ describe("readHostFile (with ref — git history read)", () => {
     await runGit(["commit", "-m", "init"], { cwd: repoPath });
 
     await expect(
-      readHostFile({
-        type: "host.read_file",
-        path: path.join(repoPath, "f.txt"),
-        rootPath: repoPath,
-        ref: "HEAD/../foo",
-      }),
+      readHostFile(
+        {
+          type: "host.read_file",
+          path: path.join(repoPath, "f.txt"),
+          rootPath: repoPath,
+          ref: "HEAD/../foo",
+        },
+        TEST_DISPATCH_OPTIONS,
+      ),
     ).rejects.toBeInstanceOf(CommandDispatchError);
   });
 
   it("rejects refs with leading dash", async () => {
     const repoPath = await initRepo();
     await expect(
-      readHostFile({
-        type: "host.read_file",
-        path: path.join(repoPath, "f.txt"),
-        rootPath: repoPath,
-        ref: "-rf",
-      }),
+      readHostFile(
+        {
+          type: "host.read_file",
+          path: path.join(repoPath, "f.txt"),
+          rootPath: repoPath,
+          ref: "-rf",
+        },
+        TEST_DISPATCH_OPTIONS,
+      ),
     ).rejects.toBeInstanceOf(CommandDispatchError);
   });
 
@@ -401,12 +436,15 @@ describe("readHostFile (with ref — git history read)", () => {
     await runGit(["commit", "-m", "init"], { cwd: repoPath });
 
     await expect(
-      readHostFile({
-        type: "host.read_file",
-        path: "/etc/passwd",
-        rootPath: repoPath,
-        ref: "HEAD",
-      }),
+      readHostFile(
+        {
+          type: "host.read_file",
+          path: "/etc/passwd",
+          rootPath: repoPath,
+          ref: "HEAD",
+        },
+        TEST_DISPATCH_OPTIONS,
+      ),
     ).rejects.toBeInstanceOf(CommandDispatchError);
   });
 
@@ -423,12 +461,15 @@ describe("readHostFile (with ref — git history read)", () => {
     await fs.writeFile(filePath, "second\n", "utf8");
     await runGit(["commit", "-am", "second"], { cwd: repoPath });
 
-    const result = await readHostFile({
-      type: "host.read_file",
-      path: filePath,
-      rootPath: repoPath,
-      ref: firstSha,
-    });
+    const result = await readHostFile(
+      {
+        type: "host.read_file",
+        path: filePath,
+        rootPath: repoPath,
+        ref: firstSha,
+      },
+      TEST_DISPATCH_OPTIONS,
+    );
 
     expect(result.content).toBe("first\n");
   });

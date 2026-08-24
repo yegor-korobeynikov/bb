@@ -12,7 +12,10 @@ import {
   isPathWithinRoot,
   NON_IMAGE_FILE_SIZE_LIMIT_BYTES,
 } from "./file-read.js";
-import { resolveNonSymlinkDirectoryPath } from "./root-path.js";
+import {
+  resolveDeclaredDirectoryPath,
+  type DataDirOption,
+} from "./root-path.js";
 
 const guardedWriteTails = new Map<string, Promise<void>>();
 
@@ -89,6 +92,7 @@ export async function resolveWriteTarget(
 
 export async function writeHostFile(
   command: CommandOf<"host.write_file">,
+  options: DataDirOption,
 ): Promise<HostDaemonOnlineRpcResult<"host.write_file">> {
   if (!path.isAbsolute(command.path)) {
     throw new CommandDispatchError("invalid_path", "Path must be absolute");
@@ -108,7 +112,8 @@ export async function writeHostFile(
   const resolvedPath = path.resolve(command.path);
   const target = await resolveWriteTarget(resolvedPath, command.path);
 
-  const write = () => writeResolvedHostFile(command, contents, target);
+  const write = () =>
+    writeResolvedHostFile(command, contents, target, options.dataDir);
   return serializeGuardedWrite(target.writePath, write);
 }
 
@@ -116,11 +121,13 @@ async function writeResolvedHostFile(
   command: CommandOf<"host.write_file">,
   contents: Buffer,
   target: ResolvedWriteTarget,
+  dataDir: string,
 ): Promise<HostDaemonOnlineRpcResult<"host.write_file">> {
   if (command.rootPath !== undefined) {
     let realRootPath: string;
     try {
-      realRootPath = await resolveNonSymlinkDirectoryPath({
+      realRootPath = await resolveDeclaredDirectoryPath({
+        dataDir,
         description: "Root path",
         path: command.rootPath,
       });
