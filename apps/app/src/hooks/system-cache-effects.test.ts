@@ -325,6 +325,43 @@ describe("system cache effects", () => {
     queryClient.clear();
   });
 
+  it("re-reads pending interactions after reconnect even when they are newer than the watermark", () => {
+    // The exemption exists because the server's startup path interrupts every
+    // active plugin interaction and publishes the change before any client can
+    // subscribe: that event reaches nobody. A list fetched inside the
+    // disconnect window sits above the watermark, so the watermark rule would
+    // keep a question the server already buried — the state that answered a
+    // "Move to Track" click with a 409.
+    const queryClient = createCacheEffectQueryClient();
+    const disconnectedAt = Date.now();
+    const freshInteractionsKey =
+      threadPendingInteractionsQueryKey("thread-fresh");
+    const freshThreadKey = threadQueryKey("thread-fresh");
+    queryClient.setQueryData(freshInteractionsKey, [], {
+      updatedAt: disconnectedAt + 500,
+    });
+    queryClient.setQueryData(
+      freshThreadKey,
+      { id: "thread-fresh" },
+      { updatedAt: disconnectedAt + 500 },
+    );
+
+    invalidateRealtimeQueriesAfterServerReconnect({
+      disconnectedAt,
+      queryClient,
+    });
+
+    expect(queryClient.getQueryState(freshInteractionsKey)?.isInvalidated).toBe(
+      true,
+    );
+    // The exemption is scoped to interactions; the watermark still governs
+    // everything else.
+    expect(queryClient.getQueryState(freshThreadKey)?.isInvalidated).toBe(
+      false,
+    );
+    queryClient.clear();
+  });
+
   it("recovers a failed active thread-storage location query after reconnect", async () => {
     const queryClient = createCacheEffectQueryClient();
     queryClient.mount();
@@ -434,9 +471,7 @@ describe("system cache effects", () => {
     });
 
     // The TOC has an observer, so reconnect invalidation refetches it.
-    await vi.waitFor(() =>
-      expect(diffFilesQueryFn).toHaveBeenCalledTimes(1),
-    );
+    await vi.waitFor(() => expect(diffFilesQueryFn).toHaveBeenCalledTimes(1));
     // The observer-less patch entry is evicted so a stale patch can't survive
     // the reconnect.
     expect(queryClient.getQueryData(diffPatchKey)).toBeUndefined();

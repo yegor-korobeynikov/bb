@@ -714,6 +714,62 @@ const CHECKS = {
       };
     })()
   `,
+  // Contract (freeze rule, written before the code, 2026-08-24): a plugin's
+  // pending-interaction card must never put protocol vocabulary on screen,
+  // and a question that can no longer be answered must not still look
+  // answerable. Both halves come from one live defect: a "Move to Track"
+  // dialog whose interaction had been interrupted server-side
+  // (pint_9kzaem4z34, statusReason "server-restarted", killed one second
+  // after it was created) stayed mounted as a live form, took the click, and
+  // answered it with the raw transport string "HTTP 409: Pending interaction
+  // pint_... is already interrupted".
+  //
+  // The card carries data-plugin-interaction-card, and its terminal state
+  // carries data-plugin-interaction-dead="1". Assertions, per mounted card:
+  //   - no protocol vocabulary anywhere in its text (status codes, interaction
+  //     ids, "is already interrupted");
+  //   - a card marked dead has no enabled control left except the ones tagged
+  //     data-plugin-interaction-exit, and it does carry at least one of those,
+  //     so a finished question is inert but still closable.
+  // mountedCards === 0 is inconclusive, not a pass: these dialogs are
+  // transient, so "nothing on screen" must not read as "verified".
+  pluginInteractionNoDeadQuestion: `
+    (() => {
+      const cards = Array.from(document.querySelectorAll('[data-plugin-interaction-card]'));
+      if (cards.length === 0) {
+        return { found: false, inconclusive: true, mountedCards: 0 };
+      }
+      // Double-escaped on purpose: this check is a JS template literal in the
+      // .mjs, so a single-backslash \\s reaches the page as a bare "s" and the
+      // pattern silently stops matching "HTTP 409" — caught by running the
+      // check against a card that deliberately carried one.
+      const PROTOCOL = /HTTP\\s+\\d{3}|pint_[a-z0-9]{6,}|is already (interrupted|resolved|resolving)/i;
+      const report = cards.map((card) => {
+        const text = (card.innerText || '').replace(/\\s+/g, ' ').trim();
+        const protocolHit = text.match(PROTOCOL);
+        const dead = card.getAttribute('data-plugin-interaction-dead') === '1';
+        const liveControls = Array.from(card.querySelectorAll('button, input, textarea, select'))
+          .filter((el) => !el.disabled && el.getAttribute('data-plugin-interaction-exit') === null);
+        const exits = card.querySelectorAll('[data-plugin-interaction-exit]').length;
+        return {
+          text: text.slice(0, 80),
+          dead,
+          protocolLeak: protocolHit ? protocolHit[0] : null,
+          liveControlCount: liveControls.length,
+          exitCount: exits,
+          pass: protocolHit === null && (!dead || (liveControls.length === 0 && exits > 0)),
+        };
+      });
+      return {
+        found: true,
+        inconclusive: false,
+        mountedCards: cards.length,
+        deadCards: report.filter((c) => c.dead).length,
+        allPass: report.every((c) => c.pass),
+        cards: report,
+      };
+    })()
+  `,
 };
 
 function send(ws, id, method, params = {}) {
@@ -773,10 +829,14 @@ async function main() {
       expression: expr,
       returnByValue: true,
     });
-    verdict.checks[name] = result.result.value ?? { error: result.exceptionDetails ?? "unknown" };
+    verdict.checks[name] = result.result.value ?? {
+      error: result.exceptionDetails ?? "unknown",
+    };
   }
 
-  const shot = await send(ws, id++, "Page.captureScreenshot", { format: "png" });
+  const shot = await send(ws, id++, "Page.captureScreenshot", {
+    format: "png",
+  });
   const pngPath = `${outBase}.png`;
   writeFileSync(pngPath, Buffer.from(shot.data, "base64"));
   verdict.screenshot = pngPath;

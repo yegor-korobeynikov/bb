@@ -78,6 +78,20 @@ export function invalidateRealtimeQueriesAfterServerReconnect({
       { cancelRefetch: false },
     );
   }
+  // Pending interactions are exempt from the watermark above, and the reason
+  // is the server's own startup path: it interrupts every active plugin
+  // interaction and publishes `interactions-changed` before any client can be
+  // subscribed, so that event is never delivered to anybody. A list fetched
+  // during the disconnect window (a reconnect refetch that raced the startup
+  // interrupt, say) then has `dataUpdatedAt >= disconnectedAt`, the watermark
+  // skips it, and the client keeps rendering a question the server has already
+  // buried — which is what produced a "Move to Track" dialog that answered a
+  // click with `HTTP 409 ... is already interrupted`. One cheap list request
+  // per reconnect is the price of never showing a dead question.
+  void queryClient.invalidateQueries(
+    { queryKey: allThreadPendingInteractionsQueryKeyPrefix() },
+    { cancelRefetch: false },
+  );
   // A reconnect is how the app learns the server restarted, which is exactly
   // what a bb self-update does — so re-check the version rather than keep
   // advertising the update the user just applied.
