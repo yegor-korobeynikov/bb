@@ -55,6 +55,14 @@ function InlineVis(props: PluginMessageDirectiveProps) {
   );
 }
 
+function InlineSpanVis(props: PluginMessageDirectiveProps) {
+  return (
+    <span data-testid="inline-span-vis" data-id={props.attributes.id ?? ""}>
+      node:{props.attributes.id}
+    </span>
+  );
+}
+
 function CrashVis(_props: PluginMessageDirectiveProps): never {
   throw new Error("directive boom");
 }
@@ -378,6 +386,114 @@ describe("MarkdownPreview message directives", () => {
         `::inline-vis{file="f${MESSAGE_DIRECTIVE_MOUNT_LIMIT}.html"}`,
       ),
     ).toBeTruthy();
+  });
+
+  it("renders an unregistered text directive as exact source text", () => {
+    // The symmetric guard to the leaf-directive case above. The two
+    // incidental-colon tests cover `13:30` and `:D`, but a name-shaped text
+    // directive that no plugin registered — `:not-registered{a="1"}` — had no
+    // test of its own, and it is the exact shape that would slip through if
+    // the registry check were ever skipped for inline directives.
+    const registry = buildMessageDirectiveRegistry([
+      slot({ id: "node", pluginId: "demo", component: InlineSpanVis }),
+    ]);
+    const sentence = 'Cited as :not-registered{a="1"} in the draft.';
+    const { container } = render(
+      <MarkdownPreview
+        content={sentence}
+        messageDirectives={{
+          registry,
+          message: MESSAGE,
+          openWorkspaceFile: null,
+        }}
+      />,
+    );
+
+    const paragraphs = container.querySelectorAll("p");
+    expect(paragraphs).toHaveLength(1);
+    expect(paragraphs[0]?.textContent).toBe(sentence);
+    expect(paragraphs[0]?.querySelector("div")).toBeNull();
+    expect(screen.queryByTestId("inline-span-vis")).toBeNull();
+  });
+
+  it("mounts a registered text directive inside the sentence it sits in", () => {
+    // A leaf directive is block-level, so a plugin could only ever draw a
+    // block. A reference written mid-sentence — a wiki-link, a ticket, a
+    // person — belongs in the sentence, and the text directive is the form
+    // that fits there. It only mounts because the name is registered; the
+    // shape alone never earns it (see the incidental-colon tests above).
+    const registry = buildMessageDirectiveRegistry([
+      slot({ id: "node", pluginId: "demo", component: InlineSpanVis }),
+    ]);
+    const { container } = render(
+      <MarkdownPreview
+        content={'The rule lives in :node{id="canon"} and nowhere else.'}
+        messageDirectives={{
+          registry,
+          message: MESSAGE,
+          openWorkspaceFile: null,
+        }}
+      />,
+    );
+
+    const paragraphs = container.querySelectorAll("p");
+    expect(paragraphs).toHaveLength(1);
+    const mounted = screen.getByTestId("inline-span-vis");
+    expect(mounted.getAttribute("data-id")).toBe("canon");
+    // Mounted in place: the words on both sides stay in the same paragraph,
+    // which is the whole difference from the block form.
+    expect(paragraphs[0]?.contains(mounted)).toBe(true);
+    expect(paragraphs[0]?.textContent).toBe(
+      "The rule lives in node:canon and nowhere else.",
+    );
+  });
+
+  it("draws the same component whether the directive is written inline or as a block", () => {
+    const registry = buildMessageDirectiveRegistry([
+      slot({ id: "node", pluginId: "demo", component: InlineSpanVis }),
+    ]);
+    render(
+      <MarkdownPreview
+        content={'Cited as :node{id="a"} here.\n\n::node{id="b"}\n'}
+        messageDirectives={{
+          registry,
+          message: MESSAGE,
+          openWorkspaceFile: null,
+        }}
+      />,
+    );
+
+    const mounted = screen.getAllByTestId("inline-span-vis");
+    expect(mounted.map((el) => el.getAttribute("data-id"))).toEqual(["a", "b"]);
+  });
+
+  it("counts inline and block directives against one per-message mount budget", () => {
+    // A message must not be able to buy itself extra mounts by writing them
+    // inline: the cap is per message, not per directive shape.
+    const parts: string[] = [];
+    for (let i = 0; i < MESSAGE_DIRECTIVE_MOUNT_LIMIT + 2; i += 1) {
+      parts.push(
+        i % 2 === 0 ? `prose :node{id="n${i}"} prose` : `::node{id="n${i}"}`,
+        "",
+      );
+    }
+    const registry = buildMessageDirectiveRegistry([
+      slot({ id: "node", pluginId: "demo", component: InlineSpanVis }),
+    ]);
+    render(
+      <MarkdownPreview
+        content={parts.join("\n")}
+        messageDirectives={{
+          registry,
+          message: MESSAGE,
+          openWorkspaceFile: null,
+        }}
+      />,
+    );
+
+    expect(screen.getAllByTestId("inline-span-vis")).toHaveLength(
+      MESSAGE_DIRECTIVE_MOUNT_LIMIT,
+    );
   });
 
   it("keeps a completed directive mounted while later assistant text streams", () => {

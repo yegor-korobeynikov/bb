@@ -53,6 +53,10 @@ export interface MountedMessageDirective {
   index: number;
   slot: PluginMessageDirectiveSlot;
   source: string;
+  /** True when the directive was written inside a sentence (`:name`) rather
+   *  than on its own line (`::name`). Decides the sentinel's node type and the
+   *  slot wrapper's element, never what the plugin may render. */
+  inline: boolean;
 }
 
 export interface MarkdownMessageDirectives {
@@ -196,16 +200,29 @@ function directiveSourceFromNode(
   return reconstructDirectiveSource(name, attributes, marker);
 }
 
-function messageDirectiveMountNode(index: number): RootContent {
+function messageDirectiveMountNode(index: number, inline: boolean): RootContent {
+  const data = {
+    hName: MESSAGE_DIRECTIVE_HAST_NAME,
+    hProperties: { [MESSAGE_DIRECTIVE_INDEX_PROPERTY]: index },
+  };
+  // A text directive lives in phrasing content, so its stand-in must too: an
+  // empty `text` node carrying `hName`, exactly as `markdown-thread-mentions`
+  // builds its inline mention. A paragraph here would nest a block inside a
+  // paragraph and split the sentence around it — the very thing the inline
+  // form exists to avoid.
+  if (inline) {
+    return {
+      type: "text",
+      value: "",
+      data,
+    };
+  }
   // Block-level stand-in: empty paragraph rewritten to the custom element via
   // `data.hName`, matching the prompt-mention indexed-sentinel pattern.
   return {
     type: "paragraph",
     children: [],
-    data: {
-      hName: MESSAGE_DIRECTIVE_HAST_NAME,
-      hProperties: { [MESSAGE_DIRECTIVE_INDEX_PROPERTY]: index },
-    },
+    data,
   };
 }
 
@@ -310,17 +327,20 @@ export function remarkMessageDirectives(args: {
         marker,
       );
 
-      // Only leaf directives (`::name`) mount a plugin component. A text
-      // directive (`:name`) is almost always an incidental parse of ordinary
-      // prose — a time like `13:30`, a `key:value` pair, an emoticon like `:D`.
-      // Left in the tree it reaches `mdast-util-to-hast`, which renders an
-      // unknown directive as an empty block `<div>`; nested inside a paragraph
-      // that both drops the directive's text and injects a stray line break.
-      // Rewrite it back to literal source so the prose renders verbatim.
-      if (directive.type !== "leafDirective") {
-        return spliceLiteralDirective(parent, index, directive.type, source);
-      }
-
+      // A text directive (`:name`) is almost always an incidental parse of
+      // ordinary prose — a time like `13:30`, a `key:value` pair, an emoticon
+      // like `:D`. Left in the tree it reaches `mdast-util-to-hast`, which
+      // renders an unknown directive as an empty block `<div>`; nested inside
+      // a paragraph that both drops the directive's text and injects a stray
+      // line break.
+      //
+      // The guard against that is the registry, not the directive's shape.
+      // `30`, `b` and `D` are not names any plugin registers, so they fall
+      // through to the literal rewrite below exactly as before — while a name
+      // a plugin did register mounts where the author wrote it, which is the
+      // only way a reference can sit inside a sentence rather than beside it.
+      // Everything past this point treats both forms identically: same
+      // registry, same collision handling, same per-message mount budget.
       if (name.length === 0) {
         return spliceLiteralDirective(parent, index, directive.type, source);
       }
@@ -334,14 +354,20 @@ export function remarkMessageDirectives(args: {
         return spliceLiteralDirective(parent, index, directive.type, source);
       }
 
+      const inline = directive.type === "textDirective";
       const mountIndex = mounts.length;
       mounts.push({
         attributes,
         index: mountIndex,
         slot: entry.slot,
         source,
+        inline,
       });
-      parent.children.splice(index, 1, messageDirectiveMountNode(mountIndex));
+      parent.children.splice(
+        index,
+        1,
+        messageDirectiveMountNode(mountIndex, inline),
+      );
       return index;
     });
   };
@@ -375,7 +401,7 @@ export function buildMessageDirectiveComponent({
     if (mount === undefined) {
       return null;
     }
-    const { slot, attributes, source } = mount;
+    const { slot, attributes, source, inline } = mount;
     const Component = slot.component;
     return (
       <PluginSlotMount
@@ -384,6 +410,7 @@ export function buildMessageDirectiveComponent({
         slotKind="messageDirective"
         slotId={slot.id}
         crashFallback={source}
+        {...(inline ? ({ rootAs: "span" } as const) : {})}
       >
         {openThreadPanel === null ? (
           <Component

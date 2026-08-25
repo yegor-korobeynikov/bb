@@ -99,6 +99,14 @@ interface PluginSlotBoundaryProps {
   children: ReactNode;
   fallback?: ReactNode;
   onCrash?: (pluginId: string) => void;
+  /**
+   * Element for the plugin root. Defaults to `"div"`. A slot that mounts
+   * inside phrasing content — a message directive written inside a sentence —
+   * passes `"span"`, because a block element nested in a paragraph is invalid
+   * markup. Purely the wrapper's tag: `className="contents"` keeps it
+   * box-less either way, and what the plugin itself may render is unchanged.
+   */
+  rootAs?: "div" | "span";
 }
 
 interface PluginSlotBoundaryState {
@@ -223,7 +231,9 @@ export function PluginSlotMount({
   crashFallback,
   instanceId,
   onCrash,
+  rootAs = "div",
 }: PluginSlotMountProps) {
+  const PluginRoot = rootAs;
   usePluginCss(pluginId);
   return (
     <PluginContext.Provider value={pluginId}>
@@ -238,13 +248,13 @@ export function PluginSlotMount({
         fallback={crashFallback}
         {...(onCrash ? { onCrash } : {})}
       >
-        <div
+        <PluginRoot
           data-bb-plugin-root=""
           data-bb-plugin={pluginId}
           className="contents"
         >
           {children}
-        </div>
+        </PluginRoot>
       </PluginSlotBoundary>
     </PluginContext.Provider>
   );
