@@ -460,9 +460,18 @@ export function collectPluginAppRegistrations(
         const kind = "slots.messageDirective";
         const id = requireMessageDirectiveId(kind, registration?.id);
         requireUniqueId(kind, seenIds.messageDirective, id);
+        // Every field a registration may carry has to be named here: this
+        // rebuilds the record rather than spreading it, so anything unnamed is
+        // dropped with no error on either side — the plugin registers happily
+        // and the host renders as though the field had never been written.
+        const pattern =
+          typeof registration.pattern === "string" && registration.pattern.length > 0
+            ? registration.pattern
+            : undefined;
         collected.messageDirectives.push({
           id,
           component: requireComponent(kind, registration.component),
+          ...(pattern !== undefined ? { pattern } : {}),
         });
       },
       messageAction(registration) {

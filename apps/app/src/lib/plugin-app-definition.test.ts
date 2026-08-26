@@ -11,6 +11,41 @@ function Component() {
 }
 
 describe("definePluginApp", () => {
+  it("carries a message directive's claimed pattern through collection", () => {
+    // The wire between a plugin's claim and the app's renderer. The collector
+    // rebuilds each registration field by field, so a field it does not name
+    // is dropped silently: the plugin registers, the host reports success, and
+    // the pattern never arrives. Nothing errors, which is why this needs a
+    // test rather than a reading.
+    const definition = definePluginApp((app) => {
+      app.slots.messageDirective({
+        id: "node-ref",
+        component: Component,
+        pattern: "\\[\\[(?<id>[^\\]|]+)\\]\\]",
+      });
+    });
+    const registrations = collectPluginAppRegistrations(definition);
+
+    expect(registrations.messageDirectives).toEqual([
+      {
+        id: "node-ref",
+        component: Component,
+        pattern: "\\[\\[(?<id>[^\\]|]+)\\]\\]",
+      },
+    ]);
+  });
+
+  it("omits the pattern entirely when a directive does not claim one", () => {
+    const definition = definePluginApp((app) => {
+      app.slots.messageDirective({ id: "plain", component: Component });
+    });
+    const registrations = collectPluginAppRegistrations(definition);
+
+    expect(registrations.messageDirectives).toEqual([
+      { id: "plain", component: Component },
+    ]);
+  });
+
   it("brands the setup for host detection", () => {
     const definition = definePluginApp(() => {});
     expect(isPluginAppDefinition(definition)).toBe(true);
