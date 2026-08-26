@@ -736,8 +736,17 @@
    * `…` ellipsis. Self-gating: short text doesn't reach the fade zone, so the
    * fade only shows when content is actually truncated. Pair with
    * `overflow-hidden whitespace-nowrap` (no scroll).
+   *
+   * `mask-image` establishes a new stacking context on the element (CSS
+   * Masking spec), which promotes it into the same painting bucket as any
+   * absolutely-positioned sibling with z-index:auto — ordered by DOM order,
+   * not by who's "supposed" to be on top. Sidebar rows put an invisible
+   * full-row NavLink before this text in the DOM to catch clicks; without
+   * pointer-events:none the now-promoted text span paints over that link
+   * and silently swallows clicks landing on the title itself.
    */
   .fade-clip-right {
+    pointer-events: none;
     -webkit-mask-image: linear-gradient(
       to right,
       #000 calc(100% - 1.5rem),
