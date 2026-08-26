@@ -179,9 +179,18 @@ function SidebarSectionRowComponent({
           {renderRollupIndicator()}
         </span>
       ) : null}
+      {
+        // Absolute instead of a shrink-0 flex sibling (2026-08-26, same fix
+        // as ThreadRow's/ProjectRow's trailing cluster): reserving flex
+        // track width here stopped the title span short of the row's true
+        // right edge, so fade-clip-right's 60px zone measured from that
+        // short edge and stacked on top of this column instead of sharing
+        // it. The row is already a valid containing block (the toggle
+        // button above is `absolute inset-0`).
+      }
       <span
         className={cn(
-          "relative z-10 shrink-0",
+          "absolute right-0 top-1/2 z-10 -translate-y-1/2",
           hasActions
             ? "inline-flex items-center"
             : COARSE_POINTER_ROW_ACTION_SIZE_CLASS,

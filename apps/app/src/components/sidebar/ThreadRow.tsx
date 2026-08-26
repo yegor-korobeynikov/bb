@@ -845,7 +845,24 @@ function ThreadRowComponent({
           </Tooltip>
         ) : null}
       </span>
-      <span className="flex shrink-0 items-center gap-0.5">
+      {
+        // Absolutely positioned instead of a shrink-0 flex sibling
+        // (2026-08-26): a flex sibling always reserves its own track width,
+        // which pushed the title's box short of the row's true right edge —
+        // fade-clip-right's 60px zone (app.css) then measured from that
+        // short edge, not the row's, stacking on top of this column's width
+        // instead of sharing it (measured ~96-106px total instead of the
+        // spec's 60). Taking this cluster out of flow lets the title's
+        // flex-1 box span the row's full width, so the fade zone and this
+        // icon/action cluster share the same final 60px instead of adding
+        // up. Every element inside already positions itself relative to its
+        // own nearer ancestor (the glyph slot's `relative`, the hover
+        // actions overlay's own `absolute`), so this only changes how the
+        // cluster AS A WHOLE anchors to the row — not any interaction
+        // inside it. z-10 keeps it (and the shortcut pill) above the row's
+        // full-row NavLink, same as the cross-project glyph above.
+      }
+      <span className="absolute inset-y-0 right-0 z-10 flex items-center gap-0.5">
         {shortcut ? (
           <AppCommandShortcutPill shortcut={shortcut} />
         ) : (

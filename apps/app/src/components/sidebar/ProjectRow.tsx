@@ -994,11 +994,24 @@ function EnvironmentThreadGroupHeader({
           <span>{displayName}</span>
         </span>
       </span>
+      {
+        // Absolute instead of a shrink-0 flex sibling (2026-08-26, same fix
+        // as ThreadRow's trailing cluster): a flex sibling reserves its own
+        // track width, so the title span above stopped short of the row's
+        // true right edge — fade-clip-right's 60px zone then measured from
+        // that short edge and stacked on top of this column's width instead
+        // of sharing it. Taking it out of flow lets the title's flex-1 box
+        // span the row's full width so the fade zone and this action
+        // cluster share the same final 60px. The row's containing block
+        // (relative or sticky, see `className` above) already supports it —
+        // same one the chevron above already uses.
+      }
       <span
         className={cn(
-          "relative z-10 shrink-0",
+          "absolute right-0 z-10",
           COARSE_POINTER_ROW_ACTION_SIZE_CLASS,
         )}
+        style={{ top: "50%", transform: "translateY(-50%)" }}
       >
         {showRollupGlyph ? (
           <span
