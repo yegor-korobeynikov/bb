@@ -770,6 +770,52 @@ const CHECKS = {
       };
     })()
   `,
+  // Contract (freeze rule, written before the code, 2026-08-26): moving a
+  // passage into a track carries the human's own words with it. Until now the
+  // dialog could only route the fragment — Yegor could pick a track but had
+  // nowhere to say WHY he was sending it, so the receiving agent got a quote
+  // with no instruction and had to open with "what do I do with this?".
+  // In a normal session the same gesture (select, send to chat) lets him type
+  // an explanation next to the quoted passage; the move lost that half.
+  //
+  // The picker carries data-move-to-track-form, and the note input carries
+  // data-move-to-track-note. Assertions, per mounted picker:
+  //   - exactly one note field exists, and it is enabled (a note you cannot
+  //     type is the same defect wearing a different mask);
+  //   - it is a real multi-line field, not a single-line input squeezed in;
+  //   - the picker still offers the routing choice it always had, so the note
+  //     is an addition rather than a replacement.
+  // mountedForms === 0 is inconclusive, not a pass: the dialog is transient.
+  moveToTrackNoteField: `
+    (() => {
+      const forms = Array.from(document.querySelectorAll('[data-move-to-track-form]'));
+      if (forms.length === 0) {
+        return { found: false, inconclusive: true, mountedForms: 0 };
+      }
+      const report = forms.map((form) => {
+        const notes = Array.from(form.querySelectorAll('[data-move-to-track-note]'));
+        const note = notes[0] || null;
+        const enabled = note !== null && !note.disabled && !note.closest('fieldset[disabled]');
+        const multiline = note !== null && note.tagName.toLowerCase() === 'textarea';
+        const routingChoices = form.querySelectorAll('input[type="radio"]').length;
+        return {
+          noteCount: notes.length,
+          enabled,
+          multiline,
+          placeholder: note ? (note.getAttribute('placeholder') || '') : null,
+          routingChoices,
+          pass: notes.length === 1 && enabled && multiline && routingChoices >= 1,
+        };
+      });
+      return {
+        found: true,
+        inconclusive: false,
+        mountedForms: forms.length,
+        allPass: report.every((f) => f.pass),
+        forms: report,
+      };
+    })()
+  `,
 };
 
 function send(ws, id, method, params = {}) {
