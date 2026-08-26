@@ -392,7 +392,104 @@ export function remarkMessageDirectives(args: {
     });
 
     applyClaimedPatterns(tree, registry, mounts);
+    applyClaimedHrefs(tree, registry, mounts);
   };
+}
+
+/** Longest URL a claimed href pattern is matched against. Same reasoning as
+ *  {@link CLAIMED_PATTERN_MAX_TEXT_RUN}, one layer down: a URL is short in
+ *  practice, and a bound is cheaper than trusting that. */
+const CLAIMED_HREF_MAX_LENGTH = 2048;
+
+/** Compile the patterns a registry claims, dropping the claim rather than the
+ *  message when one does not parse. Shared by both claim kinds so they cannot
+ *  disagree about what an unusable pattern costs. */
+function compileClaims(
+  registry: MessageDirectiveRegistry,
+  read: (slot: PluginMessageDirectiveSlot) => string | undefined,
+  what: string,
+): Array<{ slot: PluginMessageDirectiveSlot; re: RegExp }> {
+  const compiled: Array<{ slot: PluginMessageDirectiveSlot; re: RegExp }> = [];
+  for (const entry of registry.values()) {
+    if (entry.status === "collision") continue;
+    const source = read(entry.slot);
+    if (typeof source !== "string" || source.length === 0) continue;
+    try {
+      compiled.push({ slot: entry.slot, re: new RegExp(source, "gu") });
+    } catch {
+      try {
+        compiled.push({ slot: entry.slot, re: new RegExp(source, "g") });
+      } catch {
+        console.warn(
+          `[plugin] message directive "${entry.slot.id}" claimed an unparseable ${what}; ignoring it`,
+        );
+      }
+    }
+  }
+  return compiled;
+}
+
+/**
+ * Apply the link targets plugins claimed.
+ *
+ * A text pattern cannot reach these: by the time a link is parsed, its target
+ * is no longer prose. The whole link is replaced, so the plugin's component
+ * stands where the link stood, and the link's own text travels as `label` so a
+ * label the author chose is not thrown away.
+ */
+function applyClaimedHrefs(
+  tree: Nodes,
+  registry: MessageDirectiveRegistry,
+  mounts: MountedMessageDirective[],
+): void {
+  const compiled = compileClaims(registry, (slot) => slot.hrefPattern, "href pattern");
+  if (compiled.length === 0) return;
+
+  visit(tree, "link", (node, index, parent: Parent | undefined) => {
+    if (parent === undefined || index === undefined) return;
+    if (mounts.length >= MESSAGE_DIRECTIVE_MOUNT_LIMIT) return;
+    const url = typeof node.url === "string" ? node.url : "";
+    if (url.length === 0 || url.length > CLAIMED_HREF_MAX_LENGTH) return;
+
+    let best: { slot: PluginMessageDirectiveSlot; m: RegExpExecArray } | null = null;
+    for (const { slot, re } of compiled) {
+      re.lastIndex = 0;
+      const m = re.exec(url);
+      if (m === null) continue;
+      // First claim wins, deterministically: the registry is ordered by plugin
+      // id, so two plugins claiming the same target always resolve the same way.
+      best = { slot, m };
+      break;
+    }
+    if (best === null) return;
+
+    const label = linkText(node);
+    const attributes: Record<string, string> = { raw: url };
+    if (label.length > 0) attributes.label = label;
+    for (const [key, groupValue] of Object.entries(best.m.groups ?? {})) {
+      if (typeof groupValue === "string") attributes[key] = groupValue;
+    }
+
+    const mountIndex = mounts.length;
+    mounts.push({
+      attributes,
+      index: mountIndex,
+      slot: best.slot,
+      source: url,
+      inline: true,
+    });
+    parent.children.splice(index, 1, messageDirectiveMountNode(mountIndex, true));
+    return index;
+  });
+}
+
+/** The visible text of a link, so a label the author wrote survives the swap. */
+function linkText(node: Nodes): string {
+  let out = "";
+  visit(node, "text", (text) => {
+    out += text.value;
+  });
+  return out;
 }
 
 /**
@@ -409,31 +506,7 @@ function applyClaimedPatterns(
   registry: MessageDirectiveRegistry,
   mounts: MountedMessageDirective[],
 ): void {
-  const claims: Array<{ slot: PluginMessageDirectiveSlot; source: string }> = [];
-  for (const entry of registry.values()) {
-    if (entry.status === "collision") continue;
-    const pattern = entry.slot.pattern;
-    if (typeof pattern !== "string" || pattern.length === 0) continue;
-    claims.push({ slot: entry.slot, source: pattern });
-  }
-  if (claims.length === 0) return;
-
-  // A pattern arrives from a plugin, so it is untrusted input: an unparseable
-  // one must cost that plugin its claim, not cost the timeline its message.
-  const compiled: Array<{ slot: PluginMessageDirectiveSlot; re: RegExp }> = [];
-  for (const claim of claims) {
-    try {
-      compiled.push({ slot: claim.slot, re: new RegExp(claim.source, "gu") });
-    } catch {
-      try {
-        compiled.push({ slot: claim.slot, re: new RegExp(claim.source, "g") });
-      } catch {
-        console.warn(
-          `[plugin] message directive "${claim.slot.id}" claimed an unparseable pattern; ignoring it`,
-        );
-      }
-    }
-  }
+  const compiled = compileClaims(registry, (slot) => slot.pattern, "pattern");
   if (compiled.length === 0) return;
 
   visit(tree, "text", (node, index, parent: Parent | undefined) => {

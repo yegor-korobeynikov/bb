@@ -58,7 +58,11 @@ function InlineVis(props: PluginMessageDirectiveProps) {
 
 function InlineSpanVis(props: PluginMessageDirectiveProps) {
   return (
-    <span data-testid="inline-span-vis" data-id={props.attributes.id ?? ""}>
+    <span
+      data-testid="inline-span-vis"
+      data-id={props.attributes.id ?? ""}
+      data-label={props.attributes.label ?? ""}
+    >
       node:{props.attributes.id}
     </span>
   );
@@ -647,6 +651,62 @@ describe("MarkdownPreview message directives", () => {
     expect(mounted[0]?.getAttribute("data-id")).toBe("scanned");
     // The skipped run keeps its text — unscanned is not the same as dropped.
     expect(screen.getByText(/\[\[toolong\]\]/)).toBeTruthy();
+  });
+
+  it("mounts a link a plugin claimed by where it points", () => {
+    // The same reference written the other common way: not the workspace's
+    // notation but a path to the file it names. A text pattern cannot see it —
+    // by the time a link is parsed its target is no longer prose.
+    const registry = buildMessageDirectiveRegistry([
+      slot({
+        id: "node",
+        pluginId: "demo",
+        component: InlineSpanVis,
+        hrefPattern: "(?:^|/)nodes/(?<id>[^/]+)\\.md$",
+      }),
+    ]);
+    const { container } = render(
+      <MarkdownPreview
+        content={"Записал нодой [reasoning as graph](nodes/reasoning-as-graph.md) и отправил дальше."}
+        messageDirectives={{
+          registry,
+          message: MESSAGE,
+          openWorkspaceFile: null,
+        }}
+      />,
+    );
+
+    expect(container.querySelectorAll("p")).toHaveLength(1);
+    const mounted = screen.getByTestId("inline-span-vis");
+    expect(mounted.getAttribute("data-id")).toBe("reasoning-as-graph");
+    // The label the author chose survives — the plugin decides whether to use it.
+    expect(mounted.getAttribute("data-label")).toBe("reasoning as graph");
+    // And no ordinary link is left behind in its place.
+    expect(container.querySelector("a")).toBeNull();
+  });
+
+  it("leaves links the plugin did not claim exactly as they were", () => {
+    const registry = buildMessageDirectiveRegistry([
+      slot({
+        id: "node",
+        pluginId: "demo",
+        component: InlineSpanVis,
+        hrefPattern: "(?:^|/)nodes/(?<id>[^/]+)\\.md$",
+      }),
+    ]);
+    const { container } = render(
+      <MarkdownPreview
+        content={"См. [документацию](https://example.com/docs) и [файл](README.md)."}
+        messageDirectives={{
+          registry,
+          message: MESSAGE,
+          openWorkspaceFile: null,
+        }}
+      />,
+    );
+
+    expect(screen.queryByTestId("inline-span-vis")).toBeNull();
+    expect(container.querySelectorAll("a")).toHaveLength(2);
   });
 
   it("keeps a completed directive mounted while later assistant text streams", () => {

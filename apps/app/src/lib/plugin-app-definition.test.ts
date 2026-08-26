@@ -35,6 +35,25 @@ describe("definePluginApp", () => {
     ]);
   });
 
+  it("carries a message directive's claimed href pattern through collection", () => {
+    const definition = definePluginApp((app) => {
+      app.slots.messageDirective({
+        id: "node-href",
+        component: Component,
+        hrefPattern: "(?:^|/)nodes/(?<id>[^/]+)\\.md$",
+      });
+    });
+    const registrations = collectPluginAppRegistrations(definition);
+
+    expect(registrations.messageDirectives).toEqual([
+      {
+        id: "node-href",
+        component: Component,
+        hrefPattern: "(?:^|/)nodes/(?<id>[^/]+)\\.md$",
+      },
+    ]);
+  });
+
   it("omits the pattern entirely when a directive does not claim one", () => {
     const definition = definePluginApp((app) => {
       app.slots.messageDirective({ id: "plain", component: Component });

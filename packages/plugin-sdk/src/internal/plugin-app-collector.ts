@@ -464,14 +464,15 @@ export function collectPluginAppRegistrations(
         // rebuilds the record rather than spreading it, so anything unnamed is
         // dropped with no error on either side — the plugin registers happily
         // and the host renders as though the field had never been written.
-        const pattern =
-          typeof registration.pattern === "string" && registration.pattern.length > 0
-            ? registration.pattern
-            : undefined;
+        const claimed = (value: unknown) =>
+          typeof value === "string" && value.length > 0 ? value : undefined;
+        const pattern = claimed(registration.pattern);
+        const hrefPattern = claimed(registration.hrefPattern);
         collected.messageDirectives.push({
           id,
           component: requireComponent(kind, registration.component),
           ...(pattern !== undefined ? { pattern } : {}),
+          ...(hrefPattern !== undefined ? { hrefPattern } : {}),
         });
       },
       messageAction(registration) {

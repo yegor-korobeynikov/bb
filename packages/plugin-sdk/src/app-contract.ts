@@ -934,6 +934,9 @@ export interface PluginMessageDirectiveRegistration {
    * is always available as `attributes.raw`. The host never learns what the
    * pattern means — only the plugin that claimed it does.
    *
+   * See also `hrefPattern`, which claims a link by where it points rather than
+   * by the text that carries it.
+   *
    * Two bounds, stated so a plugin author is not surprised by them. A pattern
    * that does not compile costs that plugin its claim and nothing else. And a
    * claimed pattern is applied only to runs of text up to 10,000 characters;
@@ -942,6 +945,26 @@ export interface PluginMessageDirectiveRegistration {
    * error handling can catch. Neither bound analyses the pattern.
    */
   pattern?: string;
+
+  /**
+   * A link target this directive answers to, as a regular-expression source
+   * matched against a markdown link's URL.
+   *
+   * The same reference gets written more than one way — as the notation a
+   * workspace uses, as a path to the file, as the canonical URL — and only the
+   * first of those is text a `pattern` can see: by the time a link is parsed,
+   * its target is no longer prose. Without this, a reference written the other
+   * two ways renders as an ordinary web link, which is the failure mode
+   * `pattern` exists to end, one layer down.
+   *
+   * The plugin's component replaces the whole link. Named capture groups
+   * become `attributes`; the URL is always `attributes.raw` and the link's own
+   * visible text, when it has any, is always `attributes.label` — so a label
+   * the author chose survives. Same registry, same crash isolation, same
+   * per-message mount budget as every other mount. URLs longer than 2,048
+   * characters are left alone, for the reason given above.
+   */
+  hrefPattern?: string;
   /**
    * The directive name. Lowercase kebab-case beginning with a letter.
    */
