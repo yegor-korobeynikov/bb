@@ -933,6 +933,13 @@ export interface PluginMessageDirectiveRegistration {
    * Named capture groups become the component's `attributes`; the whole match
    * is always available as `attributes.raw`. The host never learns what the
    * pattern means — only the plugin that claimed it does.
+   *
+   * Two bounds, stated so a plugin author is not surprised by them. A pattern
+   * that does not compile costs that plugin its claim and nothing else. And a
+   * claimed pattern is applied only to runs of text up to 10,000 characters;
+   * a longer run is left unscanned, because a well-formed expression can still
+   * backtrack catastrophically on a long input and hang the renderer, which no
+   * error handling can catch. Neither bound analyses the pattern.
    */
   pattern?: string;
   /**

@@ -16,6 +16,7 @@ import { useBbNavigate } from "@/lib/plugin-sdk-hooks";
 import { MarkdownPreview } from "./markdown-preview";
 import {
   buildMessageDirectiveRegistry,
+  CLAIMED_PATTERN_MAX_TEXT_RUN,
   MESSAGE_DIRECTIVE_MOUNT_LIMIT,
   MessageDirectiveRegistryProvider,
 } from "./markdown-message-directives";
@@ -611,6 +612,41 @@ describe("MarkdownPreview message directives", () => {
     expect(screen.getAllByTestId("inline-span-vis")).toHaveLength(
       MESSAGE_DIRECTIVE_MOUNT_LIMIT,
     );
+  });
+
+  it("leaves a text run longer than the cap unscanned, and scans the one beside it", () => {
+    // The bound that keeps a claimed pattern from hanging the renderer. A
+    // well-formed expression can backtrack catastrophically on a long enough
+    // input, and no error handling sees that — so the input is bounded rather
+    // than the pattern analysed.
+    //
+    // Both halves matter: asserting only that the long run does not mount
+    // would pass on a build with no pattern support at all.
+    const registry = buildMessageDirectiveRegistry([
+      slot({
+        id: "node",
+        pluginId: "demo",
+        component: InlineSpanVis,
+        pattern: "\\[\\[(?<id>[^\\]|]+)\\]\\]",
+      }),
+    ]);
+    const filler = "a".repeat(CLAIMED_PATTERN_MAX_TEXT_RUN + 1);
+    render(
+      <MarkdownPreview
+        content={`${filler} [[toolong]]\n\nshort [[scanned]]`}
+        messageDirectives={{
+          registry,
+          message: MESSAGE,
+          openWorkspaceFile: null,
+        }}
+      />,
+    );
+
+    const mounted = screen.getAllByTestId("inline-span-vis");
+    expect(mounted).toHaveLength(1);
+    expect(mounted[0]?.getAttribute("data-id")).toBe("scanned");
+    // The skipped run keeps its text — unscanned is not the same as dropped.
+    expect(screen.getByText(/\[\[toolong\]\]/)).toBeTruthy();
   });
 
   it("keeps a completed directive mounted while later assistant text streams", () => {

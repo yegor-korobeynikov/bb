@@ -35,6 +35,22 @@ import type { PluginMessageDirectiveSlot } from "@/lib/plugin-slots.js";
 /** Max plugin directive components mounted per message body. */
 export const MESSAGE_DIRECTIVE_MOUNT_LIMIT = 32;
 
+/**
+ * Longest run of text a claimed pattern is applied to. Runs above it are
+ * skipped, unscanned.
+ *
+ * A pattern arrives from a plugin, and the parse is checked — but a
+ * well-formed regular expression can still backtrack catastrophically on a
+ * long enough input, which no try/catch can see and which hangs the renderer
+ * on the main thread. Analysing the pattern for that is a research problem;
+ * bounding what it runs on is four lines. This does not solve ReDoS and does
+ * not claim to. It removes the hang by making the worst case finite.
+ *
+ * 10,000 characters is far past any real paragraph and far short of anything
+ * that takes measurable time even on a pathological pattern.
+ */
+export const CLAIMED_PATTERN_MAX_TEXT_RUN = 10_000;
+
 const MESSAGE_DIRECTIVE_HAST_NAME = "bb-message-directive";
 // hast property key — `mdast-util-to-hast` lowercases it into
 // `data-directive-index` for the component to read back.
@@ -423,6 +439,9 @@ function applyClaimedPatterns(
   visit(tree, "text", (node, index, parent: Parent | undefined) => {
     if (parent === undefined || index === undefined) return;
     if (mounts.length >= MESSAGE_DIRECTIVE_MOUNT_LIMIT) return;
+    // The bound, not an analysis of the pattern. See
+    // CLAIMED_PATTERN_MAX_TEXT_RUN for why this is the whole defence.
+    if (node.value.length > CLAIMED_PATTERN_MAX_TEXT_RUN) return;
 
     const replacement: RootContent[] = [];
     let cursor = 0;
