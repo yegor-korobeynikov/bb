@@ -548,6 +548,56 @@ describe("FilePreview", () => {
     ).toBe("false");
   });
 
+  it("defaults plain-text files to wrapped lines", async () => {
+    render(
+      <FilePreview
+        path="notes/carrier-message.txt"
+        state={{
+          kind: "ready",
+          file: {
+            name: "carrier-message.txt",
+            contents: "a very long single line of prose ".repeat(20),
+          },
+          lineRange: null,
+          textPreviewKind: null,
+        }}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(
+        screen
+          .getByRole("button", { name: "Disable line wrap" })
+          .getAttribute("aria-pressed"),
+      ).toBe("true");
+    });
+  });
+
+  it("keeps code files unwrapped by default", async () => {
+    render(
+      <FilePreview
+        path="apps/app/src/lib/thread-read-state.ts"
+        state={{
+          kind: "ready",
+          file: {
+            name: "thread-read-state.ts",
+            contents: "export const marker = true;",
+          },
+          lineRange: null,
+          textPreviewKind: null,
+        }}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: "Wrap lines" }).getAttribute(
+          "aria-pressed",
+        ),
+      ).toBe("false");
+    });
+  });
+
   it("opens line-linked HTML files in rendered preview mode", () => {
     const { container } = render(
       <FilePreview

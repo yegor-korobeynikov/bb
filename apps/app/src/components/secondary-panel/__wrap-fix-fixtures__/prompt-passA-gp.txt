@@ -1,0 +1,155 @@
+# Private-capital GP operating jobs — exhaustive catalog and paying-problem map (Pass A)
+
+## Subject of study
+
+The entire general-partner side of private capital in the United States and Europe, with assets under management from USD 75 million and NO upper bound. Enumerate across every class, do not sample: buyout private equity (large-cap, mid-market, lower-mid-market, serial acquirers and buy-and-build platforms, sector-vertical roll-ups); growth equity; venture capital (pre-seed and seed, multi-stage, corporate venture); private credit (direct lending, mezzanine, special situations, distressed); real assets (real estate, infrastructure, energy transition); secondaries and funds-of-funds and co-investment vehicles; single-family and multi-family offices where they direct-invest; independent sponsors and search funds operating deal-by-deal without a committed fund. Also map the fund service layer — fund administrators, placement agents, outsourced CFO and back-office providers — not as buyers but as substitutes that already absorb some of these jobs. Geography: United States and Western Europe weighted (UK, DACH, Benelux, Nordics, France, Iberia, Italy); the rest of the world is recorded where found but not weighted. Hedge funds and other liquid-strategy managers are out of scope by class: their operating problem sits on public-market execution infrastructure, a different job with a different vendor set. Sovereign wealth funds and pension plans acting as principals are out of scope here and covered by the paired allocator-side pass.
+
+## The deliverable
+
+**One deliverable: an EXHAUSTIVE, evidenced catalog of the jobs this market is trying to get done, together with what is already paid for to get each of them done.** It is not a top-5 or top-10 shortlist, not a market overview, and not a report about the industry. It is delivered as the seven numbered outputs defined below, in full, in your response.
+
+Why exhaustiveness is the deliverable rather than a preference:
+
+Two consumers, both requiring the full set. (1) A structural jobs graph computed over the entire catalog, which identifies keystone jobs by graph position — which jobs many other jobs depend on — rather than by mention count; a keystone that never entered the catalog cannot be computed later. (2) A segment-selection decision that picks the target segment for a product build and the matching design-partner outreach track; a segment absent from the catalog is a segment that cannot be selected. Both are destroyed by a top-N shortlist.
+
+## The question
+
+Across the entire general-partner side of private capital in the US and Europe at USD 75M+ AUM: what is the full set of jobs these firms are trying to get done in running the fund and the portfolio; which of those jobs does money already move for today, in what form and at what price; what event triggers a firm to switch off its current way of doing each job; and what segmentation of this market do the jobs themselves support?
+
+## You are one of several independent runs
+
+This identical brief is being executed by several independent research runs. Do not assume another run covers something so that you can skip it. Cover everything the brief asks for. Where you are uncertain, say so and continue; a gap you declare is useful and a gap you paper over is not.
+
+## Method rules — non-negotiable
+
+1. **Exhaustive, never a pre-truncated top-N.** Enumerate and describe the full set to saturation. Ranking is a downstream computation and is explicitly not yours to do. A job that ranks low by mention count can be the one many other jobs depend on; truncated here, it can never be recovered. Preserve the long tail.
+2. **Job syntax is Kalbach: Verb + Object + Contextual clarifier.** Outcome-oriented, nothing more. No situation inside the job string. The forbidden forms are listed with the relevant block below and are shown as explicit negative examples; a deliverable written in any of them fails.
+3. **Ladder up, and mark what is inferred.** Every functional job ladders to the higher-order job it serves and to the aspiration above that; all levels are recorded as separate entries. An inferred job is marked INFERRED and its evidence is the list of functional jobs that ladder into it — never a frequency count it does not have.
+4. **Segments are derived from jobs, never from a grid fixed in advance.** A segment is the set of firms that share a job and its activation moment. Any segmentation offered to you in this brief is a hypothesis to test, not a premise. Report the segmentation the evidence supports, including one nobody has named.
+5. **Saturation is the off-switch.** Stop when a further pull adds approximately no new canonical jobs and no new substitute or vendor categories. State explicitly when you reached this point and on which channel, and state where you did not reach it.
+6. **Every claim carries its source and that source's date.** Every number states what it is a fraction of. An observed-in-sample count is never presented as a market total.
+7. **Recency.** A source on the state of the vendor or service market older than 12 months is flagged as possibly stale. Structural and regulatory facts may be older; say which kind a source is. Where sources of different ages conflict, prefer the more recent and describe the current state — do not average an older framing with newer specifics, and say that the conflict existed.
+
+## Hypotheses to test — NOT premises
+
+Each of these is currently believed by someone. None is established. Return an explicit verdict on each with the evidence that produced it, and 'the evidence does not settle this' is a legitimate verdict. Contradicting one of these is a more valuable result than confirming it.
+
+- **H-01** — Serial acquirers and buy-and-build platforms inside private equity are the segment with the most acute operating problem, because deal frequency and portfolio-company count compound the coordination load.
+- **H-02** — Fund structure — vertical roll-up versus diversified, single-family versus multi-family office, committed fund versus deal-by-deal sponsor — discriminates operating need better than assets under management does.
+- **H-03** — Large funds are self-sufficient: they have in-house engineering and data teams, or they buy from large systems integrators, and are therefore not addressable by a small outside team. One second-hand datapoint contradicts this. Test it against evidence rather than assuming either way.
+- **H-04** — Venture capital and private equity have jobs different enough that a single offer aimed at both is effective for neither.
+- **H-05** — Family offices and sub-USD-500M funds have too little deal and portfolio volume for their operating load to be a problem anyone pays to solve.
+- **H-06** — Emerging managers running their first through third fund feel the operating pain most acutely and have the least budget to spend on it, making them a high-need, low-revenue segment.
+- **H-07** — The job money actually moves for today is reporting — limited-partner reporting and portfolio monitoring — rather than deal sourcing, which is where vendor marketing concentrates.
+- **H-08** — The binding constraint on this market is not software capability but data: portfolio-company data arrives late, in inconsistent formats, and the work is chasing and normalising it rather than analysing it.
+
+## Blocks
+
+### B1. The exhaustive job catalog
+
+Enumerate every distinct job the general-partner side of private capital is trying to get done, across the whole market scope, to saturation. Cover the full operating surface: fundraising and limited-partner acquisition; deal origination and sourcing; screening and diligence; deal execution and closing; portfolio monitoring and data collection from portfolio companies; value creation and operating improvement; talent and board work; treasury, capital calls, distributions and waterfall calculation; fund accounting, valuation and audit; regulatory and tax compliance across jurisdictions; limited-partner reporting and investor relations; exit preparation and process; internal knowledge and institutional memory; and firm-level management of the partnership itself. Do not stop at the ones with visible software vendors — a job absorbed entirely by headcount or by an outsourced provider is still a job and is frequently the most expensive one.
+
+#### B1.1 Job syntax
+
+Every job is written as Verb + Object + Contextual clarifier. Outcome-oriented, nothing more. No situation inside the job string — situations belong to the activation-moment layer in Block 5. Example of the correct form: 'Reconcile portfolio-company financials across inconsistent reporting formats'.
+
+Forbidden forms — each of these is wrong and is shown so you can avoid it:
+
+- Job story — 'When I close a deal, I want to onboard the company so that reporting starts clean'. This folds a situation into the job. Forbidden.
+- Ulwick/ODI outcome-statement grammar — 'Minimise the time it takes to consolidate quarterly portfolio data'. Direction plus metric is a scoring layer, not a job string. Forbidden.
+- Solution-loaded or feature-named strings — 'Use a portfolio monitoring dashboard', 'Automate LP reporting with AI'. Forbidden.
+- Role labels as jobs — 'Be a good operating partner'. Forbidden.
+
+#### B1.2 Ladder up
+
+Every functional job ladders up to the higher-order job it serves and to the aspiration above that. Record all levels as separate entries tagged with their level. Public traces over-represent the functional layer — people post about a broken data feed, not about wanting to trust their own investment judgement — so the higher-order jobs are the most under-verbalised and often the most structurally decisive. Mark every inferred job as INFERRED and give as its evidence the list of functional jobs that ladder into it. Never attach a frequency count to an inferred job. A directly-voiced job and an inferred one must be distinguishable at a glance.
+
+#### B1.3 Whose job, inside the firm
+
+For every job, name which role inside the firm actually does the work: associate or analyst, vice-president or principal, partner, operating or portfolio-operations partner, fund CFO or controller, investor-relations lead, compliance officer, or an outsourced provider. Where the person who does the work and the person who authorises spending on it differ, say so on the job. This split is a finding about this pass, not a separate catalog.
+
+### B2. The segmentation the evidence supports
+
+Derive segments FROM the jobs, never from a demographic or AUM grid imposed in advance. A segment is the set of firms that share a job and its activation moment. Report whichever segmentation the evidence actually supports — including a cut nobody has named, and including the finding that a proposed axis does not discriminate. For every candidate axis, say how well it separates jobs and give the evidence: assets under management, fund vintage and number, strategy class, sector concentration versus diversification, control versus minority positions, portfolio-company count, deal cadence, headcount and whether the firm has any internal engineering or data capability, whether the back office is in-house or outsourced, jurisdiction and regulatory regime, single versus multi-family structure, committed fund versus deal-by-deal. The eight seed hypotheses in this brief are hypotheses to test, not premises. Report the verdict on each with the evidence that produced it, including a verdict of 'the evidence does not settle this'.
+
+### B3. The money map — what is already paid for
+
+For every job in the catalog, establish what firms currently spend to get it done and in what form. Four forms, all counted: commercial software licences; outsourced services (fund administrators, outsourced CFO, diligence providers, data vendors, consultants); internal headcount hired specifically to do this work; and nothing at all — the job is absorbed and endured. Give real prices with their source and date wherever a price is public, and say when it is not public rather than estimating. Every number states what it is a fraction of. Identify, per job, the SWITCH-TRIGGER EVENT: the specific, concrete, dateable thing that happens to a firm and makes it change how the job is done — a new fund close, an audit finding, a regulatory deadline, a portfolio company missing a reporting cycle, a key person leaving, an LP demanding a data format, a platform reaching a portfolio-company count the spreadsheet cannot hold. Also record where money is visibly NOT moving despite loud complaint, and where it is moving despite little public complaint; both divergences are findings.
+
+### B4. The substitute landscape
+
+Build a mutually-exclusive, collectively-exhaustive map of everything that competes for each job. Rows span substitute CATEGORIES, not a vendor feature grid: direct commercial competitor; indirect alternative; the status quo tool in place; the manual workaround, named specifically — Excel, email, a shared drive, a WhatsApp group; the outsourced-provider route; and DO-NOTHING, which is a mandatory row and is frequently the true incumbent. Name real vendors where they exist, with their pricing model and their date; invent nothing, and where you cannot verify a vendor's existence or pricing say so. For every row give: the concrete switch-trigger event, the price model, and a pass-or-fail readout on whether an alternative would have to REDUCE TRANSACTION COST or REDUCE COGNITIVE LOAD to displace it — raising appeal alone does not beat the friction of switching. Every gap or whitespace claim states the search that produced it: which queries, which sources, and what remains unsearched. 'I did not find it in the sources I checked' is a legitimate and required form; 'it does not exist' is a claim about the world and needs evidence proportional to any other coverage claim.
+
+### B5. Activation moments
+
+For every job that has one, record the situation that turns it from latent into urgent, on five coordinates: WHY it becomes urgent, WHEN in the fund or deal or reporting cycle it happens, WHERE it surfaces — which meeting, which system, which document, WITH WHOM the person is when it happens, and WITH WHAT tool or artifact in hand. These are separate records from the job strings; do not fold a situation back into a job string. Anchor each to real, dated, named occurrences where public evidence exists: reporting deadlines, regulatory dates, audit cycles, fundraising windows, conference agenda items that a trade body thought worth a session.
+
+### B6. Public-field raw records
+
+*This block is collection only.*
+
+COLLECTION ONLY — do not interpret, do not map to jobs, do not synthesise in this block. Return raw records of practitioners in this market describing their own work in their own words: forum and community threads, software review text, conference session titles and abstracts, job postings whose responsibilities describe the operating work, trade-press practitioner quotes, and vendor-neutral practitioner writing. For each record give: the source, a URL where one exists, the date, the role and firm type of the speaker where stated, and the substance in their words or in close paraphrase. State the count you returned per source and state the cap you applied and why. A cap is never reported as full coverage.
+
+### B7. Failure accounting
+
+Report every source and channel you attempted and what happened to it: how many records you collected, that it returned thin results, that it failed and why, or that you deferred it and why. Name a blocked or paywalled source explicitly rather than omitting it silently. This section is a required deliverable, not an internal note, and a run that returns findings without it is incomplete.
+
+## Required outputs
+
+1. **Job catalog** — The exhaustive set of jobs in Kalbach syntax, each tagged with level (functional, higher-order, aspiration), dimension, whose job it is inside the firm, whether it was directly voiced or INFERRED, and its evidence.
+2. **Segmentation verdict** — The segmentation the evidence supports, each candidate axis scored for how well it separates jobs, plus an explicit verdict on each of the eight seed hypotheses with the evidence behind it.
+3. **Money map** — Per job: what is spent today, in which of the four forms, at what price with source and date, and the switch-trigger event. Including the jobs where money is not moving.
+4. **Substitute matrix** — MECE by substitute category with a do-nothing row, switch-trigger per row, price model, principled-superiority pass/fail, and a search scope on every gap cell.
+5. **Activation-moment map** — Five coordinates per moment, anchored to dated real occurrences where evidence exists.
+6. **Raw record set** — Collection-only records per Block 6, with per-source counts and stated caps.
+7. **Failure accounting** — Per source and channel: collected N, thin, failed with reason, or deferred with reason.
+
+## Explicit non-outputs — do NOT produce these
+
+- A top-5 or top-10 shortlist of the most important jobs. Structural importance is computed downstream over the whole set; ranking here destroys it.
+- A recommended target segment. The selection is a human decision made against this evidence.
+- A positioning, messaging or go-to-market recommendation.
+- A market-size figure (TAM, SAM, SOM) presented without its denominator and its source.
+- A product concept, feature list or roadmap.
+
+## Constraints
+
+- You are ONE of several independent runs of this identical brief. Do not assume another run covers something so that you can skip it. Cover everything.
+- Every claim carries its source and the date of that source. A claim with no source is not returned.
+- Every number states what it is a fraction of. An observed-in-sample count is never presented as a market total.
+- Where a real figure is unavailable, give the ordinal rank plus the actual observed counts, flagged as in-sample. Do not manufacture precision.
+- Sources on the state of the vendor and service market older than 12 months are flagged as possibly stale. Structural and regulatory facts may be older; say which kind a source is.
+- Where sources of different ages conflict, prefer the more recent, describe the current state, and do not blend an older framing with newer specifics. Say that the conflict existed.
+- Do not identify or reverse-search the company that commissioned this brief. The subject of study is the market's work, not any vendor.
+- Do not fabricate vendors, communities, forums, counts, or citations. If you cannot verify something, say that you could not verify it. A fabricated number causes the entire run to be excluded from all numeric claims.
+- Preserve the long tail. A job mentioned once is kept, tagged single-source, and never dropped.
+- Write the deliverable in English.
+
+## Source families to reach
+
+- **Practitioner communities** — Reddit (r/privateequity, r/FinancialCareers, r/venturecapital, r/CFO, r/Accounting, r/RealEstateInvesting, r/fatFIRE), specialist Slack and Discord communities, LinkedIn and X practitioner discourse.
+- **Software review corpora** — G2, Capterra, TrustRadius and comparable review text for fund accounting, portfolio monitoring, CRM/dealflow, investor-relations portal, data-room and fund-administration categories. Report review counts with their denominators.
+- **Vendor public surfaces** — Pricing pages, changelogs, customer stories and documentation of vendors serving any job in the catalog.
+- **Trade press and industry bodies** — Private Equity International, Buyouts, Private Funds CFO, PE Hub, Institutional Investor, ILPA, Invest Europe, BVCA, NVCA and comparable bodies — including their published standards and reporting templates.
+- **Conference agendas** — SuperReturn, PEI Operating Partners, private-funds CFO and fund-operations summits, family-office and emerging-manager events. Session titles are the market stating its own urgencies.
+- **Job postings** — GP-side roles in portfolio operations, fund finance, investor relations, and data or platform functions. Responsibility text shows where firms buy headcount instead of software.
+- **Regulatory and standards sources** — SEC private-fund rules, AIFMD and its revision, ILPA reporting templates, ESG and SFDR reporting obligations — as sources of dated deadlines that act as switch triggers.
+- **Practitioner long-form** — Operating-partner and fund-CFO newsletters, podcasts and blogs, where practitioners describe their own workflow rather than a vendor describing it for them.
+
+## Context (background, not a research target)
+
+This brief was commissioned by a vendor whose product is described here functionally so that you understand the frame. Do not research, identify or reverse-search that vendor, and do not shape the catalog around what its product happens to do.
+
+A horizontal context-graph backend for investment firms: it ingests data from heterogeneous internal and external sources, resolves entities, builds typed relations between them, and enriches context without user curation. It is deployed outward as vertical assemblies — a per-use-case front end built from a fixed component kit rather than built from scratch — currently sold as a three-month retainer producing a working assembly.
+
+Depth we already hold, which you should NOT re-derive:
+
+We hold anecdotal, self-reported depth from two practitioner conversations in July 2026: our own commercial shape and pricing, an argument that fund structure discriminates need better than AUM does, one second-hand datapoint that a San Francisco services firm drew 40% of its client base in one year from large allocators including $1T+ AUM, and our own access asymmetry to venture GPs versus buyout GPs. None of this is evidence of market frequency. Do not re-derive it and do not treat it as established. Find what it misses and what contradicts it.
+
+## Operational appendix — NOT instructions for you
+
+```
+NOT INSTRUCTIONS FOR YOU — you may ignore this section entirely. It exists because this file is both the provider input and our own record.
+
+Engagement: Track 1, wave 0 of 2. Spec v1.1.0. Pass A of a paired R-25 run; Pass B covers the allocator side and is never merged into this catalog. Stage-2 status table lives at research/runs/STATUS.md. Raw outputs are saved verbatim per R-12 before any synthesis. Confidence tiers are computed from delivered runs only (R-11). Stage 4 hard data verifies provider numeric claims independently (R-18) and any fabricated count excludes that run from all numeric claims (R-19).
+```

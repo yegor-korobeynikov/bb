@@ -25,7 +25,7 @@ import type {
   WorkspaceFilePreviewStatusLabel,
 } from "@bb/client-core";
 import {
-  DEFAULT_CODE_OVERFLOW_MODE,
+  getDefaultCodeOverflowMode,
   type CodeOverflowMode,
   type CodeOverflowModeChangeHandler,
 } from "@/lib/code-overflow-mode";
@@ -426,7 +426,7 @@ export function FilePreview({
     }),
   );
   const [lineOverflowMode, setLineOverflowMode] = useState<CodeOverflowMode>(
-    DEFAULT_CODE_OVERFLOW_MODE,
+    () => getDefaultCodeOverflowMode(path),
   );
   // Each new file opens in the appropriate default mode; the user re-toggles
   // per file rather than carrying their last choice across unrelated files.
@@ -437,6 +437,7 @@ export function FilePreview({
         toggleKind,
       }),
     );
+    setLineOverflowMode(getDefaultCodeOverflowMode(path));
   }, [filePreviewLineRange, path, toggleKind]);
 
   const usesIframeLayout =
