@@ -303,14 +303,21 @@
    * (the thread row's archive button sits left of the menu trigger, and as
    * of the New Track button going native (2026-08-22,
    * decision-tendo-tracks-are-core-not-plugin-v1) a third button sits left
-   * of that). Reserve TWO action widths under the same row states that
-   * reveal the overlay — was one (1.5rem), now doubled to 3rem for the
-   * second additional button — so the title truncates instead of running
-   * under whichever button sits furthest left. A DOM-patched plugin button
-   * briefly lived in this same slot without this reservation growing to
-   * match (2026-08-22 live measurement: 2.9px-22.7px title overlap,
-   * plugin-side fix was to remove the button rather than guess at this
-   * value) — this is the real fix, sized for three buttons at the source. */
+   * of that). Reserve room under the same row states that reveal the
+   * overlay so the title clears it instead of running under whichever
+   * button sits furthest left.
+   *
+   * 3rem (48px, "two action widths") was sized only against literal
+   * collision — fine when the title just hard-truncated with `…` at its own
+   * edge. fade-clip-right (app.css) replaced that ellipsis with a 60px soft
+   * fade measured from the title's OWN right edge; 48px of inset left a
+   * ~12-20px sliver of still-partly-opaque text sitting directly under the
+   * first (leftmost) button — live-measured, 2026-08-26: with 3rem the
+   * title's fade-complete point (rowRight - inset) landed at x=263 while
+   * the button cluster started at x=243, a 20px overlap. 4.5rem (72px)
+   * clears the live-measured 3-button cluster (64px, New Track + Archive +
+   * Menu) plus the full 60px fade width with a few px to spare — the fade
+   * finishes in the reserved gap, not under a button glyph. */
   .bb-sidebar-hover-actions-inset {
     transition-property: padding;
     transition-duration: 0ms;
@@ -322,7 +329,7 @@
       .bb-sidebar-hover-actions[data-sidebar-hover-actions-open="true"]
     )
     .bb-sidebar-hover-actions-inset {
-    padding-right: 3rem;
+    padding-right: 4.5rem;
   }
 
   .bb-sidebar-hover-actions-fade {
