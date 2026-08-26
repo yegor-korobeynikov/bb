@@ -814,7 +814,7 @@ function ThreadRowComponent({
             // yet wired to any row. Most visible on a deeply nested thread,
             // where the indent leaves little room and the old ellipsis cut
             // in well before the row's own right edge, leaving a dead gap.
-            className="min-w-0 overflow-hidden whitespace-nowrap fade-clip-right"
+            className="min-w-0 flex-1 overflow-hidden whitespace-nowrap fade-clip-right"
             title={labelTitle}
             onDoubleClick={startTitleEditing}
           >

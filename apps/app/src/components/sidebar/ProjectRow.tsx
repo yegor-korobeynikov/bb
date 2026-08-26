@@ -990,7 +990,7 @@ function EnvironmentThreadGroupHeader({
             "calc(var(--tendo-sidebar-edge-to-dot) + var(--tendo-sidebar-chevron-to-dot) + var(--tendo-status-dot-size) + 0.375rem - 0.5rem)",
         }}
       >
-        <span className="min-w-0 overflow-hidden whitespace-nowrap fade-clip-right">
+        <span className="min-w-0 flex-1 overflow-hidden whitespace-nowrap fade-clip-right">
           <span>{displayName}</span>
         </span>
       </span>

@@ -163,7 +163,7 @@ function SidebarSectionRowComponent({
           collapseLabel={`Collapse ${label} section`}
           onToggle={onToggleCollapsed}
         />
-        <span className="min-w-0 overflow-hidden whitespace-nowrap fade-clip-right">
+        <span className="min-w-0 flex-1 overflow-hidden whitespace-nowrap fade-clip-right">
           {name}
         </span>
       </span>

@@ -732,10 +732,17 @@
 
   /*
    * Soft right-edge fade for single-line text that is clipped horizontally
-   * (e.g. a queued-message preview). Fades the text out instead of a hard
-   * `…` ellipsis. Self-gating: short text doesn't reach the fade zone, so the
-   * fade only shows when content is actually truncated. Pair with
-   * `overflow-hidden whitespace-nowrap` (no scroll).
+   * (e.g. a queued-message preview), matching Claude Code's own sidebar:
+   * a fixed 60px zone from the box's right edge, not a fraction of it.
+   * Self-gating: short text sits left of that zone and is never touched, so
+   * the fade only shows when content is actually long enough to reach it.
+   * This ONLY self-gates correctly if the element's box spans the full
+   * available track width regardless of content length (give it `flex-1`
+   * in a flex row, or an explicit width) — a content-hugging box (default
+   * flex-item sizing) puts "100%" at the text's own edge instead of the
+   * row's, and the fixed 60px then eats into short text too, and its
+   * on-screen width drifts with every title's length instead of lining up
+   * across rows. Pair with `overflow-hidden whitespace-nowrap` (no scroll).
    *
    * `mask-image` establishes a new stacking context on the element (CSS
    * Masking spec), which promotes it into the same painting bucket as any
@@ -749,12 +756,12 @@
     pointer-events: none;
     -webkit-mask-image: linear-gradient(
       to right,
-      #000 calc(100% - 1.5rem),
+      #000 calc(100% - 60px),
       transparent
     );
     mask-image: linear-gradient(
       to right,
-      #000 calc(100% - 1.5rem),
+      #000 calc(100% - 60px),
       transparent
     );
   }
