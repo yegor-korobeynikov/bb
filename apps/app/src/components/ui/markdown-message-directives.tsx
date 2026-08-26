@@ -4,7 +4,7 @@ import {
   type ComponentType,
   type ReactNode,
 } from "react";
-import type { Nodes, Parent, RootContent } from "mdast";
+import type { Nodes, Parent, PhrasingContent, RootContent } from "mdast";
 // Side-effect import: augments mdast's `Data` with `hName`/`hProperties`.
 import type {} from "mdast-util-to-hast";
 import type {
@@ -289,13 +289,17 @@ function asDirectiveNode(node: unknown): DirectiveNode | null {
 }
 
 /**
- * Remark transformer: rewrite recognized leaf directives (`::name`) into indexed
- * custom elements; leave unknown / collision / over-limit leaf directives as
- * literal source text. Text directives (`:name`) never mount and are always
- * rewritten to their literal source, so incidental prose colons (`13:30`,
- * `key:value`, `:D`) render verbatim instead of collapsing into
- * `mdast-util-to-hast`'s empty-`<div>` fallback. Container directives are not
+ * Remark transformer: rewrite directives a plugin registered into indexed
+ * custom elements, and leave everything else as literal source text. Both
+ * forms mount — `::name` on its own line as a block, `:name` inside a sentence
+ * in place — and which one is allowed is decided by the registry, never by the
+ * shape: incidental prose colons (`13:30`, `key:value`, `:D`) name nothing any
+ * plugin claimed, so they render verbatim. Container directives are not
  * touched. Must run after `remark-directive` has produced the directive nodes.
+ *
+ * A plugin may also claim a text `pattern`, which is applied to prose after
+ * the directives are resolved. That is what reaches text nobody wrote as a
+ * directive — a notation a workspace already uses, in messages already sent.
  *
  * Mutates `mounts` in document order so indices stay stable when later text
  * streams in after an already-complete directive.
@@ -370,7 +374,107 @@ export function remarkMessageDirectives(args: {
       );
       return index;
     });
+
+    applyClaimedPatterns(tree, registry, mounts);
   };
+}
+
+/**
+ * Apply the text patterns plugins claimed.
+ *
+ * Only `text` nodes are visited, so a pattern can never reach inside inline
+ * code or a fenced block — those are their own node types, and prose about a
+ * notation has to stay prose. Everything a match produces goes through exactly
+ * the same mount path as a directive: same registry, same crash isolation,
+ * same per-message budget, which `mounts` carries because it is shared.
+ */
+function applyClaimedPatterns(
+  tree: Nodes,
+  registry: MessageDirectiveRegistry,
+  mounts: MountedMessageDirective[],
+): void {
+  const claims: Array<{ slot: PluginMessageDirectiveSlot; source: string }> = [];
+  for (const entry of registry.values()) {
+    if (entry.status === "collision") continue;
+    const pattern = entry.slot.pattern;
+    if (typeof pattern !== "string" || pattern.length === 0) continue;
+    claims.push({ slot: entry.slot, source: pattern });
+  }
+  if (claims.length === 0) return;
+
+  // A pattern arrives from a plugin, so it is untrusted input: an unparseable
+  // one must cost that plugin its claim, not cost the timeline its message.
+  const compiled: Array<{ slot: PluginMessageDirectiveSlot; re: RegExp }> = [];
+  for (const claim of claims) {
+    try {
+      compiled.push({ slot: claim.slot, re: new RegExp(claim.source, "gu") });
+    } catch {
+      try {
+        compiled.push({ slot: claim.slot, re: new RegExp(claim.source, "g") });
+      } catch {
+        console.warn(
+          `[plugin] message directive "${claim.slot.id}" claimed an unparseable pattern; ignoring it`,
+        );
+      }
+    }
+  }
+  if (compiled.length === 0) return;
+
+  visit(tree, "text", (node, index, parent: Parent | undefined) => {
+    if (parent === undefined || index === undefined) return;
+    if (mounts.length >= MESSAGE_DIRECTIVE_MOUNT_LIMIT) return;
+
+    const replacement: RootContent[] = [];
+    let cursor = 0;
+    const value = node.value;
+
+    while (cursor < value.length && mounts.length < MESSAGE_DIRECTIVE_MOUNT_LIMIT) {
+      // Earliest match wins, and the longest of the earliest, so two plugins
+      // claiming overlapping text produce one deterministic answer rather than
+      // one that depends on registration order.
+      let best: { slot: PluginMessageDirectiveSlot; m: RegExpExecArray } | null = null;
+      for (const { slot, re } of compiled) {
+        re.lastIndex = cursor;
+        const m = re.exec(value);
+        if (m === null || m[0].length === 0) continue;
+        if (
+          best === null ||
+          m.index < best.m.index ||
+          (m.index === best.m.index && m[0].length > best.m[0].length)
+        ) {
+          best = { slot, m };
+        }
+      }
+      if (best === null) break;
+
+      if (best.m.index > cursor) {
+        replacement.push({ type: "text", value: value.slice(cursor, best.m.index) });
+      }
+
+      const attributes: Record<string, string> = { raw: best.m[0] };
+      for (const [key, groupValue] of Object.entries(best.m.groups ?? {})) {
+        if (typeof groupValue === "string") attributes[key] = groupValue;
+      }
+
+      const mountIndex = mounts.length;
+      mounts.push({
+        attributes,
+        index: mountIndex,
+        slot: best.slot,
+        source: best.m[0],
+        inline: true,
+      });
+      replacement.push(messageDirectiveMountNode(mountIndex, true));
+      cursor = best.m.index + best.m[0].length;
+    }
+
+    if (replacement.length === 0) return;
+    if (cursor < value.length) {
+      replacement.push({ type: "text", value: value.slice(cursor) });
+    }
+    parent.children.splice(index, 1, ...(replacement as PhrasingContent[]));
+    return index + replacement.length;
+  });
 }
 
 interface BuildMessageDirectiveComponentArgs {

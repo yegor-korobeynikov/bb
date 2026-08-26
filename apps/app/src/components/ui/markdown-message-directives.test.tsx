@@ -496,6 +496,123 @@ describe("MarkdownPreview message directives", () => {
     );
   });
 
+  it("mounts text a plugin claimed by pattern, in place, with no directive written", () => {
+    // The case a directive cannot reach: a notation the workspace already uses,
+    // in messages already sent, whose authors never knew a plugin syntax.
+    const registry = buildMessageDirectiveRegistry([
+      slot({
+        id: "node",
+        pluginId: "demo",
+        component: InlineSpanVis,
+        pattern: "\\[\\[(?<id>[^\\]|]+)\\]\\]",
+      }),
+    ]);
+    const { container } = render(
+      <MarkdownPreview
+        content={"The rule lives in [[canon]] and nowhere else."}
+        messageDirectives={{
+          registry,
+          message: MESSAGE,
+          openWorkspaceFile: null,
+        }}
+      />,
+    );
+
+    const paragraphs = container.querySelectorAll("p");
+    expect(paragraphs).toHaveLength(1);
+    const mounted = screen.getByTestId("inline-span-vis");
+    // A named capture group becomes an attribute; the whole match is always raw.
+    expect(mounted.getAttribute("data-id")).toBe("canon");
+    expect(paragraphs[0]?.contains(mounted)).toBe(true);
+    expect(paragraphs[0]?.textContent).toBe(
+      "The rule lives in node:canon and nowhere else.",
+    );
+  });
+
+  it("leaves claimed text alone inside code", () => {
+    // Prose about a notation has to stay prose. Inline code and fenced blocks
+    // are their own node types, which is why the pattern pass visits text only.
+    const registry = buildMessageDirectiveRegistry([
+      slot({
+        id: "node",
+        pluginId: "demo",
+        component: InlineSpanVis,
+        pattern: "\\[\\[(?<id>[^\\]|]+)\\]\\]",
+      }),
+    ]);
+    render(
+      <MarkdownPreview
+        content={"Write `[[id]]` like this, and it links [[canon]]:\n\n```\n[[fenced]]\n```\n"}
+        messageDirectives={{
+          registry,
+          message: MESSAGE,
+          openWorkspaceFile: null,
+        }}
+      />,
+    );
+
+    // The prose reference mounts; the two inside code do not. Without both
+    // halves this test would pass on a build with no pattern support at all.
+    const mounted = screen.getAllByTestId("inline-span-vis");
+    expect(mounted).toHaveLength(1);
+    expect(mounted[0]?.getAttribute("data-id")).toBe("canon");
+    expect(screen.getByText("[[id]]").tagName).toBe("CODE");
+    // Present as text, and not one of the mounts — the count above is what
+    // proves it; this is the readable half of the same fact.
+    expect(screen.getByText(/\[\[fenced\]\]/)).toBeTruthy();
+  });
+
+  it("ignores a pattern no plugin could compile, without losing the message", () => {
+    const registry = buildMessageDirectiveRegistry([
+      slot({ id: "node", pluginId: "demo", component: InlineSpanVis, pattern: "[[(" }),
+    ]);
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { container } = render(
+      <MarkdownPreview
+        content={"Ordinary prose survives an unparseable claim."}
+        messageDirectives={{
+          registry,
+          message: MESSAGE,
+          openWorkspaceFile: null,
+        }}
+      />,
+    );
+
+    expect(container.querySelector("p")?.textContent).toBe(
+      "Ordinary prose survives an unparseable claim.",
+    );
+    expect(warn).toHaveBeenCalled();
+  });
+
+  it("counts claimed patterns against the same per-message mount budget", () => {
+    const registry = buildMessageDirectiveRegistry([
+      slot({
+        id: "node",
+        pluginId: "demo",
+        component: InlineSpanVis,
+        pattern: "\\[\\[(?<id>[^\\]|]+)\\]\\]",
+      }),
+    ]);
+    const refs: string[] = [];
+    for (let i = 0; i < MESSAGE_DIRECTIVE_MOUNT_LIMIT + 3; i += 1) {
+      refs.push(`[[n${i}]]`);
+    }
+    render(
+      <MarkdownPreview
+        content={refs.join(" and ")}
+        messageDirectives={{
+          registry,
+          message: MESSAGE,
+          openWorkspaceFile: null,
+        }}
+      />,
+    );
+
+    expect(screen.getAllByTestId("inline-span-vis")).toHaveLength(
+      MESSAGE_DIRECTIVE_MOUNT_LIMIT,
+    );
+  });
+
   it("keeps a completed directive mounted while later assistant text streams", () => {
     let mountCount = 0;
     function StatefulVis(props: PluginMessageDirectiveProps) {

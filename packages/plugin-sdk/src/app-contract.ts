@@ -918,6 +918,23 @@ export interface PluginDiffRendererRegistration {
  * `::inline-vis{file="demo.html"}`.
  */
 export interface PluginMessageDirectiveRegistration {
+
+  /**
+   * A text pattern this directive also answers to, as a regular-expression
+   * source (matched globally, per text run, outside code).
+   *
+   * A directive only ever helps a message whose author knew the syntax, which
+   * leaves every reference already written — and every notation a workspace
+   * already has — rendering as plain text. A claimed pattern closes that: the
+   * plugin says which text is a reference, and the same component draws it in
+   * place, with the same crash isolation and the same per-message mount
+   * budget as a directive.
+   *
+   * Named capture groups become the component's `attributes`; the whole match
+   * is always available as `attributes.raw`. The host never learns what the
+   * pattern means — only the plugin that claimed it does.
+   */
+  pattern?: string;
   /**
    * The directive name. Lowercase kebab-case beginning with a letter.
    */
