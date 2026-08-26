@@ -808,7 +808,13 @@ function ThreadRowComponent({
           </span>
         ) : (
           <span
-            className="min-w-0 truncate"
+            // Soft right-edge fade instead of a hard "…" (Yegor, 2026-08-23):
+            // reuses .fade-clip-right (app.css), the same pattern already
+            // used for other single-line clipped text — was defined but not
+            // yet wired to any row. Most visible on a deeply nested thread,
+            // where the indent leaves little room and the old ellipsis cut
+            // in well before the row's own right edge, leaving a dead gap.
+            className="min-w-0 overflow-hidden whitespace-nowrap fade-clip-right"
             title={labelTitle}
             onDoubleClick={startTitleEditing}
           >

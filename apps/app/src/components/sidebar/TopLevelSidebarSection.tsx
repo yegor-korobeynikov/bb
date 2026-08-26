@@ -251,7 +251,10 @@ export function TopLevelSidebarSection({
             className="inline-block shrink-0"
             style={{ width: "var(--tendo-status-dot-size)" }}
           />
-          <span className="min-w-0 truncate" title={label}>
+          <span
+            className="min-w-0 overflow-hidden whitespace-nowrap fade-clip-right"
+            title={label}
+          >
             {label}
           </span>
         </span>

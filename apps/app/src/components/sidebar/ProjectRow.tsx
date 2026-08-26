@@ -990,7 +990,7 @@ function EnvironmentThreadGroupHeader({
             "calc(var(--tendo-sidebar-edge-to-dot) + var(--tendo-sidebar-chevron-to-dot) + var(--tendo-status-dot-size) + 0.375rem - 0.5rem)",
         }}
       >
-        <span className="min-w-0 truncate">
+        <span className="min-w-0 overflow-hidden whitespace-nowrap fade-clip-right">
           <span>{displayName}</span>
         </span>
       </span>
@@ -1341,7 +1341,7 @@ function SectionThreadDragOverlay({ thread }: { thread: ThreadListEntry }) {
         "pointer-events-none bg-sidebar-accent text-sidebar-accent-foreground shadow-sm ring-1 ring-sidebar-border",
       )}
     >
-      <span className="min-w-0 flex-1 truncate">
+      <span className="min-w-0 flex-1 overflow-hidden whitespace-nowrap fade-clip-right">
         {getThreadDisplayTitle(thread)}
       </span>
     </div>
@@ -1926,11 +1926,36 @@ export const ProjectThreadTree = memo(function ProjectThreadTree({
       ? threadListState.threads
       : EMPTY_PROJECT_THREADS;
   const draftThreadIds = usePromptDraftInputThreadIds(projectThreads);
-  const rootItems = useMemo(
+  const groupedRootItems = useMemo(
     () =>
       buildProjectThreadGroups(projectThreads, compareThreads, draftThreadIds),
     [compareThreads, draftThreadIds, projectThreads],
   );
+  // Yegor, 2026-08-23: a project whose every session lives in one shared
+  // worktree got an environment header nested directly under the project
+  // row for no reason — the header disambiguates nothing when there is
+  // nothing else at this level to disambiguate FROM, and it cost every
+  // session below it an extra indent step and the sidebar an extra row,
+  // reading as "the workspace shown twice" (project row + a header for the
+  // project's own one-and-only workspace). When the project's root has
+  // EXACTLY one item and it's an environment group, skip the header and
+  // render that group's own threads as if they were loose top-level items
+  // instead — the common shape (>=2 sessions is exactly what makes
+  // bucketWorktreeEnvironmentGroups create a group at all, so this is not
+  // a rare case). A project with a second environment or any loose thread
+  // alongside one still needs the header to tell them apart, so this only
+  // fires when the group is the root's sole content.
+  const rootItems = useMemo(() => {
+    if (
+      groupedRootItems.length === 1 &&
+      groupedRootItems[0].kind === "environment"
+    ) {
+      return groupedRootItems[0].group.nodes.map(
+        (node): ProjectThreadItem => ({ kind: "thread", node }),
+      );
+    }
+    return groupedRootItems;
+  }, [groupedRootItems]);
 
   if (threadListState.status === "loading") {
     return <ThreadTreeLoadingSkeleton />;

@@ -217,6 +217,80 @@ describe("ProjectRow interactions", () => {
     expect(projectGroup?.hasAttribute("data-sidebar-section-id")).toBe(false);
   });
 
+  it("flattens a project whose only content is one shared environment (no nested header)", () => {
+    // Yegor, 2026-08-23: a project with nothing else at its root besides one
+    // shared worktree got that worktree's own header nested directly under
+    // the project row — disambiguating nothing (there is nothing else at
+    // that level to tell it apart from), while costing every session an
+    // extra indent step and the sidebar an extra row. Two threads sharing
+    // one environment id is exactly the threshold that makes
+    // bucketWorktreeEnvironmentGroups create a group at all (see its own
+    // comment), so this is the common shape, not an edge case.
+    renderProjectRow(vi.fn(), {
+      status: "ready",
+      threads: [
+        makeThread({
+          id: "thr_solo_env_a",
+          environmentId: "env_solo",
+          environmentName: "bb/workspace",
+          environmentWorkspaceDisplayKind: "managed-worktree",
+        }),
+        makeThread({
+          id: "thr_solo_env_b",
+          environmentId: "env_solo",
+          environmentName: "bb/workspace",
+          environmentWorkspaceDisplayKind: "managed-worktree",
+        }),
+      ],
+    });
+
+    expect(
+      screen.queryByRole("button", { name: "Expand bb/workspace threads" }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Collapse bb/workspace threads" }),
+    ).toBeNull();
+    expect(
+      document.querySelector('[data-sidebar-thread-id="thr_solo_env_a"]'),
+    ).not.toBeNull();
+    expect(
+      document.querySelector('[data-sidebar-thread-id="thr_solo_env_b"]'),
+    ).not.toBeNull();
+  });
+
+  it("keeps the environment header when a loose thread sits alongside it", () => {
+    // Regression guard for the flatten above: it must only fire when the
+    // environment group is the root's SOLE content. A loose thread next to
+    // it still needs the header to tell the two apart.
+    renderProjectRow(vi.fn(), {
+      status: "ready",
+      threads: [
+        makeThread({
+          id: "thr_loose",
+          environmentId: null,
+        }),
+        makeThread({
+          id: "thr_paired_env_a",
+          environmentId: "env_paired",
+          environmentName: "feature workspace",
+          environmentWorkspaceDisplayKind: "managed-worktree",
+        }),
+        makeThread({
+          id: "thr_paired_env_b",
+          environmentId: "env_paired",
+          environmentName: "feature workspace",
+          environmentWorkspaceDisplayKind: "managed-worktree",
+        }),
+      ],
+    });
+
+    expect(
+      screen.getByRole("button", {
+        name: "Collapse feature workspace threads",
+      }),
+    ).not.toBeNull();
+  });
+
   it("shows generic runtime activity before a named workflow rollup", () => {
     renderProjectRow(
       vi.fn(),
@@ -249,6 +323,12 @@ describe("ProjectRow interactions", () => {
             environmentBranchName: "feat/menu-close",
             environmentWorkspaceDisplayKind: "managed-worktree",
           }),
+          // A loose thread alongside the environment group, so the group
+          // isn't the project root's SOLE content — a solo environment
+          // group now flattens (no nested header), which this test isn't
+          // about; keep the header present so the assertions below still
+          // exercise it.
+          makeThread({ id: "thr_loose_sibling" }),
         ],
       },
       false,
@@ -290,6 +370,9 @@ describe("ProjectRow interactions", () => {
             environmentName: "Draft workspace",
             environmentWorkspaceDisplayKind: "managed-worktree",
           }),
+          // Keeps the environment group from being the root's sole content
+          // (see the sibling comment above) so its header still renders.
+          makeThread({ id: "thr_loose_sibling" }),
         ],
       },
       false,
@@ -521,6 +604,9 @@ describe("ProjectRow interactions", () => {
           environmentBranchName: "feat/menu-close",
           environmentWorkspaceDisplayKind: "managed-worktree",
         }),
+        // Keeps the environment group from being the root's sole content
+        // (see the sibling comment above) so its header still renders.
+        makeThread({ id: "thr_loose_sibling" }),
       ],
     });
 
