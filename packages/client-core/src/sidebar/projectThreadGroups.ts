@@ -81,7 +81,18 @@ type SidebarProjectThreadShape = Pick<
   "originKind" | "visibility"
 >;
 
+const EMPTY_ENVIRONMENT_ID_SET: ReadonlySet<string> = new Set();
+
 interface BuildThreadNodeArgs {
+  // Environment ids already announced by a header somewhere above this node
+  // (the true tree root, or an ancestor thread's own environmentId) — a
+  // sibling bucket sharing one of these ids renders as loose threads instead
+  // of a second header for the same workspace. Without this, a thread whose
+  // OWN children happen to share its environment (a common shape: several
+  // sub-tasks that never left the parent's shared worktree) got a second
+  // "bb/workspace"-named header nested a level or two below the first one —
+  // same redundant info, plus an extra indent step the group added on top.
+  ancestorGroupedEnvironmentIds: ReadonlySet<string>;
   ancestorThreadIds: ReadonlySet<string>;
   childrenByParentId: ReadonlyMap<string, readonly ThreadListEntry[]>;
   compareThreads: ThreadComparator;
@@ -233,14 +244,19 @@ function buildSortedItems(
   compareThreads: ThreadComparator,
   groupEnvironmentThreads: boolean,
   draftThreadIds: ReadonlySet<string>,
+  ancestorGroupedEnvironmentIds: ReadonlySet<string>,
 ): ProjectThreadItem[] {
   if (!groupEnvironmentThreads) {
     nodes.sort((left, right) => compareThreads(left.thread, right.thread));
     return nodes.map(buildThreadItem);
   }
 
-  const { environmentThreadGroups, looseNodes } =
-    bucketWorktreeEnvironmentGroups(nodes, compareThreads, draftThreadIds);
+  const { environmentThreadGroups, looseNodes } = bucketWorktreeEnvironmentGroups(
+    nodes,
+    compareThreads,
+    draftThreadIds,
+    ancestorGroupedEnvironmentIds,
+  );
   const items = [
     ...looseNodes.map(buildThreadItem),
     ...environmentThreadGroups.map(buildEnvironmentItem),
@@ -252,6 +268,7 @@ function buildSortedItems(
 }
 
 function buildThreadNode({
+  ancestorGroupedEnvironmentIds,
   ancestorThreadIds,
   childrenByParentId,
   compareThreads,
@@ -264,6 +281,14 @@ function buildThreadNode({
   visitedThreadIds.add(thread.id);
   const nextAncestorThreadIds = new Set(ancestorThreadIds);
   nextAncestorThreadIds.add(thread.id);
+  // This thread's own workspace joins the announced set for everything below
+  // it — once we're inside thread T's own branch, a child bucket sharing T's
+  // environmentId is provably the same workspace already in view, whether or
+  // not T itself ended up under a rendered group header.
+  const nextAncestorGroupedEnvironmentIds =
+    thread.environmentId === null
+      ? ancestorGroupedEnvironmentIds
+      : new Set(ancestorGroupedEnvironmentIds).add(thread.environmentId);
   const childNodes: ProjectThreadNode[] = [];
 
   for (const childThread of childrenByParentId.get(thread.id) ?? []) {
@@ -272,6 +297,7 @@ function buildThreadNode({
 
     childNodes.push(
       buildThreadNode({
+        ancestorGroupedEnvironmentIds: nextAncestorGroupedEnvironmentIds,
         ancestorThreadIds: nextAncestorThreadIds,
         childrenByParentId,
         compareThreads,
@@ -289,6 +315,7 @@ function buildThreadNode({
     compareThreads,
     groupEnvironmentThreads,
     draftThreadIds,
+    nextAncestorGroupedEnvironmentIds,
   );
   return {
     thread,
@@ -408,6 +435,7 @@ function buildThreadTreeItems(
 
     rootNodes.push(
       buildThreadNode({
+        ancestorGroupedEnvironmentIds: EMPTY_ENVIRONMENT_ID_SET,
         ancestorThreadIds: new Set(),
         childrenByParentId,
         compareThreads,
@@ -427,6 +455,7 @@ function buildThreadTreeItems(
 
     rootNodes.push(
       buildThreadNode({
+        ancestorGroupedEnvironmentIds: EMPTY_ENVIRONMENT_ID_SET,
         ancestorThreadIds: new Set(),
         childrenByParentId,
         compareThreads,
@@ -444,6 +473,7 @@ function buildThreadTreeItems(
     compareThreads,
     groupEnvironmentThreads,
     draftThreadIds,
+    EMPTY_ENVIRONMENT_ID_SET,
   );
 }
 
@@ -493,6 +523,7 @@ function bucketWorktreeEnvironmentGroups(
   nodes: ProjectThreadNode[],
   compareThreads: ThreadComparator,
   draftThreadIds: ReadonlySet<string>,
+  ancestorGroupedEnvironmentIds: ReadonlySet<string>,
 ): BucketWorktreeEnvironmentGroupsResult {
   const nodesByEnvironmentId = new Map<string, ProjectThreadNode[]>();
   for (const node of nodes) {
@@ -512,6 +543,11 @@ function bucketWorktreeEnvironmentGroups(
   const environmentThreadGroups: EnvironmentThreadGroup[] = [];
   for (const [environmentId, bucket] of nodesByEnvironmentId) {
     if (!hasAtLeastTwoThreadNodes(bucket)) continue;
+    // An ancestor already put up a header for this same workspace — a second
+    // one nested below it repeats the same name and only adds an indent step
+    // (see the field comment on ancestorGroupedEnvironmentIds). Its nodes
+    // fall through to looseNodes below instead.
+    if (ancestorGroupedEnvironmentIds.has(environmentId)) continue;
     bucket.sort((left, right) => compareThreads(left.thread, right.thread));
     groupedEnvironmentIds.add(environmentId);
     environmentThreadGroups.push(
