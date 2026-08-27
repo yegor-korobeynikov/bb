@@ -66,26 +66,36 @@ export const CHROME_ROW_CLASS = `flex ${CHROME_ROW_HEIGHT_CLASS} items-center`;
 // trigger, route-history arrows, and page/thread header content can move
 // together from here.
 //
-// -7.25px, measured (Yegor, 2026-08-26 report; live-verified 2026-08-27):
-// native screencapture of the titlebar, Retina 2x, traffic-light and
-// sidebar-trigger centers each found by color-diff against the window
-// background, in the SAME screenshot coordinate space. Measured gap was
-// 9.25pt (trigger sitting below the lights) against the then-current +2px
-// nudge, so the corrected value is 2 - 9.25 = -7.25.
+// -5.5px, INTERPOLATED (2026-08-27), not yet independently confirmed live —
+// see the two rounds that produced it before trusting this number further:
 //
-// This replaces the previous "18px traffic-light inset + 48px chrome row ->
-// 2px optical nudge" derivation, which turned out not to explain the real
-// gap: CDP getBoundingClientRect + getComputedStyle confirmed the CSS box
-// model was exactly as coded (container top:0 height:48px, button centers at
-// the predicted 10px + the nudge, transform applying cleanly, no
-// specificity conflict) — so the bug isn't in this layout math, it's in
-// where the *previous* nudge assumed the native traffic-light cluster sits
-// relative to the window/webview origin. TODO: find why the 18px inset
-// doesn't predict the traffic lights' actual position (devicePixelRatio? a
-// window-frame offset the inset math didn't account for?) — until then this
-// value is empirical, not derived, same as the old 2px was but wrong.
+// Round 1: -7.25px (2 - a reported 9.25pt gap) landed here, verified live —
+// then Yegor reported the icon now sitting clearly ABOVE the lights on his
+// actual screen. The live-verification tool that had reported "confirmed,
+// 0.5pt" was itself broken: it picked its CDP target by matching the debug
+// port URL, and more than one window/thread shares that port, so "before"
+// and "after" screenshots were quietly comparing different windows. That
+// tool's numbers (both the original 9.25pt gap AND the 0.5pt confirmation)
+// are suspect for the same reason and should not be trusted without a
+// window-title check added to the target selection first.
+//
+// Round 2: rather than trust either of those numbers, measured directly
+// off Yegor's own screenshot file (color-diff centroids on the raw pixel
+// array, no CDP/window-targeting involved at all) — confirmed the overshoot
+// is real, icon sits a few px above the lights at -7.25px. Interpolating
+// the two (nudge, error) points — (+2, +9.25pt too low) and (-7.25, ~-2 to
+// -2.3pt too high, this round's own measurement, itself approximate since
+// converting screenshot px to logical pt needs a scale factor this method
+// can't pin down exactly) — for a zero-crossing gives roughly -5.4 to
+// -5.5px depending on which scale assumption is used. This value trades
+// off those two estimates; it has NOT been independently re-verified live.
+// TODO: fix the CDP target-selection bug (match window title, not port)
+// before the next round, then confirm this number or replace it — same
+// underlying question as the 18px-inset TODO this replaced: where the
+// native traffic-light cluster actually sits is still not derived from
+// first principles, only approximated from measurement.
 export const MACOS_CHROME_CONTROL_AXIS_CLASS =
-  "[--bb-macos-chrome-control-y:-7.25px] [transform:translateY(var(--bb-macos-chrome-control-y))]";
+  "[--bb-macos-chrome-control-y:-5.5px] [transform:translateY(var(--bb-macos-chrome-control-y))]";
 export const MACOS_CHROME_CONTROL_NO_DRAG_CLASS = `${MACOS_WINDOW_NO_DRAG_CLASS} ${MACOS_CHROME_CONTROL_AXIS_CLASS}`;
 export const MACOS_CHROME_TRAFFIC_LIGHT_AXIS_NUDGE_CLASS =
   MACOS_CHROME_CONTROL_AXIS_CLASS;
