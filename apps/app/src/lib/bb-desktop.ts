@@ -61,15 +61,31 @@ export const CHROME_ROW_HEIGHT_CLASS = "h-[48px]";
 export const CHROME_ROW_CLASS = `flex ${CHROME_ROW_HEIGHT_CLASS} items-center`;
 
 // Single adjustment point for macOS titlebar controls that visually align with
-// the native traffic lights. The traffic-light top inset is 18px and the chrome
-// row is 48px, so 28px header controls share the same mathematical center; the
-// 2px optical nudge below keeps the lucide glyphs visually on the traffic-light
-// axis. Keep the offset as a token instead of sprinkling ad hoc translate
-// classes; if Electron/macOS geometry changes, the collapse trigger,
-// route-history arrows, and page/thread header content can move together from
-// here.
+// the native traffic lights. Keep the offset as a token instead of sprinkling
+// ad hoc translate classes; if Electron/macOS geometry changes, the collapse
+// trigger, route-history arrows, and page/thread header content can move
+// together from here.
+//
+// -7.25px, measured (Yegor, 2026-08-26 report; live-verified 2026-08-27):
+// native screencapture of the titlebar, Retina 2x, traffic-light and
+// sidebar-trigger centers each found by color-diff against the window
+// background, in the SAME screenshot coordinate space. Measured gap was
+// 9.25pt (trigger sitting below the lights) against the then-current +2px
+// nudge, so the corrected value is 2 - 9.25 = -7.25.
+//
+// This replaces the previous "18px traffic-light inset + 48px chrome row ->
+// 2px optical nudge" derivation, which turned out not to explain the real
+// gap: CDP getBoundingClientRect + getComputedStyle confirmed the CSS box
+// model was exactly as coded (container top:0 height:48px, button centers at
+// the predicted 10px + the nudge, transform applying cleanly, no
+// specificity conflict) — so the bug isn't in this layout math, it's in
+// where the *previous* nudge assumed the native traffic-light cluster sits
+// relative to the window/webview origin. TODO: find why the 18px inset
+// doesn't predict the traffic lights' actual position (devicePixelRatio? a
+// window-frame offset the inset math didn't account for?) — until then this
+// value is empirical, not derived, same as the old 2px was but wrong.
 export const MACOS_CHROME_CONTROL_AXIS_CLASS =
-  "[--bb-macos-chrome-control-y:2px] [transform:translateY(var(--bb-macos-chrome-control-y))]";
+  "[--bb-macos-chrome-control-y:-7.25px] [transform:translateY(var(--bb-macos-chrome-control-y))]";
 export const MACOS_CHROME_CONTROL_NO_DRAG_CLASS = `${MACOS_WINDOW_NO_DRAG_CLASS} ${MACOS_CHROME_CONTROL_AXIS_CLASS}`;
 export const MACOS_CHROME_TRAFFIC_LIGHT_AXIS_NUDGE_CLASS =
   MACOS_CHROME_CONTROL_AXIS_CLASS;
