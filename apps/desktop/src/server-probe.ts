@@ -200,6 +200,19 @@ export async function probeBbServer(
     url: endpointUrl(args.serverUrl, "/api/v1/system/config"),
   });
 
+  // A network error here (including the per-probe AbortController timeout)
+  // means this single request was too slow or got cut off, not that the port
+  // holds an incompatible server — /health above already confirmed a real bb
+  // is responding. Report "unavailable" so waitForCompatibleServer's polling
+  // loop retries within its full budget instead of giving up on one hiccup.
+  if (configResult.kind === "network-error") {
+    return {
+      kind: "unavailable",
+      reason: `/api/v1/system/config returned ${formatFetchFailure(configResult)}`,
+      serverUrl: args.serverUrl,
+    };
+  }
+
   if (configResult.kind !== "success") {
     return {
       kind: "incompatible",

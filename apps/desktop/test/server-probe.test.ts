@@ -205,6 +205,43 @@ describe("probeBbServer", () => {
     expect(versionRequestCount).toBe(0);
   });
 
+  it("reports unavailable, not incompatible, when the config request times out", async () => {
+    // A slow /api/v1/system/config response trips the per-request
+    // AbortController the same way a network error would. It must not be
+    // reported as "incompatible" — that verdict is terminal and skips the
+    // retry loop in waitForCompatibleServer, so one slow response would
+    // permanently give up on a server that is actually bb.
+    const testServer = await startTestServer({
+      handler(request, response) {
+        if (request.url === "/health") {
+          writeJson(response, 200, JSON.stringify({ ok: true }));
+          return;
+        }
+        if (request.url === "/api/v1/system/config") {
+          setTimeout(() => {
+            writeJson(
+              response,
+              200,
+              JSON.stringify({
+                hostDaemonPort: 38887,
+                voiceTranscriptionEnabled: false,
+              }),
+            );
+          }, 200);
+          return;
+        }
+        writeJson(response, 404, JSON.stringify({ message: "not found" }));
+      },
+    });
+
+    const result = await probeBbServer({
+      serverUrl: testServer.url,
+      timeoutMs: 50,
+    });
+
+    expect(result.kind).toBe("unavailable");
+  });
+
   it("reports unavailable when nothing is listening", async () => {
     const testServer = await startTestServer({
       handler(_request, response) {
