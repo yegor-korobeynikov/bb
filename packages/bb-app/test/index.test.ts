@@ -19,6 +19,7 @@ import {
   createServerEnv,
   createHostDaemonJoinEnv,
   parseLauncherArgs,
+  probeForeignServerHealth,
   readBbAppPackageVersion,
   resolveBbAppRuntimeState,
   resolveDataDir,
@@ -560,6 +561,44 @@ describe("bb-app launcher", () => {
         server.close((error) => (error ? reject(error) : resolvePromise()));
       });
     }
+  });
+
+  it("recognizes a genuinely healthy foreign bb", async () => {
+    const server = createServer((request, response) => {
+      if (request.url !== "/health") {
+        response.writeHead(404).end();
+        return;
+      }
+      response.writeHead(200, { "content-type": "application/json" });
+      response.end(JSON.stringify({ ok: true }));
+    });
+    await new Promise<void>((resolvePromise, reject) => {
+      server.once("error", reject);
+      server.listen(0, "127.0.0.1", resolvePromise);
+    });
+    const address = server.address();
+    if (address === null || typeof address === "string") {
+      throw new Error("Expected health test server to have a TCP address");
+    }
+
+    try {
+      await expect(
+        probeForeignServerHealth(`http://127.0.0.1:${String(address.port)}`),
+      ).resolves.toBe(true);
+    } finally {
+      await new Promise<void>((resolvePromise, reject) => {
+        server.close((error) => (error ? reject(error) : resolvePromise()));
+      });
+    }
+  });
+
+  it("does not mistake an unresponsive port for a healthy foreign bb", async () => {
+    // Nothing listens on this port — the recorded launcher's process is gone
+    // or wedged, which is exactly the case that must still fall through to a
+    // normal start attempt rather than a false "already running" exit.
+    await expect(
+      probeForeignServerHealth("http://127.0.0.1:1", 100),
+    ).resolves.toBe(false);
   });
 
   it("resolves production defaults for npx startup", () => {

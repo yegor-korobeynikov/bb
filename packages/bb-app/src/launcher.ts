@@ -2253,6 +2253,37 @@ async function maybeAddAutoJoinEnv(
   };
 }
 
+/**
+ * One-shot health probe against an EXTERNAL bb we did not spawn — used only to
+ * decide whether an already-recorded launcher is genuinely alive before we
+ * consider starting a competing one. Deliberately not `waitForHealth`: that
+ * function polls until a process it itself spawned becomes healthy, and its
+ * poll loop is exactly what let a stale/foreign listener on our target port
+ * masquerade as "our server is up" (the responding process, not ours, is what
+ * answered `/health` while our own child had already died on EADDRINUSE).
+ * A single fetch with a short timeout has no such race: there is no "our
+ * process" to confuse it with yet.
+ */
+export async function probeForeignServerHealth(
+  serverUrl: string,
+  timeoutMs = 1_500,
+): Promise<boolean> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => {
+    controller.abort();
+  }, timeoutMs);
+  try {
+    const response = await fetch(`${serverUrl}/health`, {
+      signal: controller.signal,
+    });
+    return response.ok;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function waitForHealth(args: WaitForHealthArgs): Promise<void> {
   const timeoutMs = args.timeoutMs ?? HEALTH_CHECK_TIMEOUT_MS;
   const deadline = Date.now() + timeoutMs;
@@ -3390,6 +3421,31 @@ export async function runBbApp(
   });
   if (!runtimeRecordOwned) {
     warnExistingRuntimeRecord(context.dataDir);
+
+    // Root cause of the EADDRINUSE restart loop this used to produce: we knew
+    // another launcher's record was live (claimBbAppRuntimeFile just told us
+    // so) and started our own server anyway. Our server died on the port bind
+    // immediately, but the health-check poll it runs afterward isn't picky
+    // about WHOSE process answers `/health` — the surviving peer answered for
+    // it, so startup reported success, then the supervision loop noticed our
+    // already-dead child and "restarted" it, forever, once a second, never
+    // able to win the port it will never win. If the recorded launcher is
+    // genuinely still healthy, there is nothing to start: exit clean and say
+    // so, instead of contesting a port that already has a working owner.
+    const existingRuntimeFile = await readBbAppRuntimeFile(context.dataDir);
+    if (existingRuntimeFile !== null) {
+      const existingIsHealthy = await probeForeignServerHealth(
+        existingRuntimeFile.serverUrl,
+      );
+      if (existingIsHealthy) {
+        log(
+          green("✓"),
+          `bb is already running at ${cyan(existingRuntimeFile.serverUrl)} (pid ${String(existingRuntimeFile.pid)})`,
+        );
+        log(" ", dim("Nothing to start. Run `bb-app stop` first to replace it."));
+        return;
+      }
+    }
   }
 
   const processes: ManagedFullStackProcesses = {
