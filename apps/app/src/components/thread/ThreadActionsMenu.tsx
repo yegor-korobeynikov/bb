@@ -36,7 +36,10 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { getThreadRoutePath } from "@/lib/route-paths";
 import { useCreateTrack } from "@/hooks/mutations/thread-track-mutations";
-import { useUpdateThread } from "@/hooks/mutations/thread-state-mutations";
+import {
+  useUnpinAndMoveThread,
+  useUpdateThread,
+} from "@/hooks/mutations/thread-state-mutations";
 import { useSidebarNavigationSections } from "@/hooks/queries/sidebar-navigation-query";
 import { useThreadActions } from "./ThreadActionsProvider";
 
@@ -140,18 +143,12 @@ function ThreadActionMenuSeparator({
   );
 }
 
-/**
- * Radio value standing in for "no section". `null` cannot be a radio value, and
- * a section id is a free-form string, so the sentinel carries a prefix that no
- * id can collide with.
- */
 const UNORGANIZED_SECTION_VALUE = "\u0000unorganized";
 
 /**
- * "Move to…" — the keyboard/pointer-cheap counterpart to dragging a row
- * between sidebar sections. It runs the same `useUpdateThread({ sectionId })`
- * mutation the drop handler uses (useSectionThreadDnd's "move" decision), so
- * both paths share optimistic update, rollback, and cache reconciliation.
+ * The menu equivalent of moving a root thread between sidebar sections. Its
+ * two mutation paths deliberately match the corresponding drag-and-drop
+ * decisions: pinned rows unpin and move; other root rows update `sectionId`.
  */
 function ThreadMoveToSectionSubmenu({
   thread,
@@ -164,12 +161,17 @@ function ThreadMoveToSectionSubmenu({
   const updateThread = useUpdateThread({
     errorMessage: "Failed to move thread.",
   });
+  const unpinAndMoveThread = useUnpinAndMoveThread();
   const currentValue = thread.sectionId ?? UNORGANIZED_SECTION_VALUE;
 
   const moveTo = (value: string) => {
     const sectionId =
       value === UNORGANIZED_SECTION_VALUE || value === "" ? null : value;
-    if (sectionId === thread.sectionId) return;
+    if (sectionId === thread.sectionId && thread.pinnedAt === null) return;
+    if (thread.pinnedAt !== null) {
+      unpinAndMoveThread.mutate({ id: thread.id, sectionId });
+      return;
+    }
     updateThread.mutate({ id: thread.id, sectionId });
   };
 
@@ -318,9 +320,6 @@ function ThreadActionsMenuItems({
       >
         Rename
       </ThreadActionMenuItem>
-      {/* Sections group root threads only, and a bottom drawer has nowhere to
-          put a fly-out — the mobile app carries its own "Move to section"
-          sheet for that case. */}
       {canMoveToSection ? (
         <ThreadMoveToSectionSubmenu thread={thread} surface={surface} />
       ) : null}

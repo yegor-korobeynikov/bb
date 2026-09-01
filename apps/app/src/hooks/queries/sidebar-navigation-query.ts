@@ -94,12 +94,9 @@ function selectSidebarSections(
 }
 
 /**
- * Read-only view of the sidebar's thread sections from the shared bootstrap
- * cache. Like `useSidebarNavigationThreadSelection`, this never triggers the
- * bootstrap fetch or a realtime subscription of its own (the app shell owns
- * both) — it only reads what the sidebar already loaded, so short-lived
- * surfaces such as a row's actions menu can list sections without a request
- * per open. Returns an empty list while the cache holds nothing.
+ * Read the sidebar's sections from its already-loaded bootstrap cache. This
+ * observer neither fetches nor subscribes: it keeps row action menus from
+ * adding a request or realtime subscription of their own.
  */
 export function useSidebarNavigationSections(): readonly ThreadSectionResponse[] {
   const { data } = useQuery<

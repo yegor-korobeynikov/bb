@@ -14,7 +14,10 @@ import {
 } from "@/lib/sidebar-bootstrap-cache";
 import { makeThreadListEntry } from "@/test/fixtures/thread-list-entries";
 import { createQueryClientTestHarness } from "@/test/queryClientTestHarness";
-import { useSidebarNavigation } from "./sidebar-navigation-query";
+import {
+  useSidebarNavigation,
+  useSidebarNavigationSections,
+} from "./sidebar-navigation-query";
 
 vi.mock("@/lib/api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/api")>();
@@ -68,6 +71,31 @@ afterEach(() => {
 });
 
 describe("useSidebarNavigation", () => {
+  it("selects cached sections without issuing a second bootstrap request", async () => {
+    const bootstrap: SidebarBootstrapResponse = {
+      ...BOOTSTRAP,
+      sections: [
+        { id: "sec_planning", name: "Planning", createdAt: 1, updatedAt: 1 },
+      ],
+    };
+    vi.mocked(request).mockResolvedValue(bootstrap);
+    const harness = createQueryClientTestHarness();
+    const navigation = renderHook(() => useSidebarNavigation(), {
+      wrapper: harness.wrapper,
+    });
+    await waitFor(() =>
+      expect(navigation.result.current.data).toEqual(bootstrap),
+    );
+    const requestCount = vi.mocked(request).mock.calls.length;
+
+    const sections = renderHook(() => useSidebarNavigationSections(), {
+      wrapper: harness.wrapper,
+    });
+
+    expect(sections.result.current).toEqual(bootstrap.sections);
+    expect(vi.mocked(request)).toHaveBeenCalledTimes(requestCount);
+  });
+
   it("replays the last bootstrap while the live one loads", async () => {
     // The cache validates reads against the wire schema, so the fixture must
     // be a real response shape; fail here, not silently in the replay.
