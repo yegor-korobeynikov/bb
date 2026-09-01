@@ -1,7 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { useCallback } from "react";
 import { PERSONAL_PROJECT_ID, type ThreadListEntry } from "@bb/domain";
-import type { SidebarBootstrapResponse } from "@bb/server-contract";
+import type {
+  SidebarBootstrapResponse,
+  ThreadSectionResponse,
+} from "@bb/server-contract";
 import { listSidebarNavigationThreads } from "@/hooks/cache-owners/query-cache";
 import { apiClient } from "@/lib/api-server";
 import { request, requestOptions } from "@/lib/api";
@@ -80,6 +83,37 @@ export function useProjectDisplayName(
     return data.personalProject.name;
   }
   return data.projects.find((project) => project.id === projectId)?.name;
+}
+
+const EMPTY_SIDEBAR_SECTIONS: readonly ThreadSectionResponse[] = [];
+
+function selectSidebarSections(
+  navigation: SidebarBootstrapResponse,
+): readonly ThreadSectionResponse[] {
+  return navigation.sections;
+}
+
+/**
+ * Read-only view of the sidebar's thread sections from the shared bootstrap
+ * cache. Like `useSidebarNavigationThreadSelection`, this never triggers the
+ * bootstrap fetch or a realtime subscription of its own (the app shell owns
+ * both) — it only reads what the sidebar already loaded, so short-lived
+ * surfaces such as a row's actions menu can list sections without a request
+ * per open. Returns an empty list while the cache holds nothing.
+ */
+export function useSidebarNavigationSections(): readonly ThreadSectionResponse[] {
+  const { data } = useQuery<
+    SidebarBootstrapResponse,
+    Error,
+    readonly ThreadSectionResponse[]
+  >({
+    queryKey: sidebarNavigationQueryKey(),
+    queryFn: ({ signal }) => fetchSidebarNavigation(signal),
+    ...REALTIME_OWNED_STATIC_CACHE_QUERY_POLICY,
+    enabled: false,
+    select: selectSidebarSections,
+  });
+  return data ?? EMPTY_SIDEBAR_SECTIONS;
 }
 
 interface SidebarNavigationThreadSelection<T> {
