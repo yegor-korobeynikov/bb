@@ -156,19 +156,27 @@
    * queued-message cards — so a span looks identical while it is typed and
    * after it is sent, in either direction of the conversation.
    *
-   * The fill is --surface-selected, a translucent tint, not an opaque neutral:
-   * an opaque step off the canvas (--muted) reads as a pill only where it lands
-   * on a recessed surface. Inside the user bubble it did; on the agent reply,
-   * which sits directly on the canvas, a palette whose --muted resolves near
-   * --canvas erased the pill entirely and inline code fell back to bare
-   * monospace. A translucent tint darkens whatever it is painted on, so the
-   * pill survives every palette and both surfaces.
+   * The fill is translucent, not an opaque neutral: an opaque step off the
+   * canvas (--muted) reads as a pill only where it lands on a recessed
+   * surface. Inside the user bubble it did; on the agent reply, which sits
+   * directly on the canvas, a palette whose --muted resolves near --canvas
+   * erased the pill entirely and inline code fell back to bare monospace. A
+   * translucent tint darkens whatever it is painted on, so the pill survives
+   * every palette and both surfaces.
+   *
+   * --surface-recessed specifically, not --surface-selected: both are
+   * translucent and either fixes the erasure, but --surface-selected is the
+   * "this row is chosen" role, and a theme is free to give that role a hue —
+   * ink-paper points it at Field Olive, which would tint every code span
+   * green. --surface-recessed derives from --ink in every theme, so the pill
+   * stays a neutral grey plate and the selection colour keeps meaning
+   * selection.
    *
    * Sized in `em` so the pill tracks the prose around it (text-sm bodies today)
    * instead of pinning one px size across surfaces.
    */
   .bb-inline-code {
-    background-color: var(--surface-selected);
+    background-color: var(--surface-recessed);
     border-radius: var(--radius-sm);
     padding: 0.125rem 0.375rem;
     font-family: var(--font-mono);
