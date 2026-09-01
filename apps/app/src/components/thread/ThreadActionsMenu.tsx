@@ -4,14 +4,24 @@ import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
+  ContextMenuRadioGroup,
+  ContextMenuRadioItem,
   ContextMenuSeparator,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
   ContextMenuTrigger,
 } from "@bb/shared-ui/context-menu";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@bb/shared-ui/dropdown-menu";
 import { Icon, type IconName } from "@bb/shared-ui/icon";
@@ -26,6 +36,8 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { getThreadRoutePath } from "@/lib/route-paths";
 import { useCreateTrack } from "@/hooks/mutations/thread-track-mutations";
+import { useUpdateThread } from "@/hooks/mutations/thread-state-mutations";
+import { useSidebarNavigationSections } from "@/hooks/queries/sidebar-navigation-query";
 import { useThreadActions } from "./ThreadActionsProvider";
 
 interface ThreadActionsMenuBaseProps {
@@ -128,6 +140,95 @@ function ThreadActionMenuSeparator({
   );
 }
 
+/**
+ * Radio value standing in for "no section". `null` cannot be a radio value, and
+ * a section id is a free-form string, so the sentinel carries a prefix that no
+ * id can collide with.
+ */
+const UNORGANIZED_SECTION_VALUE = "\u0000unorganized";
+
+/**
+ * "Move to…" — the keyboard/pointer-cheap counterpart to dragging a row
+ * between sidebar sections. It runs the same `useUpdateThread({ sectionId })`
+ * mutation the drop handler uses (useSectionThreadDnd's "move" decision), so
+ * both paths share optimistic update, rollback, and cache reconciliation.
+ */
+function ThreadMoveToSectionSubmenu({
+  thread,
+  surface,
+}: {
+  thread: Thread;
+  surface: ThreadActionsMenuSurface;
+}) {
+  const sections = useSidebarNavigationSections();
+  const updateThread = useUpdateThread({
+    errorMessage: "Failed to move thread.",
+  });
+  const currentValue = thread.sectionId ?? UNORGANIZED_SECTION_VALUE;
+
+  const moveTo = (value: string) => {
+    const sectionId =
+      value === UNORGANIZED_SECTION_VALUE || value === "" ? null : value;
+    if (sectionId === thread.sectionId) return;
+    updateThread.mutate({ id: thread.id, sectionId });
+  };
+
+  const items = (
+    <>
+      {sections.map((section) =>
+        surface === "context" ? (
+          <ContextMenuRadioItem key={section.id} value={section.id}>
+            {section.name}
+          </ContextMenuRadioItem>
+        ) : (
+          <DropdownMenuRadioItem key={section.id} value={section.id}>
+            {section.name}
+          </DropdownMenuRadioItem>
+        ),
+      )}
+      {surface === "context" ? (
+        <ContextMenuRadioItem value={UNORGANIZED_SECTION_VALUE}>
+          Unorganized
+        </ContextMenuRadioItem>
+      ) : (
+        <DropdownMenuRadioItem value={UNORGANIZED_SECTION_VALUE}>
+          Unorganized
+        </DropdownMenuRadioItem>
+      )}
+    </>
+  );
+
+  if (surface === "context") {
+    return (
+      <ContextMenuSub>
+        <ContextMenuSubTrigger>
+          <Icon name="Layers" aria-hidden="true" />
+          Move to…
+        </ContextMenuSubTrigger>
+        <ContextMenuSubContent aria-label="Move to section">
+          <ContextMenuRadioGroup value={currentValue} onValueChange={moveTo}>
+            {items}
+          </ContextMenuRadioGroup>
+        </ContextMenuSubContent>
+      </ContextMenuSub>
+    );
+  }
+
+  return (
+    <DropdownMenuSub>
+      <DropdownMenuSubTrigger>
+        <Icon name="Layers" aria-hidden="true" />
+        Move to…
+      </DropdownMenuSubTrigger>
+      <DropdownMenuSubContent aria-label="Move to section">
+        <DropdownMenuRadioGroup value={currentValue} onValueChange={moveTo}>
+          {items}
+        </DropdownMenuRadioGroup>
+      </DropdownMenuSubContent>
+    </DropdownMenuSub>
+  );
+}
+
 function ThreadActionsMenuItems({
   thread,
   onOpenInSplit,
@@ -148,6 +249,7 @@ function ThreadActionsMenuItems({
   const isRead = isThreadRead(thread);
   const isArchived = thread.archivedAt != null;
   const isPinned = thread.pinnedAt !== null;
+  const canMoveToSection = !isDrawer && thread.parentThreadId === null;
 
   return (
     <>
@@ -216,6 +318,12 @@ function ThreadActionsMenuItems({
       >
         Rename
       </ThreadActionMenuItem>
+      {/* Sections group root threads only, and a bottom drawer has nowhere to
+          put a fly-out — the mobile app carries its own "Move to section"
+          sheet for that case. */}
+      {canMoveToSection ? (
+        <ThreadMoveToSectionSubmenu thread={thread} surface={surface} />
+      ) : null}
       {showSeparators ? <ThreadActionMenuSeparator surface={surface} /> : null}
       <ThreadActionMenuItem
         surface={surface}
