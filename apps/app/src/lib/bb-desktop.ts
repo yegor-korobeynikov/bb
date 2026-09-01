@@ -66,36 +66,22 @@ export const CHROME_ROW_CLASS = `flex ${CHROME_ROW_HEIGHT_CLASS} items-center`;
 // trigger, route-history arrows, and page/thread header content can move
 // together from here.
 //
-// -5.5px, INTERPOLATED (2026-08-27), not yet independently confirmed live —
-// see the two rounds that produced it before trusting this number further:
-//
-// Round 1: -7.25px (2 - a reported 9.25pt gap) landed here, verified live —
-// then Yegor reported the icon now sitting clearly ABOVE the lights on his
-// actual screen. The live-verification tool that had reported "confirmed,
-// 0.5pt" was itself broken: it picked its CDP target by matching the debug
-// port URL, and more than one window/thread shares that port, so "before"
-// and "after" screenshots were quietly comparing different windows. That
-// tool's numbers (both the original 9.25pt gap AND the 0.5pt confirmation)
-// are suspect for the same reason and should not be trusted without a
-// window-title check added to the target selection first.
-//
-// Round 2: rather than trust either of those numbers, measured directly
-// off Yegor's own screenshot file (color-diff centroids on the raw pixel
-// array, no CDP/window-targeting involved at all) — confirmed the overshoot
-// is real, icon sits a few px above the lights at -7.25px. Interpolating
-// the two (nudge, error) points — (+2, +9.25pt too low) and (-7.25, ~-2 to
-// -2.3pt too high, this round's own measurement, itself approximate since
-// converting screenshot px to logical pt needs a scale factor this method
-// can't pin down exactly) — for a zero-crossing gives roughly -5.4 to
-// -5.5px depending on which scale assumption is used. This value trades
-// off those two estimates; it has NOT been independently re-verified live.
-// TODO: fix the CDP target-selection bug (match window title, not port)
-// before the next round, then confirm this number or replace it — same
-// underlying question as the 18px-inset TODO this replaced: where the
-// native traffic-light cluster actually sits is still not derived from
-// first principles, only approximated from measurement.
+// Binary search on Yegor's own eyes (2026-08-27) — three rounds of formula
+// and measured-pixel derivation each landed a number that looked right by
+// its own method and wrong on his actual screen (2px too low, then -7.25px
+// too high; -5.5px interpolated from those two was never independently
+// confirmed before he reported it too high again). Screenshot-based
+// measurement kept disagreeing with the live result for reasons that were
+// each individually plausible (wrong CDP window, unknown capture scale) but
+// never fully ruled out — so this is no longer a geometry-derivation
+// problem, it's a "which number does the eye that has to look at it every
+// day accept" problem. Interval search instead: current value is the
+// midpoint of the last known bracket, [-5.5 (too high), 0 (untested, but 0
+// is between the too-low +2 and the too-high -5.5, so it's the outer
+// bound)]. Report back "higher / lower / good" only — no self-measurement,
+// no re-derivation. Halve the remaining bracket each round.
 export const MACOS_CHROME_CONTROL_AXIS_CLASS =
-  "[--bb-macos-chrome-control-y:-5.5px] [transform:translateY(var(--bb-macos-chrome-control-y))]";
+  "[--bb-macos-chrome-control-y:-2.75px] [transform:translateY(var(--bb-macos-chrome-control-y))]";
 export const MACOS_CHROME_CONTROL_NO_DRAG_CLASS = `${MACOS_WINDOW_NO_DRAG_CLASS} ${MACOS_CHROME_CONTROL_AXIS_CLASS}`;
 export const MACOS_CHROME_TRAFFIC_LIGHT_AXIS_NUDGE_CLASS =
   MACOS_CHROME_CONTROL_AXIS_CLASS;
