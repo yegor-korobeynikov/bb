@@ -953,3 +953,60 @@ other pane's copy (or release its owned state). The thread-list slot omits it
 deliberately: it mounts once, and a crash there should disable it everywhere.
 Confirm that split before stabilizing, and decide whether other multi-mount
 slots need the same treatment.
+
+## `app.slots.experimental_messageDecoration` (`@get-bb/plugin-sdk/app`)
+
+**What it does.** Renders persistent inline content underneath one chat
+message, in the timeline itself. `messageDirective` renders only where the
+agent wrote a directive into its own text; a decoration attaches to a message
+from the outside, so a plugin can hang durable state — a comment thread, a
+linked side track's status — off a message it did not author.
+
+The component receives `{ threadId, message, openPanel? }` and mounts once per
+message per registration, through `PluginSlotMount` keyed by the message id, so
+a crash is contained to that plugin on that one message. It renders outside the
+hover-action gate (a decoration is durable state, not hover chrome) and stays
+visible on surfaces that suppress the action bar. `roles` defaults to
+assistant-only. The slot is gated with `includePluginMessageActions`: a
+`ThreadChat` embedded in a plugin panel opts out of both, so a decoration whose
+own panel renders that chat cannot recurse into itself one message deep.
+
+**Audit before stabilizing.**
+
+1. **Cost per row.** The component mounts once per message per registration, so
+   a naive implementation that fetches its own state per message issues one
+   request per row in a long conversation. The contract says so in prose; before
+   stabilizing, measure it — mount and scroll a thread of a few hundred messages
+   with a decoration registered — and decide whether the host should hand
+   decorations a batched, thread-level data hook (or a visibility gate) rather
+   than leaving each plugin to invent its own cache.
+2. **The `null` contract, and what the host reserves anyway.** A decoration must
+   return `null` when it has nothing to show, because the timeline reserves no
+   space for it. That is true at the *registration* level: a row no plugin
+   claims renders no wrapper. Once a registration matches the row's role the
+   host mounts its wrapper (`mt-1 flex flex-col gap-1`) regardless of what the
+   component returns, so a plugin that renders chrome unconditionally — or one
+   whose components all return `null` — still shifts every matching message.
+   Decide whether the host should collapse an empty wrapper itself instead of
+   relying on plugin discipline.
+3. **Optional `openPanel`.** The prop is absent wherever the surface has no side
+   panel (a `ThreadChat` embedded in a plugin panel). Confirm that is a
+   deliberate contract and not a hole: a decoration whose only affordance opens
+   a panel silently loses it on those surfaces, with no signal to the plugin
+   beyond the undefined prop and no host fallback. Decide whether the surface
+   should be described to the plugin (a capability flag) rather than inferred
+   from an absent function.
+4. **Coupling to `includePluginMessageActions`.** Decorations are suppressed on
+   exactly the surfaces that suppress message actions, which today prevents the
+   plugin-panel recursion described above. Confirm one flag should keep
+   governing two different kinds of chrome — hover actions and durable inline
+   state — or whether the recursion guard belongs in a separate opt-out, so a
+   panel can host a chat with decorations but without action buttons.
+5. **Role defaults and breadth.** Omitting `roles` decorates assistant messages
+   only. Confirm assistant-only is the right default, and that the `"user" |
+   "assistant"` pair is the right axis at all — the timeline also renders rows
+   that are neither, and a decoration cannot currently reach them.
+6. **Multiple decorations on one message.** Registrations stack vertically in
+   slot-snapshot order with no cap. Decide the ordering rule and whether a
+   budget or overflow behavior is needed before several plugins each claim the
+   same row.
