@@ -416,9 +416,7 @@ export function buildThreadMentionComponent({
     const resource = useRawThreadMentionResource(threadId);
     if (resource === null) {
       return inlineCode ? (
-        <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
-          {threadId}
-        </code>
+        <code className="bb-inline-code">{threadId}</code>
       ) : (
         threadId
       );

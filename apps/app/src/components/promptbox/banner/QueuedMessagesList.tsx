@@ -208,11 +208,7 @@ const QUEUED_MARKDOWN_COMPONENTS: Components = {
     </span>
   ),
   br: () => " ",
-  code: ({ children }) => (
-    <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
-      {children}
-    </code>
-  ),
+  code: ({ children }) => <code className="bb-inline-code">{children}</code>,
   h1: ({ children }) => (
     <span className="font-semibold text-foreground">{children} </span>
   ),

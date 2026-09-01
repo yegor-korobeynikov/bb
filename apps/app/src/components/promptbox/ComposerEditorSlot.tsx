@@ -99,7 +99,6 @@ export function ComposerEditorSlot({
             "[&_.ProseMirror_ul]:my-1 [&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:pl-5",
             "[&_.ProseMirror_ol]:my-1 [&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_ol]:pl-5",
             "[&_.ProseMirror_li]:my-0.5 [&_.ProseMirror_li>p]:m-0",
-            "[&_.ProseMirror_code]:rounded [&_.ProseMirror_code]:bg-surface-selected [&_.ProseMirror_code]:px-1 [&_.ProseMirror_code]:py-0.5 [&_.ProseMirror_code]:font-mono [&_.ProseMirror_code]:text-[0.9em]",
             "[&_.ProseMirror_p.is-editor-empty:first-child::before]:pointer-events-none",
             "[&_.ProseMirror_p.is-editor-empty:first-child::before]:float-left",
             "[&_.ProseMirror_p.is-editor-empty:first-child::before]:h-0",

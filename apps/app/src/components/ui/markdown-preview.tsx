@@ -837,10 +837,7 @@ function MarkdownCode({
   }
 
   return (
-    <code
-      className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs"
-      {...props}
-    >
+    <code className="bb-inline-code" {...props}>
       {children}
     </code>
   );

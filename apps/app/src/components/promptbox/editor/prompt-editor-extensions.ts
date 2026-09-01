@@ -21,12 +21,11 @@ import { PromptMentionExtension } from "./prompt-mention-extension";
 const PROMPT_EDITOR_LINK_CLASS = "prompt-editor-link";
 
 /**
- * Matches the inline-code pill rendered messages already use
- * (MarkdownCode in markdown-preview.tsx: "rounded bg-muted px-1.5 py-0.5
- * font-mono text-xs") so a backtick-wrapped word looks the same live in the
- * composer as it will once sent, instead of only turning monospace on send.
+ * The shared inline-code pill (`.bb-inline-code` in app.css) — the same class
+ * rendered messages wear — so a backtick-wrapped word looks the same live in
+ * the composer as it will once sent, instead of only turning monospace on send.
  */
-const PROMPT_EDITOR_CODE_CLASS = "prompt-editor-code";
+const PROMPT_EDITOR_CODE_CLASS = "bb-inline-code";
 
 interface PromptEditorExtensionsOptions extends PromptDecorationExtensionOptions {
   /**
