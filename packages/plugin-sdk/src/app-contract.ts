@@ -1065,10 +1065,18 @@ export interface PluginMessageDecorationProps {
  * thread, a linked side track's status — off a message it did not author.
  *
  * The component renders once per message per plugin and must return `null`
- * when it has nothing to show: the timeline reserves no space for it, and a
- * decoration that always renders chrome would put a strip under every message
- * in the conversation. Errors are contained by the host's slot boundary and
- * never break the timeline.
+ * when it has nothing to show: a decoration that always renders chrome would
+ * put a strip under every message in the conversation. Returning `null` costs
+ * nothing — the host mounts decorations through `display: contents` wrappers,
+ * so a null return contributes no box at all.
+ *
+ * The flip side of that is spacing: a decoration renders as a block child of
+ * the message body, with no container gap around it, so it must bring its own
+ * margin. That is deliberate — a host-side margin would apply to every
+ * registered row whether or not the component drew anything.
+ *
+ * Errors are contained by the host's slot boundary and never break the
+ * timeline.
  *
  * Experimental: see docs/api_to_audit.md.
  */

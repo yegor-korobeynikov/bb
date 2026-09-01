@@ -1819,9 +1819,14 @@ openWorkspaceFile }` — register a leaf
   `openPanel` matches that slot's, but is **optional** — it is absent on
   surfaces with no side panel (a `ThreadChat` embedded in a plugin panel), and
   decorations render there too. `roles` defaults to `["assistant"]`.
-  **Return `null` when there is nothing to show**: the timeline reserves no
-  space for decorations, so a component that always renders chrome puts a
-  strip under every message in the conversation. Fetch per *thread*, not per
+  **Return `null` when there is nothing to show**: a component that always
+  renders chrome puts a strip under every message in the conversation.
+  Returning `null` is free — the host mounts decorations through
+  `display: contents` wrappers, so it contributes no box at all. The flip side
+  is that spacing belongs to the decoration: it renders as a block child of
+  the message body with no container gap, so give it its own top margin (a
+  host-side margin would apply to every registered row whether or not the
+  component drew anything). Fetch per *thread*, not per
   message — the component mounts once per row, so a per-message request is one
   request per row on a long conversation. Crashes are contained per plugin per
   message and never break the row.
