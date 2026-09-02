@@ -174,6 +174,7 @@ import {
 import {
   ATTACH_PROBE_TIMEOUT_MS,
   DEFAULT_BB_SERVER_URL,
+  EXISTENCE_PROBE_TIMEOUT_MS,
   PROCESS_LOG_LINE_LIMIT,
   STARTUP_POLL_INTERVAL_MS,
   STARTUP_TIMEOUT_MS,
@@ -995,9 +996,10 @@ async function ensureBuiltinRuntimeAttached(): Promise<boolean> {
     return false;
   }
 
-  const existingProbe = await probeBbServer({
+  const existingProbe = await waitForCompatibleServer({
+    intervalMs: STARTUP_POLL_INTERVAL_MS,
     serverUrl: builtinServerUrl,
-    timeoutMs: ATTACH_PROBE_TIMEOUT_MS,
+    timeoutMs: EXISTENCE_PROBE_TIMEOUT_MS,
   });
 
   if (existingProbe.kind === "compatible") {
@@ -1902,9 +1904,10 @@ async function decideOnExistingServer(
 }
 
 async function initializeRuntime(args: InitializeRuntimeArgs): Promise<void> {
-  const existingProbe = await probeBbServer({
+  const existingProbe = await waitForCompatibleServer({
+    intervalMs: STARTUP_POLL_INTERVAL_MS,
     serverUrl: args.serverUrl,
-    timeoutMs: ATTACH_PROBE_TIMEOUT_MS,
+    timeoutMs: EXISTENCE_PROBE_TIMEOUT_MS,
   });
 
   if (existingProbe.kind === "compatible") {

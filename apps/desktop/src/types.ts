@@ -7,6 +7,17 @@ export const MIN_WINDOW_WIDTH = 500;
 export const STARTUP_POLL_INTERVAL_MS = 250;
 export const STARTUP_TIMEOUT_MS = 60_000;
 export const ATTACH_PROBE_TIMEOUT_MS = 1_500;
+// Budget for the existence check that decides whether to attach to an
+// already-running bb or spawn an owned one. A single ATTACH_PROBE_TIMEOUT_MS
+// attempt can land during a brief stall on an otherwise-healthy server (slow
+// disk, GC pause, a busy event loop) and read back "unavailable", which then
+// spawns a redundant owned server that immediately collides on the same port.
+// This budget is deliberately short: when nothing is listening at all (the
+// common case for a first launch), every attempt fails fast, so the retry
+// loop still burns through this whole window before giving up and spawning —
+// it trades a few seconds of extra startup latency in that case for not
+// misreading a live server's hiccup as absent.
+export const EXISTENCE_PROBE_TIMEOUT_MS = 3_000;
 export const PROCESS_LOG_LINE_LIMIT = 200;
 
 export type RuntimeOwnership = "attached" | "spawned";
