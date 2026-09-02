@@ -9,15 +9,23 @@ export const STARTUP_TIMEOUT_MS = 60_000;
 export const ATTACH_PROBE_TIMEOUT_MS = 1_500;
 // Budget for the existence check that decides whether to attach to an
 // already-running bb or spawn an owned one. A single ATTACH_PROBE_TIMEOUT_MS
-// attempt can land during a brief stall on an otherwise-healthy server (slow
-// disk, GC pause, a busy event loop) and read back "unavailable", which then
-// spawns a redundant owned server that immediately collides on the same port.
-// This budget is deliberately short: when nothing is listening at all (the
-// common case for a first launch), every attempt fails fast, so the retry
-// loop still burns through this whole window before giving up and spawning —
-// it trades a few seconds of extra startup latency in that case for not
-// misreading a live server's hiccup as absent.
-export const EXISTENCE_PROBE_TIMEOUT_MS = 3_000;
+// attempt can land during a stall on an otherwise-healthy server and read back
+// "unavailable", which then spawns a redundant owned server that immediately
+// collides on the same port.
+//
+// Sized to match this repo's own precedent for waiting on a bb that is busy or
+// coming up — sync-live.mjs's waitForServerUp polls for 60s and treats a failed
+// health check as "not up yet" rather than an error. An earlier 3s value here
+// was calibrated for a brief hiccup and proved far too small: a loaded daily
+// driver was measured answering /health in 4s and the config endpoint in 9s,
+// while thread-timeline builds blocked its event loop.
+//
+// A budget this long is only affordable because the probe now distinguishes
+// "nothing is listening" from "listening but slow" (UnavailableServerProbeResult's
+// timedOut). Callers deciding attach-vs-spawn pass stopWhenNothingListening, so
+// an absent server still costs milliseconds — only a server that is actually
+// there gets waited on.
+export const EXISTENCE_PROBE_TIMEOUT_MS = 60_000;
 export const PROCESS_LOG_LINE_LIMIT = 200;
 
 export type RuntimeOwnership = "attached" | "spawned";

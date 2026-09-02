@@ -4,7 +4,11 @@ import {
   type ServerResponse,
 } from "node:http";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { probeBbServer, type ServerProbeFetch } from "../src/server-probe.js";
+import {
+  probeBbServer,
+  waitForCompatibleServer,
+  type ServerProbeFetch,
+} from "../src/server-probe.js";
 
 interface TestServer {
   close(): Promise<void>;
@@ -258,5 +262,73 @@ describe("probeBbServer", () => {
     });
 
     expect(result.kind).toBe("unavailable");
+  });
+});
+
+describe("waitForCompatibleServer", () => {
+  it("gives up immediately when nothing is listening and the caller asked to", async () => {
+    // The attach-vs-spawn callers pass stopWhenNothingListening so a first
+    // launch with no server does not pay the whole (deliberately long) budget
+    // before spawning its own.
+    const testServer = await startTestServer({
+      handler(_request, response) {
+        writeJson(response, 200, JSON.stringify({ ok: true }));
+      },
+    });
+    const closedUrl = testServer.url;
+    await testServer.close();
+    testServers.pop();
+
+    const startedAt = Date.now();
+    const result = await waitForCompatibleServer({
+      intervalMs: 250,
+      serverUrl: closedUrl,
+      stopWhenNothingListening: true,
+      timeoutMs: 60_000,
+    });
+
+    expect(result.kind).toBe("unavailable");
+    expect(Date.now() - startedAt).toBeLessThan(5_000);
+  });
+
+  it("keeps waiting for a server that is listening but answering slowly", async () => {
+    // The case that produced the "Port conflict" dialog on a loaded daily
+    // driver: /health answers, just far slower than one probe attempt allows.
+    let healthRequestCount = 0;
+    const testServer = await startTestServer({
+      handler(request, response) {
+        if (request.url === "/health") {
+          healthRequestCount += 1;
+          // Slower than the first attempt's ceiling, well inside the escalated one.
+          setTimeout(() => {
+            writeJson(response, 200, JSON.stringify({ ok: true }));
+          }, 1_400);
+          return;
+        }
+        if (request.url === "/api/v1/system/config") {
+          writeJson(
+            response,
+            200,
+            JSON.stringify({
+              hostDaemonPort: 38887,
+              voiceTranscriptionEnabled: false,
+            }),
+          );
+          return;
+        }
+        writeJson(response, 404, JSON.stringify({ message: "not found" }));
+      },
+    });
+
+    const result = await waitForCompatibleServer({
+      intervalMs: 250,
+      serverUrl: testServer.url,
+      stopWhenNothingListening: true,
+      timeoutMs: 30_000,
+    });
+
+    expect(result.kind).toBe("compatible");
+    // First attempt times out at the short ceiling, the retry gets the long one.
+    expect(healthRequestCount).toBeGreaterThan(1);
   });
 });

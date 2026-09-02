@@ -43,6 +43,15 @@ interface UnavailableServerProbeResult {
   kind: "unavailable";
   reason: string;
   serverUrl: string;
+  /**
+   * True when this probe's own timeout fired — something accepted the
+   * connection but did not answer in time, so a server may well be there and
+   * merely slow. False when the connection itself failed (nothing listening).
+   *
+   * The two need opposite waiting strategies, and collapsing them into one
+   * "unavailable" is why a single retry budget cannot serve both callers.
+   */
+  timedOut: boolean;
 }
 
 interface ProbeBbServerArgs {
@@ -55,6 +64,18 @@ interface WaitForCompatibleServerArgs {
   intervalMs: number;
   serverUrl: string;
   timeoutMs: number;
+  /**
+   * Return as soon as a probe finds nothing listening at all, instead of
+   * polling until the deadline.
+   *
+   * A caller waiting for a server it just spawned must NOT set this — that
+   * server refuses connections for its first moments by definition. A caller
+   * asking "is one already running?" must set it, so an absent server costs
+   * milliseconds rather than the whole budget, which is what makes a long
+   * budget affordable for the case that needs it: a server that is present
+   * but answering slowly.
+   */
+  stopWhenNothingListening?: boolean;
 }
 
 interface FetchJsonArgs<TValue> {
@@ -91,6 +112,8 @@ interface FetchJsonSchemaErrorResult {
 }
 
 interface FetchJsonNetworkErrorResult {
+  /** This request's own AbortController fired, rather than the connection failing. */
+  aborted: boolean;
   kind: "network-error";
   message: string;
 }
@@ -143,6 +166,10 @@ async function fetchJson<TValue>(
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     return {
+      // The controller is ours, so its own state is the authoritative signal
+      // for "we gave up on it" versus "the connection failed" — more reliable
+      // than matching on the runtime's error name or message text.
+      aborted: controller.signal.aborted,
       kind: "network-error",
       message,
     };
@@ -174,6 +201,7 @@ export async function probeBbServer(
       kind: "unavailable",
       reason: healthResult.message,
       serverUrl: args.serverUrl,
+      timedOut: healthResult.aborted,
     };
   }
 
@@ -210,6 +238,9 @@ export async function probeBbServer(
       kind: "unavailable",
       reason: `/api/v1/system/config returned ${formatFetchFailure(configResult)}`,
       serverUrl: args.serverUrl,
+      // /health already answered, so something is listening regardless of how
+      // this request failed — never report this as "nothing is there".
+      timedOut: true,
     };
   }
 
@@ -228,20 +259,38 @@ export async function probeBbServer(
   };
 }
 
+/**
+ * Per-attempt ceiling once a probe has actually timed out.
+ *
+ * The first attempt stays short so a healthy server — which answers in
+ * milliseconds — costs nothing. But a loaded bb can take many seconds to
+ * answer (measured: 4s on /health, 9s on the config endpoint while thread
+ * timelines were blocking its event loop), and against that, repeating a
+ * one-second attempt just fails identically until the budget runs out. Once
+ * one attempt has timed out, something IS listening, so later attempts trade
+ * latency for actually giving it time to answer.
+ */
+const SLOW_SERVER_PROBE_TIMEOUT_MS = 10_000;
+
 export async function waitForCompatibleServer(
   args: WaitForCompatibleServerArgs,
 ): Promise<ServerProbeResult> {
   const deadline = Date.now() + args.timeoutMs;
+  const firstAttemptTimeoutMs = Math.min(args.intervalMs, 1_000);
+  let sawTimeout = false;
   let lastResult: ServerProbeResult = {
     kind: "unavailable",
     reason: "Probe has not started",
     serverUrl: args.serverUrl,
+    timedOut: false,
   };
 
   while (Date.now() <= deadline) {
     lastResult = await probeBbServer({
       serverUrl: args.serverUrl,
-      timeoutMs: Math.min(args.intervalMs, 1_000),
+      timeoutMs: sawTimeout
+        ? SLOW_SERVER_PROBE_TIMEOUT_MS
+        : firstAttemptTimeoutMs,
     });
 
     if (lastResult.kind === "compatible") {
@@ -252,6 +301,15 @@ export async function waitForCompatibleServer(
       return lastResult;
     }
 
+    if (lastResult.timedOut) {
+      sawTimeout = true;
+    } else if (args.stopWhenNothingListening === true) {
+      // Nothing accepted the connection, and this caller only wanted to know
+      // whether a server is already there. Answer now instead of polling an
+      // address that no process holds.
+      return lastResult;
+    }
+
     await sleep({ delayMs: args.intervalMs });
   }
 
@@ -259,5 +317,6 @@ export async function waitForCompatibleServer(
     kind: "unavailable",
     reason: `Timed out after ${args.timeoutMs}ms waiting for bb server. Last probe: ${lastResult.reason}`,
     serverUrl: args.serverUrl,
+    timedOut: sawTimeout,
   };
 }

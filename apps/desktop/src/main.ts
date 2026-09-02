@@ -999,6 +999,7 @@ async function ensureBuiltinRuntimeAttached(): Promise<boolean> {
   const existingProbe = await waitForCompatibleServer({
     intervalMs: STARTUP_POLL_INTERVAL_MS,
     serverUrl: builtinServerUrl,
+    stopWhenNothingListening: true,
     timeoutMs: EXISTENCE_PROBE_TIMEOUT_MS,
   });
 
@@ -1907,6 +1908,7 @@ async function initializeRuntime(args: InitializeRuntimeArgs): Promise<void> {
   const existingProbe = await waitForCompatibleServer({
     intervalMs: STARTUP_POLL_INTERVAL_MS,
     serverUrl: args.serverUrl,
+    stopWhenNothingListening: true,
     timeoutMs: EXISTENCE_PROBE_TIMEOUT_MS,
   });
 
