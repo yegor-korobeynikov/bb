@@ -115,7 +115,9 @@ interface MarkdownMarkerRange {
 }
 
 interface MarkdownMarkRange extends MarkdownMarkerRange {
-  type: "bold" | "italic" | "code";
+  type: "bold" | "italic" | "code" | "link";
+  /** Set only for `type: "link"`, carrying the href from `(href)`. */
+  href?: string;
 }
 
 interface MarkdownParseRanges {
@@ -276,7 +278,41 @@ function collectMarkdownMarkRanges(text: string): MarkdownParseRanges {
     }
   };
 
+  // `[label](href)`: open `[` and close `](href)` are recorded as markers
+  // (the close marker's span already covers the href, so a later bold/italic
+  // pass automatically treats it as blocked — no separate protected range
+  // needed). Runs after "code" so a link-shaped span written inside a code
+  // span (already in `protectedRanges`) stays literal. Bold/italic run after
+  // this so `[**_text_**](href)` still nests: they only check marker
+  // positions, not the label's mark span, so they can still find delimiters
+  // inside the label.
+  const collectLinks = () => {
+    const blocked = buildSortedRangeIndex([...markers, ...protectedRanges]);
+    const linkPattern = /\[([^[\]\n]*)\]\(([^()\n]*)\)/gu;
+    let match: RegExpExecArray | null;
+    while ((match = linkPattern.exec(text)) !== null) {
+      const openStart = match.index;
+      const openEnd = openStart + 1;
+      const label = match[1] ?? "";
+      const href = match[2] ?? "";
+      const labelStart = openEnd;
+      const labelEnd = labelStart + label.length;
+      const closeStart = labelEnd;
+      const closeEnd = match.index + match[0].length;
+      if (
+        sortedRangesContain(blocked, openStart) ||
+        sortedRangesContain(blocked, closeStart)
+      ) {
+        continue;
+      }
+      markers.push({ start: openStart, end: openEnd });
+      markers.push({ start: closeStart, end: closeEnd });
+      marks.push({ start: labelStart, end: labelEnd, type: "link", href });
+    }
+  };
+
   collectPairs("`", "code");
+  collectLinks();
   collectPairs("**", "bold");
   collectPairs("_", "italic", (position) =>
     isItalicMarkerPosition(text, position),
@@ -314,7 +350,11 @@ function createMarkdownMarkSweep(
     if (activeMarks.length === 0) {
       return undefined;
     }
-    return activeMarks.map((mark) => ({ type: mark.type }));
+    return activeMarks.map((mark) =>
+      mark.type === "link"
+        ? { type: mark.type, attrs: { href: mark.href ?? "" } }
+        : { type: mark.type },
+    );
   };
 }
 

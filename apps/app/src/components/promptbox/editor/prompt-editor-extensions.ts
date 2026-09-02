@@ -56,9 +56,9 @@ interface PromptEditorExtensionsOptions extends PromptDecorationExtensionOptions
  * type. Code blocks/underline stay disabled: code blocks make multiline prompt
  * editing too sticky; underline isn't Markdown. Link is gated with the rest —
  * paste-a-URL-over-a-selection is the only way to create one (no authoring
- * UI), and `promptEditorSerialization`'s markdownDelimitersForMarks emits it
- * as `[text](href)`; parsing a submitted `[text](href)` back into a rich link
- * on recall is not implemented.
+ * UI). `promptEditorSerialization`'s markdownDelimitersForMarks emits it as
+ * `[text](href)`, and collectMarkdownMarkRanges parses that same shape back
+ * into a rich link on recall.
  */
 export function promptEditorExtensions({
   richTextEditing,
