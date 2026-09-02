@@ -310,6 +310,111 @@ describe("prompt editor rich markdown restore", () => {
       mentions: [],
     });
   });
+
+  it("restores an inline link as a real link mark", () => {
+    const value: PromptEditorValue = {
+      text: "see [the docs](https://example.com) for more",
+      mentions: [],
+    };
+
+    const doc = Node.fromJSON(
+      schema,
+      promptEditorContentFromValue(value, { richTextMarkdown: true }),
+    );
+
+    expect(doc.toJSON()).toMatchObject({
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: expect.arrayContaining([
+            expect.objectContaining({
+              type: "text",
+              text: "the docs",
+              marks: [
+                { type: "link", attrs: expect.objectContaining({ href: "https://example.com" }) },
+              ],
+            }),
+          ]),
+        },
+      ],
+    });
+    expect(promptEditorValueFromDoc(doc)).toEqual(value);
+  });
+
+  it("does not turn a bracketed index followed by a parenthetical into a link", () => {
+    const value: PromptEditorValue = {
+      text: "массив[0] (см. ниже)",
+      mentions: [],
+    };
+
+    const doc = Node.fromJSON(
+      schema,
+      promptEditorContentFromValue(value, { richTextMarkdown: true }),
+    );
+    const hasLinkMark = doc.textBetween(0, doc.content.size, "\n").length > 0 &&
+      (() => {
+        let found = false;
+        doc.descendants((node) => {
+          if (node.marks.some((mark) => mark.type.name === "link")) found = true;
+        });
+        return found;
+      })();
+
+    expect(hasLinkMark).toBe(false);
+    expect(promptEditorValueFromDoc(doc)).toEqual(value);
+  });
+
+  it("treats a link-shaped run inside inline code as literal text", () => {
+    const value: PromptEditorValue = {
+      text: "`[text](https://example.com)`",
+      mentions: [],
+    };
+
+    const doc = Node.fromJSON(
+      schema,
+      promptEditorContentFromValue(value, { richTextMarkdown: true }),
+    );
+    let hasLinkMark = false;
+    doc.descendants((node) => {
+      if (node.marks.some((mark) => mark.type.name === "link")) hasLinkMark = true;
+    });
+
+    expect(hasLinkMark).toBe(false);
+    expect(promptEditorValueFromDoc(doc)).toEqual(value);
+  });
+
+  it("keeps a trailing mention's offset correct after a link shifts positions", () => {
+    const mentionText = "@thr";
+    const text = `see [the docs](https://example.com) ${mentionText} now`;
+    const mentionStart = text.indexOf(mentionText);
+    const value: PromptEditorValue = {
+      text,
+      mentions: [
+        {
+          start: mentionStart,
+          end: mentionStart + mentionText.length,
+          resource: threadMentionResource(),
+        },
+      ],
+    };
+
+    const result = roundTripRichMarkdown(value);
+
+    expect(result).toEqual(value);
+    expect(
+      result.text.slice(result.mentions[0]!.start, result.mentions[0]!.end),
+    ).toBe(mentionText);
+  });
+
+  it("nests bold and italic inside a link label", () => {
+    const value: PromptEditorValue = {
+      text: "[**_text_**](https://example.com)",
+      mentions: [],
+    };
+
+    expect(roundTripRichMarkdown(value)).toEqual(value);
+  });
 });
 
 describe("prompt editor markdown serialization (doc -> markdown text)", () => {
