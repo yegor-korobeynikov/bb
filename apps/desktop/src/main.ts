@@ -43,7 +43,6 @@ import {
 import {
   bbAppRuntimeVerifyTokens,
   formatBbAppRuntimeFilePath,
-  readBbAppRuntimeFile,
   clearOwnBbAppRuntimeFile,
 } from "@bb/config/app-runtime-file";
 import { isIdentifiedProcessAlive } from "@bb/config/verified-process-stop";
@@ -224,9 +223,6 @@ interface LoadStartupErrorArgs {
  */
 let activeRecoveryHandlers: Map<string, () => void> | null = null;
 
-/** Args of the startup attempt currently on screen, so "Retry" can re-run it. */
-let currentInitializeRuntimeArgs: InitializeRuntimeArgs | null = null;
-
 interface LoadWindowUrlArgs {
   url: string;
 }
@@ -240,6 +236,11 @@ interface StartOwnedRuntimeArgs {
   bridgePath: string;
   serverUrl: string;
   userDataPath: string;
+}
+
+interface StartOwnedRuntimeOptions {
+  /** Skip the confidently-safe auto-reclaim-and-retry: it already ran once this attempt. */
+  reclaimAttempted?: boolean;
 }
 
 interface AppendLogViewerLinesArgs {
@@ -1017,7 +1018,9 @@ function registerApplicationWindow(browserWindow: DesktopBrowserWindow): void {
     (browserWindow as BrowserWindow).webContents,
   );
   registerDesktopContextMenu({ webContents: browserWindow.webContents });
-  registerRecoveryActionInterceptor(browserWindow.webContents);
+  registerRecoveryActionInterceptor(
+    (browserWindow as BrowserWindow).webContents,
+  );
   browserWindow.on("enter-full-screen", () => {
     sendDesktopWindowStateChanged(browserWindow);
   });
@@ -1744,8 +1747,204 @@ function registerDesktopBrowserWindowLifecycle({
   });
 }
 
+interface StartupBlockDiagnosis {
+  /** The bb the runtime record names, when the record is readable at all. */
+  foreignDetails: ForeignRuntimeDetails | null;
+  /**
+   * True when the recorded process is confirmed gone (by identity, not just a
+   * bare PID check) — safe to clear the record automatically without asking.
+   */
+  reclaimable: boolean;
+  summary: string;
+}
+
+/**
+ * Look at the bb-app runtime record for `serverUrl`'s data directory and
+ * decide whether whatever is blocking startup is something we can safely act
+ * on without asking: a record whose process is verifiably dead (identity
+ * check, not `kill(pid, 0)` liveness alone — see
+ * `packages/config/src/verified-process-stop.ts`) is stale and safe to clear.
+ * A record whose process is confirmed alive names a real, possibly legitimate
+ * peer — never touched without an explicit "stop the other bb" click.
+ */
+async function diagnoseStartupBlock(
+  serverUrl: string,
+): Promise<StartupBlockDiagnosis> {
+  const dataDir = resolveBbDataDir();
+  const foreignDetails = await readForeignRuntimeDetails({
+    dataDir,
+    serverUrl,
+  });
+  if (foreignDetails === null) {
+    return {
+      foreignDetails: null,
+      reclaimable: false,
+      summary: `No bb runtime record was found at ${formatBbAppRuntimeFilePath(dataDir)} — whatever holds the port cannot be identified.`,
+    };
+  }
+
+  const alive = await isIdentifiedProcessAlive({
+    pid: foreignDetails.pid,
+    startedAt: foreignDetails.startedAt,
+    verifyTokens: bbAppRuntimeVerifyTokens(foreignDetails.entryPath),
+  });
+  const recordLocation = `record: pid ${String(foreignDetails.pid)}, started ${foreignDetails.startedAt}, at ${formatBbAppRuntimeFilePath(dataDir)}`;
+  return {
+    foreignDetails,
+    reclaimable: !alive,
+    summary: alive
+      ? `Another bb is still running (${recordLocation}).`
+      : `A stale bb record points at a process that is no longer running (${recordLocation}).`,
+  };
+}
+
+interface PresentStartupFailureArgs {
+  args: InitializeRuntimeArgs;
+  details: string;
+  /** Server URL to diagnose a runtime record against, or null to skip diagnosis entirely. */
+  diagnoseServerUrl: string | null;
+  logs: string;
+  /** True once an automatic reclaim-and-retry has already happened this attempt. */
+  reclaimAttempted: boolean;
+  title: string;
+}
+
+/**
+ * Never dead-ends: every startup failure ends up either silently retried
+ * (only when a stale record makes that confidently safe) or on screen with
+ * concrete recovery actions the person can take without a terminal.
+ */
+async function presentStartupFailure(
+  failureArgs: PresentStartupFailureArgs,
+): Promise<void> {
+  const { args, diagnoseServerUrl, logs, reclaimAttempted, title } =
+    failureArgs;
+  let details = failureArgs.details;
+  let foreignDetails: ForeignRuntimeDetails | null = null;
+
+  if (diagnoseServerUrl !== null) {
+    const diagnosis = await diagnoseStartupBlock(diagnoseServerUrl);
+    foreignDetails = diagnosis.foreignDetails;
+    if (
+      diagnosis.reclaimable &&
+      !reclaimAttempted &&
+      foreignDetails !== null
+    ) {
+      await clearOwnBbAppRuntimeFile({
+        dataDir: foreignDetails.dataDir,
+        pid: foreignDetails.pid,
+      });
+      await loadLoadingView();
+      await initializeRuntime(args, { reclaimAttempted: true });
+      return;
+    }
+    details = `${details} ${diagnosis.summary}`;
+    // `foreignDetails` only feeds the "stop the other bb" action, which is
+    // only meaningful against a process confirmed alive. A record that is
+    // reclaimable here means an auto-retry already happened and the port is
+    // still blocked by something the record cannot explain — nothing left to
+    // offer beyond retry/logs.
+    foreignDetails = diagnosis.reclaimable ? null : diagnosis.foreignDetails;
+  }
+
+  const actions: LocalViewAction[] = [];
+  const recoveryHandlers: Record<string, () => void> = {
+    "open-logs": () => {
+      void shell.openPath(formatLogDirectory());
+    },
+    retry: () => {
+      void (async () => {
+        await loadLoadingView();
+        await initializeRuntime(args);
+      })();
+    },
+  };
+
+  if (foreignDetails !== null) {
+    const details_ = foreignDetails;
+    actions.push({
+      id: "stop-other",
+      label: "Stop the other bb and restart",
+      primary: true,
+    });
+    recoveryHandlers["stop-other"] = () => {
+      void handleStopOtherAndRestart({ args, foreignDetails: details_ });
+    };
+    actions.push({ id: "retry", label: "Retry" });
+  } else {
+    actions.push({ id: "retry", label: "Retry", primary: true });
+  }
+  actions.push({ id: "open-logs", label: "Open logs folder" });
+
+  await loadStartupError({ actions, details, logs, recoveryHandlers, title });
+}
+
+interface HandleStopOtherAndRestartArgs {
+  args: InitializeRuntimeArgs;
+  foreignDetails: ForeignRuntimeDetails;
+}
+
+/** Mirrors the "stop and start fresh" branch of `decideOnExistingServer`, for the case where the person only found out about the conflict from the startup-error screen. */
+async function handleStopOtherAndRestart(
+  stopArgs: HandleStopOtherAndRestartArgs,
+): Promise<void> {
+  await loadLoadingView();
+  const stopResult = await stopForeignRuntime({
+    details: stopArgs.foreignDetails,
+    killTimeoutMs: FOREIGN_RUNTIME_KILL_TIMEOUT_MS,
+    timeoutMs: FOREIGN_RUNTIME_STOP_TIMEOUT_MS,
+  });
+
+  const openLogsOnlyActions: LocalViewAction[] = [
+    { id: "open-logs", label: "Open logs folder", primary: true },
+  ];
+  const openLogsOnlyHandlers: Record<string, () => void> = {
+    "open-logs": () => {
+      void shell.openPath(formatLogDirectory());
+    },
+  };
+
+  if (stopResult.kind === "unverified") {
+    await loadStartupError({
+      actions: openLogsOnlyActions,
+      details: `bb recorded process ${String(stopResult.pid)}, but that process no longer matches the record. bb did not stop it — stop it yourself, then open bb again.`,
+      logs: "",
+      recoveryHandlers: openLogsOnlyHandlers,
+      title: "Could not stop the running bb",
+    });
+    return;
+  }
+  if (stopResult.kind === "still-running") {
+    await loadStartupError({
+      actions: openLogsOnlyActions,
+      details: `bb could not stop process ${String(stopResult.pid)}, even after SIGKILL.`,
+      logs: "",
+      recoveryHandlers: openLogsOnlyHandlers,
+      title: "Could not stop the running bb",
+    });
+    return;
+  }
+  if (stopResult.kind === "replaced") {
+    await initializeRuntime(stopArgs.args);
+    return;
+  }
+  if (!(await waitForServerToStop(stopArgs.args.serverUrl))) {
+    await presentStartupFailure({
+      args: stopArgs.args,
+      details: `The bb at ${stopArgs.args.serverUrl} stopped, but the address is still in use.`,
+      diagnoseServerUrl: null,
+      logs: "",
+      reclaimAttempted: true,
+      title: "Could not stop the running bb",
+    });
+    return;
+  }
+  await initializeRuntime(stopArgs.args);
+}
+
 async function startOwnedRuntime(
   args: StartOwnedRuntimeArgs,
+  options: StartOwnedRuntimeOptions = {},
 ): Promise<DesktopRuntime | null> {
   const bbProcess = startBbAppProcess({
     bridgePath: args.bridgePath,
@@ -1781,11 +1980,14 @@ async function startOwnedRuntime(
       return;
     }
     setCurrentRuntime(null);
-    void loadStartupError({
+    void presentStartupFailure({
+      args,
       details: `The Electron-owned bb-app process stopped with ${formatExitResult(
         exit,
       )}.`,
+      diagnoseServerUrl: null,
       logs: bbProcess.logs.text(),
+      reclaimAttempted: true,
       title: "bb stopped",
     });
   });
@@ -1806,14 +2008,17 @@ async function startOwnedRuntime(
   ]);
 
   if (raceResult.kind === "process-exited") {
-    await loadStartupError({
+    setCurrentRuntime(null);
+    await presentStartupFailure({
+      args,
       details: `bb-app exited before the server was ready with ${formatExitResult(
         raceResult.exit,
       )}.`,
+      diagnoseServerUrl: null,
       logs: bbProcess.logs.text(),
+      reclaimAttempted: true,
       title: "Could not start bb",
     });
-    setCurrentRuntime(null);
     return null;
   }
 
@@ -1821,15 +2026,18 @@ async function startOwnedRuntime(
     return runtime;
   }
 
-  await loadStartupError({
+  await stopOwnedRuntime();
+  await presentStartupFailure({
+    args,
     details:
       raceResult.result.kind === "incompatible"
         ? `Port ${args.serverUrl} is responding, but it does not look like bb: ${raceResult.result.reason}.`
         : `Timed out waiting for bb at ${args.serverUrl}: ${raceResult.result.reason}.`,
+    diagnoseServerUrl: args.serverUrl,
     logs: bbProcess.logs.text(),
+    reclaimAttempted: options.reclaimAttempted ?? false,
     title: "Could not start bb",
   });
-  await stopOwnedRuntime();
   return null;
 }
 
@@ -1956,7 +2164,10 @@ async function decideOnExistingServer(
   return "start-fresh";
 }
 
-async function initializeRuntime(args: InitializeRuntimeArgs): Promise<void> {
+async function initializeRuntime(
+  args: InitializeRuntimeArgs,
+  options: StartOwnedRuntimeOptions = {},
+): Promise<void> {
   const existingProbe = await waitForCompatibleServer({
     intervalMs: STARTUP_POLL_INTERVAL_MS,
     serverUrl: args.serverUrl,
@@ -1972,11 +2183,14 @@ async function initializeRuntime(args: InitializeRuntimeArgs): Promise<void> {
     }
     if (decision === "start-fresh") {
       await loadLoadingView();
-      const freshRuntime = await startOwnedRuntime({
-        bridgePath: args.bridgePath,
-        serverUrl: args.serverUrl,
-        userDataPath: args.userDataPath,
-      });
+      const freshRuntime = await startOwnedRuntime(
+        {
+          bridgePath: args.bridgePath,
+          serverUrl: args.serverUrl,
+          userDataPath: args.userDataPath,
+        },
+        options,
+      );
       if (freshRuntime !== null) {
         await loadBbApp(freshRuntime.serverUrl);
         startSystemConfigSync(freshRuntime.serverUrl);
@@ -2006,19 +2220,25 @@ async function initializeRuntime(args: InitializeRuntimeArgs): Promise<void> {
   }
 
   if (existingProbe.kind === "incompatible") {
-    await loadStartupError({
+    await presentStartupFailure({
+      args,
       details: `Port ${args.serverUrl} is already in use, but it is not a compatible bb server: ${existingProbe.reason}.`,
+      diagnoseServerUrl: args.serverUrl,
       logs: "",
+      reclaimAttempted: options.reclaimAttempted ?? false,
       title: "Port conflict",
     });
     return;
   }
 
-  const runtime = await startOwnedRuntime({
-    bridgePath: args.bridgePath,
-    serverUrl: args.serverUrl,
-    userDataPath: args.userDataPath,
-  });
+  const runtime = await startOwnedRuntime(
+    {
+      bridgePath: args.bridgePath,
+      serverUrl: args.serverUrl,
+      userDataPath: args.userDataPath,
+    },
+    options,
+  );
   if (runtime !== null) {
     await loadBbApp(runtime.serverUrl);
     startSystemConfigSync(runtime.serverUrl);
