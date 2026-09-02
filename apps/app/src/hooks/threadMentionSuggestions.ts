@@ -89,6 +89,7 @@ function toThreadMentionSuggestion(
     ...(projectName ? { projectName } : {}),
     threadId: thread.id,
     title: getThreadDisplayTitle(thread),
+    isTrack: thread.parentThreadId !== null,
   };
 }
 

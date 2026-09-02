@@ -1088,8 +1088,10 @@ describe("QueuedMessagesList", () => {
     expect(container.querySelectorAll(".prompt-mention-pill")).toHaveLength(3);
     expect(container.querySelector('[data-icon="Target"]')).not.toBeNull();
     expect(container.querySelector('[data-icon="File"]')).not.toBeNull();
-    expect(container.querySelector('[data-icon="UserRound"]')).not.toBeNull();
-    expect(container.querySelector('[data-icon="MessageSquare"]')).toBeNull();
+    expect(
+      container.querySelector('[data-icon="MessageSquarePlus"]'),
+    ).not.toBeNull();
+    expect(container.querySelector('[data-icon="Split"]')).toBeNull();
     expect(container.textContent).toContain(
       "Run goal and open foo.ts from Prompt pills QA",
     );

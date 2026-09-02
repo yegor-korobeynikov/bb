@@ -1219,6 +1219,7 @@ export function promptMentionResourceFromSuggestion(
       threadId: suggestion.threadId,
       projectId: suggestion.projectId,
       label: suggestion.title?.trim() || suggestion.threadId,
+      isTrack: suggestion.isTrack,
     };
   }
 

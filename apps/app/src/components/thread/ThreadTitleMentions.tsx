@@ -28,7 +28,7 @@ import { getThreadDisplayTitle } from "@/lib/thread-title";
 /** The slice of a thread a title mention needs: its label and route. */
 type ThreadTitleMentionThread = Pick<
   ThreadListEntry,
-  "id" | "projectId" | "title" | "titleFallback"
+  "id" | "projectId" | "title" | "titleFallback" | "parentThreadId"
 >;
 
 export interface ThreadTitleMentionResources {
@@ -77,7 +77,8 @@ function areThreadTitleMentionThreadsEqual(
     left.id === right.id &&
     left.projectId === right.projectId &&
     left.title === right.title &&
-    left.titleFallback === right.titleFallback
+    left.titleFallback === right.titleFallback &&
+    left.parentThreadId === right.parentThreadId
   );
 }
 
@@ -144,6 +145,7 @@ export function buildThreadTitleMentionResources(
       projectId: thread.projectId,
       title: thread.title,
       titleFallback: thread.titleFallback,
+      parentThreadId: thread.parentThreadId,
     });
   };
   for (const project of navigation.projects) {
@@ -483,6 +485,7 @@ function threadMentionResource(
     threadId,
     projectId: thread.projectId,
     label: getThreadDisplayTitle(thread),
+    isTrack: thread.parentThreadId !== null,
   };
 }
 
@@ -671,6 +674,7 @@ export function useThreadMentionResource(
       threadId,
       projectId: threadQuery.data.projectId,
       label: getThreadDisplayTitle(threadQuery.data),
+      isTrack: threadQuery.data.parentThreadId !== null,
     };
   }, [sidebarResource, threadId, threadQuery.data]);
 }
@@ -699,6 +703,7 @@ export function useRawThreadMentionResource(
       threadId,
       projectId: cachedThread.projectId,
       label: getThreadDisplayTitle(cachedThread),
+      isTrack: cachedThread.parentThreadId !== null,
     };
   }
   return batch.resourceById.get(threadId) ?? null;
@@ -740,6 +745,7 @@ export function useRawThreadMentionResources(
           threadId,
           projectId: cachedThread.projectId,
           label: getThreadDisplayTitle(cachedThread),
+          isTrack: cachedThread.parentThreadId !== null,
         });
         continue;
       }
