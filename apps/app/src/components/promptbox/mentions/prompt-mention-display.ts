@@ -49,7 +49,13 @@ export function promptMentionIconName(
   resource: PromptMentionResource,
 ): IconName {
   if (resource.kind === "thread") {
-    return "UserRound";
+    // A track carries `parentThreadId` and gets the same glyph as the
+    // sidebar's "New track" action (hugeicons "Split", picked by Yegor
+    // 2026-08-19); a session — a task's own top-level thread — gets the
+    // same bubble-plus glyph as "New thread" for the same reason. Unknown
+    // (mention resolved without the target's parent relationship) defaults
+    // to the session glyph rather than the retired generic person icon.
+    return resource.isTrack ? "Split" : "MessageSquarePlus";
   }
   if (resource.kind === "project") {
     return "Folder";

@@ -151,6 +151,13 @@ const canonicalPromptMentionResourceSchema = z.discriminatedUnion("kind", [
     threadId: z.string(),
     projectId: z.string().optional(),
     label: z.string(),
+    /**
+     * Whether the mentioned thread is a track (carries `parentThreadId`)
+     * rather than a session (a task's own top-level thread). Omitted when
+     * the mention was resolved without loading the target thread's parent
+     * relationship; the icon picker treats that the same as a session.
+     */
+    isTrack: z.boolean().optional(),
   }),
   z.object({
     kind: z.literal("project"),

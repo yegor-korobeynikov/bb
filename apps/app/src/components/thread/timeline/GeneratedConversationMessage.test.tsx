@@ -307,8 +307,10 @@ describe("GeneratedConversationMessage markdown body", () => {
     );
     expect(screen.queryByText(/@thread:thr_target/u)).toBeNull();
     expect(sourcePill?.className).toContain("prompt-mention-pill");
-    expect(sourcePill?.querySelector('[data-icon="UserRound"]')).not.toBeNull();
-    expect(sourcePill?.querySelector('[data-icon="MessageSquare"]')).toBeNull();
+    expect(
+      sourcePill?.querySelector('[data-icon="MessageSquarePlus"]'),
+    ).not.toBeNull();
+    expect(sourcePill?.querySelector('[data-icon="Split"]')).toBeNull();
     expect(sourcePill?.tagName).toBe("A");
     expect(sourcePill?.getAttribute("href")).toBe(
       "/projects/proj_demo/threads/thr_agent",

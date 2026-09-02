@@ -36,6 +36,8 @@ export type PromptMentionSuggestion =
       projectName?: string;
       threadId: string;
       title?: string;
+      /** Whether the target thread carries `parentThreadId` (a track). */
+      isTrack?: boolean;
     }
   | {
       kind: "project";
