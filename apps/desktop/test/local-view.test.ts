@@ -85,4 +85,41 @@ describe("local desktop views", () => {
     expect(html).not.toContain("\x1b[");
     expect(html).not.toContain("\r");
   });
+
+  it("renders recovery actions as links to the bb-recovery scheme", () => {
+    const html = decodeLocalViewHtml({
+      viewModel: {
+        actions: [
+          { id: "retry", label: "Retry" },
+          { id: "reclaim", label: "Clear it and restart", primary: true },
+        ],
+        details: "Timed out waiting for bb.",
+        kind: "error",
+        logText: "",
+        title: "Could not start bb",
+      },
+    });
+
+    expect(html).toContain('href="bb-recovery:retry"');
+    expect(html).toContain('href="bb-recovery:reclaim"');
+    expect(html).toMatch(
+      /class="action action-primary" href="bb-recovery:reclaim"/u,
+    );
+    expect(html).toContain(">Retry<");
+    expect(html).toContain(">Clear it and restart<");
+  });
+
+  it("omits the actions container when no actions are given", () => {
+    const html = decodeLocalViewHtml({
+      viewModel: {
+        details: "The local service failed to start.",
+        kind: "error",
+        logText: "",
+        title: "Could not open bb",
+      },
+    });
+
+    expect(html).not.toContain("bb-recovery:");
+    expect(html).not.toContain('class="actions"');
+  });
 });

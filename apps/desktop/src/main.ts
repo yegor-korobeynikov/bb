@@ -41,6 +41,13 @@ import {
   type DesktopPathContext,
 } from "./app-paths.js";
 import {
+  bbAppRuntimeVerifyTokens,
+  formatBbAppRuntimeFilePath,
+  readBbAppRuntimeFile,
+  clearOwnBbAppRuntimeFile,
+} from "@bb/config/app-runtime-file";
+import { isIdentifiedProcessAlive } from "@bb/config/verified-process-stop";
+import {
   resolveBbAppProcessRuntime,
   type BbAppProcess,
   type BbAppProcessExit,
@@ -50,8 +57,13 @@ import { openExistingServerDialog } from "./existing-server-dialog.js";
 import {
   readForeignRuntimeDetails,
   stopForeignRuntime,
+  type ForeignRuntimeDetails,
 } from "./foreign-runtime.js";
-import { createLocalViewUrl } from "./local-view.js";
+import {
+  createLocalViewUrl,
+  RECOVERY_ACTION_URL_PREFIX,
+  type LocalViewAction,
+} from "./local-view.js";
 import { installApplicationMenu } from "./menu.js";
 import {
   DEFAULT_APPLICATION_MENU_ACCELERATORS,
@@ -196,10 +208,24 @@ interface DesktopRuntime {
 }
 
 interface LoadStartupErrorArgs {
+  actions?: LocalViewAction[];
   details: string;
   logs: string;
+  /** Handlers for `actions`, keyed by action id. Required iff `actions` is set. */
+  recoveryHandlers?: Record<string, () => void>;
   title: string;
 }
+
+/**
+ * Handlers for whatever recovery buttons are currently on screen, keyed by
+ * action id. Replaced every time a new error/loading view is shown, so a
+ * stale button from a previous failure can never fire a handler built for a
+ * different attempt.
+ */
+let activeRecoveryHandlers: Map<string, () => void> | null = null;
+
+/** Args of the startup attempt currently on screen, so "Retry" can re-run it. */
+let currentInitializeRuntimeArgs: InitializeRuntimeArgs | null = null;
 
 interface LoadWindowUrlArgs {
   url: string;
@@ -515,14 +541,15 @@ function resolveDataDirFromEnv(args: ResolveDataDirFromEnvArgs): string {
   return resolve(rawDataDir);
 }
 
+function resolveBbDataDir(): string {
+  return resolveDataDirFromEnv({
+    env: process.env,
+    homeDir: homedir(),
+  });
+}
+
 function formatLogDirectory(): string {
-  return join(
-    resolveDataDirFromEnv({
-      env: process.env,
-      homeDir: homedir(),
-    }),
-    "logs",
-  );
+  return join(resolveBbDataDir(), "logs");
 }
 
 function formatExitResult(result: BbAppProcessExit): string {
@@ -966,6 +993,23 @@ function startRemoteSystemConfigSync(serverUrl: string): void {
   systemConfigSync = createRemoteSystemConfigSync(serverUrl);
 }
 
+/**
+ * The local error view has no script (CSP forbids one), so a recovery button
+ * is a plain link to the fake `bb-recovery:` scheme. Nothing ever really
+ * navigates there: this intercepts the attempt and runs the matching handler
+ * from `activeRecoveryHandlers` instead.
+ */
+function registerRecoveryActionInterceptor(webContents: WebContents): void {
+  webContents.on("will-navigate", (event, url) => {
+    if (!url.startsWith(RECOVERY_ACTION_URL_PREFIX)) {
+      return;
+    }
+    event.preventDefault();
+    const actionId = url.slice(RECOVERY_ACTION_URL_PREFIX.length);
+    activeRecoveryHandlers?.get(actionId)?.();
+  });
+}
+
 function registerApplicationWindow(browserWindow: DesktopBrowserWindow): void {
   const webContentsId = browserWindow.webContents.id;
   applicationWindowWebContentsIds.add(webContentsId);
@@ -973,6 +1017,7 @@ function registerApplicationWindow(browserWindow: DesktopBrowserWindow): void {
     (browserWindow as BrowserWindow).webContents,
   );
   registerDesktopContextMenu({ webContents: browserWindow.webContents });
+  registerRecoveryActionInterceptor(browserWindow.webContents);
   browserWindow.on("enter-full-screen", () => {
     sendDesktopWindowStateChanged(browserWindow);
   });
@@ -1451,6 +1496,7 @@ async function loadWindowUrl(args: LoadWindowUrlArgs): Promise<void> {
 
 async function loadLoadingView(): Promise<void> {
   bbAppLoaded = false;
+  activeRecoveryHandlers = null;
   await loadWindowUrl({
     url: createLocalViewUrl({
       viewModel: {
@@ -1464,9 +1510,14 @@ async function loadLoadingView(): Promise<void> {
 
 async function loadStartupError(args: LoadStartupErrorArgs): Promise<void> {
   bbAppLoaded = false;
+  activeRecoveryHandlers =
+    args.recoveryHandlers !== undefined
+      ? new Map(Object.entries(args.recoveryHandlers))
+      : null;
   await loadWindowUrl({
     url: createLocalViewUrl({
       viewModel: {
+        actions: args.actions,
         details: `${args.details} Logs are under ${formatLogDirectory()}/.`,
         kind: "error",
         logText: args.logs,
@@ -1478,6 +1529,7 @@ async function loadStartupError(args: LoadStartupErrorArgs): Promise<void> {
 
 async function loadBbApp(serverUrl: string): Promise<void> {
   bbAppLoaded = true;
+  activeRecoveryHandlers = null;
   await loadWindowUrl({ url: serverUrl });
   if (shouldOpenDevTools()) {
     desktopWindowFactory?.openDevTools();

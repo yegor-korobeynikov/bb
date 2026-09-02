@@ -1,6 +1,10 @@
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 import { z } from "zod";
+import {
+  isIdentifiedProcessAlive,
+  type VerifiedProcessOps,
+} from "./verified-process-stop.js";
 
 /**
  * A running `bb-app start` writes this file into its data directory and removes
@@ -42,15 +46,6 @@ export function formatBbAppRuntimeFilePath(dataDir: string): string {
   return join(dataDir, BB_APP_RUNTIME_FILE_NAME);
 }
 
-function defaultIsRunning(pid: number): boolean {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 export async function writeBbAppRuntimeFile(
   args: WriteBbAppRuntimeFileArgs,
 ): Promise<void> {
@@ -75,23 +70,31 @@ export async function writeBbAppRuntimeFile(
  * this process now owns the record; a caller that does not own it must not
  * remove the file when it exits.
  *
- * Ownership is decided by liveness alone. A record whose process is gone is
- * stale and gets replaced. This is not an exclusive lock: the daemon lock and
- * the server port are what actually prevent two bb instances on one data
- * directory. The check only stops a doomed second start from erasing the record
- * of the bb that is running.
+ * Ownership is decided by verified liveness, not a bare PID check: `kill(pid,
+ * 0)` alone cannot tell the recorded launcher apart from an unrelated process
+ * that later reused the same PID, which would wrongly keep a genuinely dead
+ * record from ever being reclaimed (and, on the flip side, wrongly signal
+ * "nothing to start" for a launcher that has, in fact, exited). A record
+ * whose process is gone OR no longer matches (different command line / start
+ * time) is stale and gets replaced. This is not an exclusive lock: the daemon
+ * lock and the server port are what actually prevent two bb instances on one
+ * data directory. The check only stops a doomed second start from erasing the
+ * record of the bb that is running.
  */
 export async function claimBbAppRuntimeFile(
-  args: WriteBbAppRuntimeFileArgs & { isRunning?: (pid: number) => boolean },
+  args: WriteBbAppRuntimeFileArgs & { processOps?: VerifiedProcessOps },
 ): Promise<boolean> {
-  const isRunning = args.isRunning ?? defaultIsRunning;
   const existing = await readBbAppRuntimeFile(args.dataDir);
-  if (
-    existing !== null &&
-    existing.pid !== args.pid &&
-    isRunning(existing.pid)
-  ) {
-    return false;
+  if (existing !== null && existing.pid !== args.pid) {
+    const stillAlive = await isIdentifiedProcessAlive({
+      pid: existing.pid,
+      processOps: args.processOps,
+      startedAt: existing.startedAt,
+      verifyTokens: bbAppRuntimeVerifyTokens(existing.entryPath),
+    });
+    if (stillAlive) {
+      return false;
+    }
   }
   await writeBbAppRuntimeFile(args);
   return true;

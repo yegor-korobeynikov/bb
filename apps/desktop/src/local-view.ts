@@ -18,7 +18,19 @@ interface InfoViewModel {
   title: string;
 }
 
+export interface LocalViewAction {
+  /**
+   * Sent back to main via a `will-navigate` to `bb-recovery:<id>`. The error
+   * view has no script (CSP forbids one), so a plain link is the only way to
+   * carry a click back out of a `data:` URL.
+   */
+  id: string;
+  label: string;
+  primary?: boolean;
+}
+
 interface StartupErrorViewModel {
+  actions?: LocalViewAction[];
   details: string;
   kind: "error";
   logText: string;
@@ -27,6 +39,18 @@ interface StartupErrorViewModel {
 
 interface CreateLocalViewUrlArgs {
   viewModel: LocalViewModel;
+}
+
+/**
+ * Fake URL scheme a recovery button link navigates to. Main intercepts the
+ * navigation (`will-navigate`) before it goes anywhere and runs the matching
+ * handler instead. Not a real protocol registration — just a value neither
+ * `data:` nor a real page will ever produce on its own.
+ */
+export const RECOVERY_ACTION_URL_PREFIX = "bb-recovery:";
+
+export function formatRecoveryActionUrl(actionId: string): string {
+  return `${RECOVERY_ACTION_URL_PREFIX}${actionId}`;
 }
 
 function formatPlainLogText(value: string): string {
@@ -52,15 +76,25 @@ function renderInfoView(viewModel: InfoViewModel): string {
   `;
 }
 
+function renderRecoveryAction(action: LocalViewAction): string {
+  const classAttr = action.primary ? ' class="action action-primary"' : ' class="action"';
+  return `<a${classAttr} href="${formatRecoveryActionUrl(action.id)}">${escapeHtmlText(action.label)}</a>`;
+}
+
 function renderErrorView(viewModel: StartupErrorViewModel): string {
   const logText = formatPlainLogText(viewModel.logText);
   const logs =
     logText.trim().length > 0 ? `<pre>${escapeHtmlText(logText)}</pre>` : "";
+  const actions =
+    viewModel.actions !== undefined && viewModel.actions.length > 0
+      ? `<div class="actions">${viewModel.actions.map(renderRecoveryAction).join("")}</div>`
+      : "";
   return `
     <main class="shell shell-error">
       <h1>${escapeHtmlText(viewModel.title)}</h1>
       <p>${escapeHtmlText(viewModel.details)}</p>
       ${logs}
+      ${actions}
     </main>
   `;
 }
@@ -158,6 +192,40 @@ function renderLocalView(viewModel: LocalViewModel): string {
       overflow: auto;
       padding: 12px;
       white-space: pre-wrap;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-start;
+      margin-top: 20px;
+    }
+
+    .action {
+      background: color-mix(in srgb, CanvasText 8%, transparent);
+      border: 1px solid color-mix(in srgb, CanvasText 16%, transparent);
+      border-radius: 6px;
+      color: CanvasText;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 8px 14px;
+      text-decoration: none;
+    }
+
+    .action:hover {
+      background: color-mix(in srgb, CanvasText 14%, transparent);
+    }
+
+    .action-primary {
+      background: LinkText;
+      border-color: LinkText;
+      color: white;
+    }
+
+    .action-primary:hover {
+      opacity: 0.9;
     }
 
     .spinner {

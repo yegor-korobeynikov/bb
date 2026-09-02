@@ -21,13 +21,19 @@ async function createDataDir(): Promise<string> {
   return dataDir;
 }
 
+// Kept close to "now" so it lines up with aliveMatchingOps' fixed 60s
+// elapsed time — the identity check compares this against `Date.now() -
+// elapsedSeconds`, so a fixed historical timestamp would itself look like a
+// start-time mismatch.
+const RECORDED_STARTED_AT = new Date(Date.now() - 60_000).toISOString();
+
 function recordFor(dataDir: string, pid: number) {
   return {
     dataDir,
     entryPath: "/opt/bb/bb-app.js",
     pid,
     serverUrl: "http://127.0.0.1:38886",
-    startedAt: "2026-08-03T10:00:00.000Z",
+    startedAt: RECORDED_STARTED_AT,
     surface: "web",
     version: "0.34.0",
   };
@@ -42,18 +48,31 @@ afterEach(async () => {
   }
 });
 
+function aliveMatchingOps(
+  overrides: Partial<VerifiedProcessOps> = {},
+): VerifiedProcessOps {
+  return {
+    isRunning: () => true,
+    kill: () => undefined,
+    readCommand: async () => "node /opt/bb/bb-app.js start",
+    readElapsedSeconds: async () => 60,
+    waitForExit: async () => true,
+    ...overrides,
+  };
+}
+
 describe("claimBbAppRuntimeFile", () => {
   it("refuses to overwrite a record whose launcher still runs", async () => {
     const dataDir = await createDataDir();
     await claimBbAppRuntimeFile({
       ...recordFor(dataDir, 1_111),
-      isRunning: () => true,
+      processOps: aliveMatchingOps(),
     });
 
     await expect(
       claimBbAppRuntimeFile({
         ...recordFor(dataDir, 2_222),
-        isRunning: () => true,
+        processOps: aliveMatchingOps(),
       }),
     ).resolves.toBe(false);
     // The live launcher keeps the record, so `bb-app stop` can still find it.
@@ -66,13 +85,60 @@ describe("claimBbAppRuntimeFile", () => {
     const dataDir = await createDataDir();
     await claimBbAppRuntimeFile({
       ...recordFor(dataDir, 1_111),
-      isRunning: () => true,
+      processOps: aliveMatchingOps(),
     });
 
     await expect(
       claimBbAppRuntimeFile({
         ...recordFor(dataDir, 2_222),
-        isRunning: () => false,
+        processOps: aliveMatchingOps({ isRunning: () => false }),
+      }),
+    ).resolves.toBe(true);
+    await expect(readBbAppRuntimeFile(dataDir)).resolves.toMatchObject({
+      pid: 2_222,
+    });
+  });
+
+  it("replaces a record whose PID answers but was reused by an unrelated process", async () => {
+    // Regression for the desktop-app startup incident: a dead launcher's PID
+    // gets reused (macOS PID recycling) by something else entirely, so a bare
+    // `kill(pid, 0)` liveness check reports "alive" even though the recorded
+    // bb launcher is long gone. Without a command-line/start-time check this
+    // wrongly blocked reclaim and drove the app into an EADDRINUSE loop.
+    const dataDir = await createDataDir();
+    await claimBbAppRuntimeFile({
+      ...recordFor(dataDir, 1_111),
+      processOps: aliveMatchingOps(),
+    });
+
+    await expect(
+      claimBbAppRuntimeFile({
+        ...recordFor(dataDir, 2_222),
+        processOps: aliveMatchingOps({
+          // isRunning() still says "yes" (PID reused), but the command line
+          // is no longer bb-app's.
+          readCommand: async () => "/usr/bin/some-unrelated-process",
+        }),
+      }),
+    ).resolves.toBe(true);
+    await expect(readBbAppRuntimeFile(dataDir)).resolves.toMatchObject({
+      pid: 2_222,
+    });
+  });
+
+  it("replaces a record whose PID matches by name but not by start time", async () => {
+    const dataDir = await createDataDir();
+    await claimBbAppRuntimeFile({
+      ...recordFor(dataDir, 1_111),
+      processOps: aliveMatchingOps(),
+    });
+
+    await expect(
+      claimBbAppRuntimeFile({
+        ...recordFor(dataDir, 2_222),
+        // Command name matches (recycled pid could plausibly be another bb),
+        // but it started an hour ago — well outside the record's timestamp.
+        processOps: aliveMatchingOps({ readElapsedSeconds: async () => 3_600 }),
       }),
     ).resolves.toBe(true);
     await expect(readBbAppRuntimeFile(dataDir)).resolves.toMatchObject({
@@ -86,7 +152,7 @@ describe("clearOwnBbAppRuntimeFile", () => {
     const dataDir = await createDataDir();
     await claimBbAppRuntimeFile({
       ...recordFor(dataDir, 1_111),
-      isRunning: () => true,
+      processOps: aliveMatchingOps(),
     });
 
     await expect(
@@ -99,7 +165,7 @@ describe("clearOwnBbAppRuntimeFile", () => {
     const dataDir = await createDataDir();
     await claimBbAppRuntimeFile({
       ...recordFor(dataDir, 1_111),
-      isRunning: () => true,
+      processOps: aliveMatchingOps(),
     });
 
     await expect(

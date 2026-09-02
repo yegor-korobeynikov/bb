@@ -128,14 +128,14 @@ export function createNodeVerifiedProcessOps(): VerifiedProcessOps {
   };
 }
 
-interface VerifyProcessIdentityArgs {
+export interface VerifyProcessIdentityArgs {
   pid: number;
   processOps: VerifiedProcessOps;
   startedAt: string;
   verifyTokens: string[];
 }
 
-async function verifyProcessIdentity(
+export async function verifyProcessIdentity(
   args: VerifyProcessIdentityArgs,
 ): Promise<{ command: string | null; reason: UnverifiedReason } | null> {
   const command = await args.processOps.readCommand(args.pid);
@@ -160,6 +160,39 @@ async function verifyProcessIdentity(
     return { command, reason: "start-time" };
   }
   return null;
+}
+
+export interface IsIdentifiedProcessAliveArgs {
+  pid: number;
+  processOps?: VerifiedProcessOps;
+  startedAt: string;
+  verifyTokens: string[];
+}
+
+/**
+ * A PID alone never proves a recorded process is still the one that wrote the
+ * record: the OS reuses PIDs, so a bare `kill(pid, 0)` liveness check can name
+ * a completely unrelated, coincidentally-alive process (a shell, a browser
+ * helper, anything) once the original process has exited and enough churn has
+ * happened. Treat the record as alive only when the PID both responds to
+ * signal 0 AND its command line / start time still match what was recorded —
+ * the same identity check `stopVerifiedProcess` uses before it ever sends a
+ * signal.
+ */
+export async function isIdentifiedProcessAlive(
+  args: IsIdentifiedProcessAliveArgs,
+): Promise<boolean> {
+  const processOps = args.processOps ?? createNodeVerifiedProcessOps();
+  if (!processOps.isRunning(args.pid)) {
+    return false;
+  }
+  const mismatch = await verifyProcessIdentity({
+    pid: args.pid,
+    processOps,
+    startedAt: args.startedAt,
+    verifyTokens: args.verifyTokens,
+  });
+  return mismatch === null;
 }
 
 /**
