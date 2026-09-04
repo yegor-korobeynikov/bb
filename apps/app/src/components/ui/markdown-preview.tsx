@@ -45,6 +45,7 @@ import {
 } from "./markdown-katex-loader.js";
 import { CopyButton } from "./copy-button.js";
 import { Icon } from "@bb/shared-ui/icon";
+import { resolveLinkDestinationIcon } from "./markdown-link-destination.js";
 import { RouteAnchor } from "./app-route-anchor.js";
 import {
   getMarkdownCodeLanguage,
@@ -652,6 +653,11 @@ function MarkdownAnchor({
         })
       : null;
   const anchorHref = buildLocalFileAnchorHref(localFileLink, rewrittenHref);
+  const linkDestinationIcon = resolveLinkDestinationIcon({
+    isAppRouteHref,
+    isLocalFileLink: localFileLink !== null,
+    href: rewrittenHref,
+  });
   const getContextMenuItems = useContext(MarkdownLocalFileContextMenuContext);
   const contextMenuItems =
     localFileLink !== null && getContextMenuItems !== null
@@ -694,13 +700,23 @@ function MarkdownAnchor({
       onClick={handleAnchorClick}
     >
       {children}
-      {localFileLink ? (
+      {/*
+        The glyph names the destination, not the fact that a link is a link.
+        It used to be the reverse of that: ExternalLink — the arrow that reads
+        "this leaves the app" — was drawn only on LOCAL FILE links, which open
+        in the side panel and never leave, while a real https link that does
+        open a browser tab carried no mark at all.
+        Now a file link wears PanelRight (it opens beside the conversation)
+        and an outward link wears ExternalLink (it leaves). An in-app route
+        stays unmarked: it neither leaves nor opens a panel, it just navigates.
+      */}
+      {linkDestinationIcon === null ? null : (
         <Icon
-          name="ExternalLink"
+          name={linkDestinationIcon}
           aria-hidden
           className="ml-1 inline size-3 align-[-0.125em] text-subtle-foreground"
         />
-      ) : null}
+      )}
     </RouteAnchor>
   );
   if (contextMenuItems === null || contextMenuItems.length === 0) {
