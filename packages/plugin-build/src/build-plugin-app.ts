@@ -672,6 +672,21 @@ export async function buildPluginApp(
         __BB_PLUGIN_ID__: JSON.stringify(pluginId),
       },
       logLevel: "error",
+      // Tendo fork: packages like @blocknote/react publish their stylesheet
+      // under the "style" export condition; without it the css import is
+      // unresolvable and the whole plugin bundle fails.
+      conditions: ["style"],
+      // Tendo fork: font and image assets imported by third-party CSS (e.g.
+      // BlockNote's inter.css pulls .woff2) previously failed the whole
+      // bundle with "No loader is configured". Data-urls keep the plugin
+      // bundle self-contained — no asset routes to add on the host side.
+      loader: {
+        ".woff2": "dataurl",
+        ".woff": "dataurl",
+        ".ttf": "dataurl",
+        ".otf": "dataurl",
+        ".eot": "dataurl",
+      },
       plugins: [runtimeShimPlugin()],
     });
 
