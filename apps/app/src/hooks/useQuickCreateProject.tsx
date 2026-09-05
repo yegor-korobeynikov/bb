@@ -15,7 +15,6 @@ import {
   type LocalPathSubmitParams,
 } from "@/hooks/useLocalPathPicker";
 import {
-  APP_ROOT_ROUTE_PATH,
   getRootComposeRoutePath,
 } from "@/lib/route-paths";
 import { useSetRootComposeProjectId } from "@/lib/root-compose-selection";
@@ -53,7 +52,8 @@ export function useQuickCreateProject(): QuickCreateProjectController {
   const navigate = useNavigate();
   const location = useLocation();
   const setRootComposeProjectId = useSetRootComposeProjectId();
-  const shouldReplaceRoute = location.pathname === APP_ROOT_ROUTE_PATH;
+  const shouldReplaceRoute =
+    location.pathname === getRootComposeRoutePath();
 
   const submit = useCallback(
     ({ path, hostId, target, closeDialog }: LocalPathSubmitParams) => {

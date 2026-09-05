@@ -47,7 +47,10 @@ export function useRouteState(): RouteState {
     isToolsRoutePath(location.pathname) ||
     location.pathname === "/tools" ||
     location.pathname.startsWith("/tools/");
-  const isRootView = location.pathname === "/";
+  // Tendo fork: "/" is the Home space panel and "/compose" is the composer —
+  // both are root-class views (the global header stays hidden on both).
+  const isRootView =
+    location.pathname === "/" || location.pathname === "/compose";
   const isUnsupportedPersonalProjectThread =
     projectThreadMatch?.params.projectId === PERSONAL_PROJECT_ID;
   const projectlessThreadId = projectlessThreadMatch?.params.threadId;

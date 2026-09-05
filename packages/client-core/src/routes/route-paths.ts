@@ -50,7 +50,13 @@ export const AUTOMATION_DETAIL_ROUTE_PATH =
 export const AUTOMATION_EDIT_ROUTE_PATH =
   "/plugins/automations/automations/:projectId/:automationId/edit";
 export const SKILLS_ROUTE_PATH = TOOLS_SKILLS_ROUTE_PATH;
-const ROOT_COMPOSE_ROUTE_PATH = APP_ROOT_ROUTE_PATH;
+// Tendo fork (Yegor 2026-09-05): the app root belongs to the PRODUCT — the
+// Home space panel — and the new-thread composer lives at its own address.
+// Every fallback that wants the composer already asks getRootComposeRoutePath(),
+// so this single constant moves all ~15 call sites at once.
+const ROOT_COMPOSE_ROUTE_PATH = "/compose";
+export const TENDO_HOME_PLUGIN_ID = "home-space";
+export const TENDO_HOME_PANEL_PATH = "home";
 export const LEGACY_PROJECT_COMPOSE_ROUTE_PATH = "/projects/:projectId";
 export const PROJECTLESS_ARCHIVED_ROUTE_PATH = "/archived";
 const PROJECTLESS_THREAD_DETAIL_ROUTE_PATH = "/threads/:threadId";

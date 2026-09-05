@@ -11,6 +11,8 @@ import {
 // Only the react-router `matchPath` consumers stay in this file.
 export {
   APP_ROOT_ROUTE_PATH,
+  TENDO_HOME_PLUGIN_ID,
+  TENDO_HOME_PANEL_PATH,
   AUTH_CALLBACK_ROUTE_PATH,
   SETTINGS_ROUTE_PATH,
   SETTINGS_SECTION_ROUTE_PATH,

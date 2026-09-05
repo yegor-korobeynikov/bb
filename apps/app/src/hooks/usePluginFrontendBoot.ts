@@ -35,7 +35,12 @@ export function usePluginFrontendBoot(): void {
   const resolved = systemConfig.data !== undefined;
   useEffect(() => {
     if (!resolved) return;
-    if (getPluginPanelRoutePluginId(window.location.pathname) !== null) {
+    if (
+      getPluginPanelRoutePluginId(window.location.pathname) !== null ||
+      // Tendo fork: "/" renders the Home space plugin pane, so the deferred
+      // boot would leave the front door blank until idle — boot eagerly.
+      window.location.pathname === "/"
+    ) {
       void bootPluginFrontends();
       return;
     }
