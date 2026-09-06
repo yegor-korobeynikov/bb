@@ -65,7 +65,7 @@ import {
   havePluginNavPanelOrdersDiverged,
   hidePluginNavPanel,
   reorderPluginNavPanels,
-  seedLeadingNavPanelKeys,
+  forceLeadingNavPanelKeys,
   showPluginNavPanel,
 } from "./pluginNavSidebarOrder";
 
@@ -186,7 +186,7 @@ function PluginNavSidebarItemList({
     );
     return arrangePluginNavPanels({
       panels: rows,
-      storedOrder: seedLeadingNavPanelKeys(storedOrder, leadingKeys),
+      storedOrder: forceLeadingNavPanelKeys(storedOrder, leadingKeys),
       hiddenKeys,
     });
   }, [hiddenKeys, rows, storedOrder]);

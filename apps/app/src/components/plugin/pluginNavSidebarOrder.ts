@@ -140,6 +140,18 @@ export function seedLeadingNavPanelKeys(
   return missing.length === 0 ? next : [...missing, ...next];
 }
 
+// The workspace tabs are canon: they hold the front of the list in this exact
+// sequence no matter what order a profile saved before the canon existed.
+// Everything else keeps the user's stored arrangement behind them.
+export function forceLeadingNavPanelKeys(
+  order: readonly string[],
+  leadingKeys: readonly string[],
+): string[] {
+  if (order.length === 0) return [...order];
+  const rest = order.filter((key) => !leadingKeys.includes(key));
+  return [...leadingKeys, ...rest];
+}
+
 export function hidePluginNavPanel(
   hiddenKeys: readonly string[],
   key: string,

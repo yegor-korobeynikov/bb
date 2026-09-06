@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  forceLeadingNavPanelKeys,
   arrangePluginNavPanels,
   getPluginNavPanelKey,
   reorderPluginNavPanels,
@@ -180,5 +181,26 @@ describe("seedLeadingNavPanelKeys", () => {
         ["__builtin__/tools"],
       ),
     ).toEqual(["github/pulls", "__builtin__/tools"]);
+  });
+});
+
+describe("forceLeadingNavPanelKeys", () => {
+  it("puts the canon keys first in canon order even when the stored order disagrees", () => {
+    expect(
+      forceLeadingNavPanelKeys(
+        ["extensions/extensions", "merz-inbox/merz-inbox", "home-space/today", "home-space/home", "canvas/canvas"],
+        ["home-space/home", "home-space/today", "merz-inbox/merz-inbox"],
+      ),
+    ).toEqual([
+      "home-space/home",
+      "home-space/today",
+      "merz-inbox/merz-inbox",
+      "extensions/extensions",
+      "canvas/canvas",
+    ]);
+  });
+
+  it("keeps an empty order empty (registry order applies)", () => {
+    expect(forceLeadingNavPanelKeys([], ["home-space/home"])).toEqual([]);
   });
 });
