@@ -201,7 +201,11 @@ describe("MarkdownPreview message directives", () => {
 
     expect(screen.queryByTestId("inline-vis")).toBeNull();
     expect(screen.getByText('::inline-vis{file="x.html"}')).toBeTruthy();
-    expect(screen.getByText('::inline-vis{file="y.html"}')).toBeTruthy();
+    // The fenced one renders as a code card, whose highlighting splits the
+    // text across spans — read the card rather than a single text node.
+    expect(
+      document.querySelector("pre.bb-code-highlight")?.textContent,
+    ).toContain('::inline-vis{file="y.html"}');
   });
 
   it("renders unknown and incomplete directives as exact source text", () => {
@@ -563,8 +567,12 @@ describe("MarkdownPreview message directives", () => {
     expect(mounted[0]?.getAttribute("data-id")).toBe("canon");
     expect(screen.getByText("[[id]]").tagName).toBe("CODE");
     // Present as text, and not one of the mounts — the count above is what
-    // proves it; this is the readable half of the same fact.
-    expect(screen.getByText(/\[\[fenced\]\]/)).toBeTruthy();
+    // proves it; this is the readable half of the same fact. Read the card's
+    // text rather than a single text node: a fenced snippet renders as a code
+    // card, and highlighting splits its text across spans.
+    expect(
+      document.querySelector("pre.bb-code-highlight")?.textContent,
+    ).toContain("[[fenced]]");
   });
 
   it("ignores a pattern no plugin could compile, without losing the message", () => {

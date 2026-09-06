@@ -43,7 +43,10 @@ import {
   useRehypeKatex,
   type RehypeKatex,
 } from "./markdown-katex-loader.js";
-import { CopyButton } from "./copy-button.js";
+import {
+  MarkdownCodeCard,
+  MarkdownFencedCodeContext,
+} from "./markdown-code-card.js";
 import { Icon } from "@bb/shared-ui/icon";
 import { resolveLinkDestinationIcon } from "./markdown-link-destination.js";
 import { RouteAnchor } from "./app-route-anchor.js";
@@ -767,8 +770,8 @@ function MarkdownCode({
 }: MarkdownCodeRendererProps) {
   const codeText = String(children ?? "").replace(/\n$/, "");
   const language = getMarkdownCodeLanguage({ className: codeClassName });
-  const isBlock = isMarkdownCodeBlock({ codeText, language });
-  const [softWrap, setSoftWrap] = useState(false);
+  const isFenced = useContext(MarkdownFencedCodeContext);
+  const isBlock = isFenced || isMarkdownCodeBlock({ codeText, language });
   // Highlight only fenced blocks (mermaid renders as a diagram, inline code stays
   // plain). The HTML is escaped by sugar-high, so dangerouslySetInnerHTML is safe.
   const highlightedHtml = useMemo(
@@ -789,50 +792,12 @@ function MarkdownCode({
     }
 
     return (
-      <div className="my-2 overflow-hidden rounded-md border border-border bg-surface-recessed">
-        <div className="flex items-center justify-between pl-3 pr-1.5 pt-1.5">
-          <span className="font-mono text-xs uppercase text-muted-foreground">
-            {language ?? ""}
-          </span>
-          <div className="flex items-center gap-0.5">
-            <button
-              type="button"
-              aria-pressed={softWrap}
-              aria-label={softWrap ? "Disable line wrap" : "Wrap long lines"}
-              onClick={() => {
-                setSoftWrap((value) => !value);
-              }}
-              className="inline-flex size-5 cursor-pointer items-center justify-center text-muted-foreground transition-colors hover:text-foreground aria-pressed:text-foreground"
-            >
-              <Icon name="TextWrap" className="size-3" />
-            </button>
-            <CopyButton text={codeText} label="Copy code" />
-          </div>
-        </div>
-        <pre
-          className={cn(
-            "bb-code-highlight px-3 pb-3 pt-1",
-            softWrap
-              ? "whitespace-pre-wrap [overflow-wrap:anywhere]"
-              : "overflow-x-auto",
-          )}
-        >
-          {highlightedHtml === null ? (
-            <code className="font-mono text-xs" {...props}>
-              {codeText}
-            </code>
-          ) : (
-            <code
-              className={cn(
-                "font-mono text-xs",
-                language ? `language-${language}` : "",
-              )}
-              dangerouslySetInnerHTML={{ __html: highlightedHtml }}
-              {...props}
-            />
-          )}
-        </pre>
-      </div>
+      <MarkdownCodeCard
+        codeText={codeText}
+        language={language}
+        highlightedHtml={highlightedHtml}
+        codeProps={props}
+      />
     );
   }
 
@@ -860,7 +825,13 @@ function MarkdownCode({
 }
 
 function MarkdownPre({ children }: MarkdownPreProps) {
-  return <>{children}</>;
+  // The card draws its own <pre>, so this one is dropped; what it passes down
+  // is the fact that its child is fenced.
+  return (
+    <MarkdownFencedCodeContext value={true}>
+      {children}
+    </MarkdownFencedCodeContext>
+  );
 }
 
 function MarkdownH1({ children }: MarkdownHeadingProps) {
