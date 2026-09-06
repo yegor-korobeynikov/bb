@@ -178,8 +178,9 @@ function PluginNavSidebarItemList({
     const leadingKeys = [
       "home-space/home",
       "home-space/today",
+      "home-space/tasks",
       "merz-inbox/merz-inbox",
-      "tasks/tasks",
+      "automations/automations",
     ].filter((key) =>
       rows.some((row) => getPluginNavPanelKey(row) === key),
     );
