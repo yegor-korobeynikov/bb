@@ -75,15 +75,6 @@ import {
  */
 const BUILTIN_NAV_ROW_PLUGIN_ID = "__builtin__";
 
-/**
- * Order/hidden preference key of the built-in Extensions row. The id stays
- * "tools" so an order or hidden list saved under the row's old name keeps
- * naming the same row.
- */
-const TOOLS_NAV_ROW_KEY = getPluginNavPanelKey({
-  pluginId: BUILTIN_NAV_ROW_PLUGIN_ID,
-  id: "tools",
-});
 
 /**
  * One sidebar nav row. Plugin rows come from `navPanel` slots; the Extensions
@@ -145,7 +136,10 @@ export function PluginNavSidebarItems({
       panel,
     }));
     if (toolsRoutePath === undefined) return pluginRows;
+    // Tendo fork: Extensions is meta-chrome, not a product tab — it closes
+    // the list instead of opening it (KOS anatomy: workspace tabs first).
     return [
+      ...pluginRows,
       {
         kind: "tools",
         pluginId: BUILTIN_NAV_ROW_PLUGIN_ID,
@@ -153,7 +147,6 @@ export function PluginNavSidebarItems({
         title: "Extensions",
         routePath: toolsRoutePath,
       },
-      ...pluginRows,
     ];
   }, [navPanels, toolsRoutePath]);
   // Router hooks live in the inner component so hosts without a Router
@@ -180,9 +173,16 @@ function PluginNavSidebarItemList({
     // Users who customized their plugin order before the Extensions row joined
     // the list keep it on top instead of finding it at the bottom. Seed only
     // while the row exists, so a build without it saves no key for it.
-    const leadingKeys = rows.some((row) => row.kind === "tools")
-      ? [TOOLS_NAV_ROW_KEY]
-      : [];
+    // Tendo fork: the workspace tabs lead (Home space, Today, then the
+    // review surfaces); Extensions no longer claims the first slot.
+    const leadingKeys = [
+      "home-space/home",
+      "home-space/today",
+      "merz-inbox/merz-inbox",
+      "tasks/tasks",
+    ].filter((key) =>
+      rows.some((row) => getPluginNavPanelKey(row) === key),
+    );
     return arrangePluginNavPanels({
       panels: rows,
       storedOrder: seedLeadingNavPanelKeys(storedOrder, leadingKeys),
@@ -254,6 +254,13 @@ function PluginNavSidebarItemList({
       data-testid="plugin-nav-sidebar-items"
       onClickCapture={onClickCapture}
     >
+      {/* Tendo fork: KOS anatomy — the tab group carries its section label */}
+      <div
+        aria-hidden
+        className="px-2 pb-1 pt-1 font-mono text-[10px] uppercase tracking-[0.09em] text-sidebar-foreground/50"
+      >
+        Workspace
+      </div>
       <DndContext {...dndContextProps}>
         <SortableContext
           items={visibleKeys}
