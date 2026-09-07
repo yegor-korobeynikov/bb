@@ -10,7 +10,7 @@ import {
   type ProviderAdapterFactory,
 } from "@bb/agent-runtime/test";
 import type { DbConnection } from "@bb/db";
-import { defaultFeatureFlags } from "@bb/domain";
+import { DEFAULT_APP_MODE, defaultFeatureFlags } from "@bb/domain";
 import {
   acquireDaemonLock,
   createHostDaemonApp,
@@ -236,6 +236,7 @@ async function startIntegrationServer(
   const watchInterests = new WatchInterestCoordinator({ db, hub });
   const workspaceReadCaches = new WorkspaceReadCaches({ hub });
   const config: ServerRuntimeConfig = {
+    appMode: DEFAULT_APP_MODE,
     appVersion: "0.0.0-dev",
     builtinSkillsRootPath,
     customAcpAgents: [],
