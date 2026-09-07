@@ -68,6 +68,7 @@ function createStoryDesktopApi(
     },
     setTheme() {},
     openExternalUrl() {},
+    openPeerBuild() {},
   };
 }
 

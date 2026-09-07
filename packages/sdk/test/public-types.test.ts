@@ -342,6 +342,7 @@ type ExpectedSystemKey =
   | "updateGeneralSettings"
   | "updateKeyboardSettings"
   | "providerStates"
+  | "submitBuildFeedback"
   | "usageLimits"
   | "version";
 

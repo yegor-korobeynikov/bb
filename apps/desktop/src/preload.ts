@@ -35,6 +35,7 @@ import {
   BB_DESKTOP_INFO_CHANGED_CHANNEL,
   BB_DESKTOP_INSTALL_UPDATE_CHANNEL,
   BB_DESKTOP_OPEN_EXTERNAL_URL_CHANNEL,
+  BB_DESKTOP_OPEN_PEER_BUILD_CHANNEL,
   BB_DESKTOP_SET_THEME_CHANNEL,
 } from "./desktop-update-ipc.js";
 import {
@@ -374,6 +375,9 @@ const bbDesktopApi: BbDesktopApi = {
   },
   openExternalUrl(url: string): void {
     ipcRenderer.send(BB_DESKTOP_OPEN_EXTERNAL_URL_CHANNEL, url);
+  },
+  openPeerBuild(): void {
+    ipcRenderer.send(BB_DESKTOP_OPEN_PEER_BUILD_CHANNEL);
   },
   setTheme(theme: BbDesktopTheme): void {
     ipcRenderer.send(BB_DESKTOP_SET_THEME_CHANNEL, theme);

@@ -53,6 +53,7 @@ import {
 import { getActiveTurnId } from "../threads/thread-events.js";
 import { advanceThreadProvisioning } from "../threads/thread-provisioning.js";
 import { runQueuedMessageAutoSendSweep } from "../threads/queued-messages.js";
+import { runBuildFeedbackConsumerSweep } from "./build-feedback-consumer.js";
 import { LIVE_DAEMON_COMMAND_TIMEOUT_MS } from "../hosts/live-command.js";
 import { runEventLoopWork } from "./event-loop-work.js";
 
@@ -612,6 +613,12 @@ const PERIODIC_SWEEP_JOBS: PeriodicSweepJob[] = [
     category: "durable-intent-retry",
     name: "project-deletion",
     run: runProjectDeletionSweep,
+  },
+  {
+    cadenceMs: 0,
+    category: "durable-intent-retry",
+    name: "build-feedback-consumer",
+    run: runBuildFeedbackConsumerSweep,
   },
   {
     cadenceMs: 0,

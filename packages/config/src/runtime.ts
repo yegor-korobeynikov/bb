@@ -83,6 +83,11 @@ const BB_DEV_DATA_ROOT_DIR = ".bb-dev";
 export const BB_PROD_SERVER_PORT = 38886;
 export const BB_PROD_HOST_DAEMON_PORT = 38887;
 export const BB_LOOPBACK_HOST = "127.0.0.1";
+// The public demo build's own app port, matching scripts/tendo-prod.mjs's
+// TENDO_PROD_APP_PORT default. The two builds run as separate instances with
+// their own fixed ports rather than negotiating one at runtime, so either can
+// find the other with no discovery step.
+export const TENDO_PROD_APP_PORT = 39888;
 const BB_SQLITE_DATABASE_FILE_NAME = "bb.db";
 
 const DEV_HASH_LENGTH = 12;
@@ -329,6 +334,19 @@ export function resolvePortFromEnv(args: ResolvePortFromEnvArgs): number {
     name: args.name,
     rawPort,
   });
+}
+
+/**
+ * URL of the OTHER build's window — the public demo one from the working
+ * build, the working one from the public build. Each build owns a fixed port
+ * (see {@link BB_PROD_SERVER_PORT} and {@link TENDO_PROD_APP_PORT}), so
+ * either can address the other with no discovery step.
+ */
+export function resolvePeerBuildUrl(args: { isPublicBuild: boolean }): string {
+  const peerPort = args.isPublicBuild
+    ? BB_PROD_SERVER_PORT
+    : TENDO_PROD_APP_PORT;
+  return `http://${BB_LOOPBACK_HOST}:${peerPort}`;
 }
 
 /**

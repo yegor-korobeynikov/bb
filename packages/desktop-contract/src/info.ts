@@ -96,6 +96,14 @@ export interface BbDesktopApi extends BbDesktopInfo {
    */
   openExternalUrl(url: string): void;
   /**
+   * Open a new window on the OTHER build — the public demo one from the
+   * working build, the working one from the public build. Each build finds
+   * the other by its fixed local port; the operator gets a live comparison
+   * with no terminal. No-op on the web build where `window.bbDesktop` is
+   * undefined.
+   */
+  openPeerBuild(): void;
+  /**
    * Push the renderer's theme preference to the Electron main process so the
    * NSWindow appearance — traffic lights and inactive title-bar chrome —
    * follows bb's explicit theme or the OS when set to system. No-op on the web

@@ -1,4 +1,10 @@
-import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  unlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
 import {
@@ -86,6 +92,7 @@ export function readPendingBuildFeedback(): PendingBuildFeedbackItem[] {
         fromMode: feedback.from.mode,
         fromBuildId: feedback.from.buildId,
         route: feedback.where.route,
+        threadId: feedback.where.threadId,
         body: formatBuildFeedback(feedback),
       });
     } catch {
@@ -93,4 +100,17 @@ export function readPendingBuildFeedback(): PendingBuildFeedbackItem[] {
     }
   }
   return items.sort((left, right) => left.createdAt - right.createdAt);
+}
+
+/**
+ * Removes a report once it has become a thread. Missing files are not an
+ * error: two consumer ticks racing on the same item must not surface as one.
+ */
+export function deleteBuildFeedback(id: string): void {
+  const dir = buildFeedbackDir();
+  try {
+    unlinkSync(feedbackPath(dir, id));
+  } catch {
+    // Already gone.
+  }
 }

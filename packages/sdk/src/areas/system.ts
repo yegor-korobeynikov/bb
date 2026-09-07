@@ -5,6 +5,8 @@ import type {
 } from "@bb/domain";
 import type { ProviderUsageResponse } from "@bb/host-daemon-contract";
 import type {
+  BuildFeedbackRequest,
+  BuildFeedbackResponse,
   SystemAttentionResponse,
   SystemConfigReloadResponse,
   SystemConfigResponse,
@@ -72,10 +74,18 @@ export interface SystemProviderStatesArgs extends SystemProvidersQuery {
 }
 export type SystemProviderStatesResult = SystemProviderStatesResponse;
 export type SystemVersionResult = SystemVersionResponse;
+export interface SystemSubmitBuildFeedbackArgs extends BuildFeedbackRequest {
+  signal?: AbortSignal;
+}
+export type SystemSubmitBuildFeedbackResult = BuildFeedbackResponse;
 
 export interface SystemArea {
   attention(args?: SystemAttentionArgs): Promise<SystemAttentionResult>;
   config(args?: SystemConfigArgs): Promise<SystemConfigResult>;
+  /** Files a report from this build, for the working build to pick up. */
+  submitBuildFeedback(
+    args: SystemSubmitBuildFeedbackArgs,
+  ): Promise<SystemSubmitBuildFeedbackResult>;
   executionOptions(
     args?: SystemExecutionOptionsArgs,
   ): Promise<SystemExecutionOptionsResult>;
@@ -165,6 +175,15 @@ export function createSystemArea(args: CreateSdkAreaArgs): SystemArea {
     async installCliSkills(input) {
       return transport.readJson(
         transport.api.v1.system["cli-skills"].install.$post({ json: input }),
+      );
+    },
+    async submitBuildFeedback(input) {
+      const { signal, ...request } = input;
+      return transport.readJson(
+        transport.api.v1.system["build-feedback"].$post(
+          { json: request },
+          ...signalRequestArgs(signal),
+        ),
       );
     },
     async reloadConfig() {

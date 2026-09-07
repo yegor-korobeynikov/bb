@@ -59,5 +59,6 @@ export function createBbDesktopApi(
     },
     setTheme() {},
     openExternalUrl() {},
+    openPeerBuild() {},
   };
 }

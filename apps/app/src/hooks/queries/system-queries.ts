@@ -1,4 +1,9 @@
-import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQueries,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import type { QueryKey } from "@tanstack/react-query";
 import type { AvailableModel, PermissionMode, ProviderInfo } from "@bb/domain";
 import { SYSTEM_EXECUTION_OPTIONS_QUERY_KEY } from "@/hooks/queries/query-keys";
@@ -13,6 +18,7 @@ import {
 } from "@bb/domain";
 import { toRecord } from "@bb/core-ui";
 import type {
+  BuildFeedbackRequest,
   SystemCliSkillsStatusResponse,
   SystemConfigResponse,
   SystemExecutionOptionsResponse,
@@ -600,6 +606,15 @@ export function useSystemProviderStates(
     ...(options.poll === false
       ? { staleTime: 60_000 }
       : { refetchInterval: 15_000 }),
+  });
+}
+
+/** Files a report from this build for the working build to pick up. */
+export function useSubmitBuildFeedback() {
+  return useMutation({
+    meta: { errorMessage: "Failed to send the report." },
+    mutationFn: (request: BuildFeedbackRequest) =>
+      sdk.system.submitBuildFeedback(request),
   });
 }
 

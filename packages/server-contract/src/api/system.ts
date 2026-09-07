@@ -352,6 +352,8 @@ export interface PendingBuildFeedbackItem {
   fromMode: string;
   fromBuildId: string;
   route: string;
+  /** Visible thread when the report was filed from one; used to land the follow-up thread in the same project. */
+  threadId: string | null;
   /** The whole report, rendered for a thread body. */
   body: string;
 }

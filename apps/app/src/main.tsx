@@ -14,6 +14,7 @@ import {
   createAppQueryClient,
   installAppQueryClientBrowserEvents,
 } from "./lib/query-client";
+import { installRecentErrorsCapture } from "./lib/recent-errors";
 import { applyCachedAppThemeCss } from "./lib/themes";
 import "./app.css";
 
@@ -21,6 +22,9 @@ import "./app.css";
 // from under React turns the next unmount into a blank page. See the module
 // doc for why this is a wrapper rather than a fix in our own components.
 installForeignDomMutationGuard();
+// So a build-feedback report can carry what actually went wrong, not just
+// what the reporter remembers to describe.
+installRecentErrorsCapture();
 
 // V8 keeps 10 frames by default, which a React commit-phase throw fills
 // entirely with reconciler internals — a crash report then names no bb

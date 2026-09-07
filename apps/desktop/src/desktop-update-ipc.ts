@@ -6,3 +6,4 @@ export const BB_DESKTOP_INSTALL_UPDATE_CHANNEL = "bb-desktop:install-update";
 export const BB_DESKTOP_SET_THEME_CHANNEL = "bb-desktop:set-theme";
 export const BB_DESKTOP_OPEN_EXTERNAL_URL_CHANNEL =
   "bb-desktop:open-external-url";
+export const BB_DESKTOP_OPEN_PEER_BUILD_CHANNEL = "bb-desktop:open-peer-build";

@@ -22,6 +22,7 @@ import {
   APP_SURFACE_DESKTOP,
   APP_SURFACE_ENV_NAME,
 } from "@bb/config/app-surface";
+import { resolvePeerBuildUrl } from "@bb/config/runtime";
 import type { ConnectCredential } from "@bb/connect-client";
 import type { AppKeybindings } from "@bb/domain";
 import {
@@ -132,6 +133,7 @@ import {
   BB_DESKTOP_INFO_CHANGED_CHANNEL,
   BB_DESKTOP_INSTALL_UPDATE_CHANNEL,
   BB_DESKTOP_OPEN_EXTERNAL_URL_CHANNEL,
+  BB_DESKTOP_OPEN_PEER_BUILD_CHANNEL,
   BB_DESKTOP_SET_THEME_CHANNEL,
 } from "./desktop-update-ipc.js";
 import {
@@ -1635,6 +1637,17 @@ function registerDesktopUpdateIpc(): void {
       void shell.openExternal(parsed.toString());
     },
   );
+  // Opens the other build's window alongside this one — the operator's way to
+  // compare working and public behavior without a terminal. Each build knows
+  // its own mode from BB_MODE, so it can address the other with no discovery.
+  ipcMain.on(BB_DESKTOP_OPEN_PEER_BUILD_CHANNEL, () => {
+    const isPublicBuild =
+      (process.env.BB_MODE ?? "").trim().toLowerCase() === "prod";
+    void createApplicationWindow({
+      initialUrl: resolvePeerBuildUrl({ isPublicBuild }),
+      stateKey: null,
+    });
+  });
 }
 
 interface DesktopBrowserWindowLifecycleArgs {
