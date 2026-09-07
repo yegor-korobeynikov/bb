@@ -3,7 +3,7 @@ import type {
   CustomProviderModel,
 } from "@bb/config/bb-app-managed-config";
 import type { DbConnection } from "@bb/db";
-import type { FeatureFlags, ProviderNativeSkillRoots } from "@bb/domain";
+import type { AppMode, FeatureFlags, ProviderNativeSkillRoots } from "@bb/domain";
 import type { Logger } from "@bb/logger";
 import type { PendingInteractionLifecycle } from "./services/interactions/pending-interactions.js";
 import type { MachineAuthService } from "./services/machine-auth.js";
@@ -29,6 +29,7 @@ export interface ServerRuntimeConfig {
   customModels: CustomProviderModel[];
   dataDir: string;
   featureFlags: FeatureFlags;
+  appMode: AppMode;
   hostDaemonPort: number;
   inheritedSkillsRootPaths: string[];
   inferenceFallbackModel: string;

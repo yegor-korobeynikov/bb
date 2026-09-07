@@ -82,6 +82,7 @@ function systemConfig(): SystemConfigResponse {
     customThemes: [],
     pluginThemes: [],
     featureFlags: { placeholder: false, timelineWindowEventBudget: 1_500 },
+  appMode: "staging",
     hostDaemonPort: null,
     localHelperPorts: [],
     serverUrl: "http://localhost:38886",

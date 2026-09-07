@@ -75,6 +75,7 @@ export async function runServer(serverConfig: ServerConfig): Promise<void> {
     customModels: [],
     dataDir: serverConfig.BB_DATA_DIR,
     featureFlags: serverConfig.featureFlags,
+    appMode: serverConfig.appMode,
     hostDaemonPort: serverConfig.BB_HOST_DAEMON_PORT,
     inheritedSkillsRootPaths: serverConfig.BB_INHERITED_SKILLS_ROOTS,
     inferenceFallbackModel: serverConfig.BB_INFERENCE_FALLBACK,

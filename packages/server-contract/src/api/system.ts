@@ -7,6 +7,7 @@ import {
   appThemeSchema,
   availableModelSchema,
   experimentsSchema,
+  appModeSchema,
   featureFlagsSchema,
   permissionModeSchema,
   pluginThemeMetaSchema,
@@ -167,6 +168,8 @@ export const systemConfigResponseSchema = z.object({
   /** Palettes contributed by currently loaded plugins. */
   pluginThemes: z.array(pluginThemeMetaSchema),
   featureFlags: featureFlagsSchema,
+  /** Which build this is: the public one or the working one. */
+  appMode: appModeSchema,
   hostDaemonPort: z.number().nullable(),
   /** Loopback ports a browser may probe for an editor helper on its own device. */
   localHelperPorts: z.array(z.number().int().min(1).max(65_535)),

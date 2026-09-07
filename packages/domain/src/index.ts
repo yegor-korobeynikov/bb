@@ -16,6 +16,7 @@ export * from "./environment-lifecycle.js";
 export * from "./environment.js";
 export * from "./experiments.js";
 export * from "./feature-flags.js";
+export * from "./presentation-mode.js";
 export * from "./git-checkout.js";
 export * from "./host-list-limits.js";
 export * from "./host.js";

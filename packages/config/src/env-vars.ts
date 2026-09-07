@@ -1,5 +1,10 @@
 import { delimiter } from "node:path";
-import { defaultFeatureFlags, hostTypeSchema, type HostType } from "@bb/domain";
+import {
+  DEFAULT_APP_MODE,
+  defaultFeatureFlags,
+  hostTypeSchema,
+  type HostType,
+} from "@bb/domain";
 import { DEFAULTS } from "./defaults.js";
 import { defineEnvVar, type EnvVarParseArgs } from "./env.js";
 import {
@@ -258,6 +263,18 @@ export const BB_TELEMETRY_ENV = defineEnvVar<boolean>({
   parse: parseBooleanEnvValue,
 });
 
+/**
+ * Which build this server is: "prod" (the public build shown to clients) or
+ * "staging" (the working build). Operator-set at start, never toggled from the
+ * UI — a demo must not be one click away from the developer surface.
+ */
+export const BB_MODE_ENV = defineEnvVar<string>({
+  description:
+    'Application mode: "prod" for the public build (developer-facing surfaces hidden) or "staging" for the working build. Defaults to staging.',
+  name: "BB_MODE",
+  parse: (args) => args.value.trim().toLowerCase(),
+});
+
 export const BB_FF_PLACEHOLDER_ENV = defineEnvVar<boolean>({
   description:
     "Permanent placeholder feature flag. Non-functional keep-alive so the flag system has at least one entry; do not gate behavior on it.",
@@ -374,6 +391,7 @@ export const DEFAULT_BB_MARKETPLACE_URL =
 export const DEFAULT_BB_INFERENCE = DEFAULTS.inferenceModel;
 export const DEFAULT_BB_INFERENCE_FALLBACK = DEFAULTS.inferenceFallbackModel;
 export const DEFAULT_BB_TRANSCRIPTION = DEFAULTS.transcriptionModel;
+export const DEFAULT_BB_MODE: string = DEFAULT_APP_MODE;
 export const DEFAULT_BB_FF_PLACEHOLDER = defaultFeatureFlags.placeholder;
 export const DEFAULT_BB_FF_TIMELINE_WINDOW_EVENT_BUDGET =
   defaultFeatureFlags.timelineWindowEventBudget;

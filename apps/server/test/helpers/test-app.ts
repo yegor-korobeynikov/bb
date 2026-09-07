@@ -166,6 +166,7 @@ export async function createTestAppHarness(
   };
   const config: ServerRuntimeConfig = {
     appVersion: "0.0.0-test",
+    appMode: overrides.appMode ?? "staging",
     builtinSkillsRootPath: join(dataDir, "builtin-skills"),
     customAcpAgents: [],
     customModels: [],

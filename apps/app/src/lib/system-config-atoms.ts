@@ -31,6 +31,10 @@ const unavailableSystemConfig: SystemConfigResponse = {
   customThemes: [],
   pluginThemes: [],
   featureFlags: { placeholder: false, timelineWindowEventBudget: 1_500 },
+  // Fail toward the working build: an app that cannot reach its server must
+  // not quietly present itself as the public one and hide surfaces the
+  // operator still needs to diagnose the outage.
+  appMode: "staging",
   hostDaemonPort: null,
   localHelperPorts: [],
   serverUrl: "",

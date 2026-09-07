@@ -1,4 +1,4 @@
-import type { FeatureFlags } from "@bb/domain";
+import type { AppMode, FeatureFlags } from "@bb/domain";
 import type { AppSurface } from "./app-surface.js";
 import {
   loadCommonConfig,
@@ -37,7 +37,7 @@ import {
   parseServerBindHost,
   type ServerBindHost,
 } from "./env-vars.js";
-import { loadFeatureFlags } from "./feature-flags.js";
+import { loadAppMode, loadFeatureFlags } from "./feature-flags.js";
 import { assignIfDefined } from "./objects.js";
 import { loadHostDaemonPortValue } from "./ports.js";
 import { loadServerPortConfig, type ServerPortConfig } from "./server-port.js";
@@ -60,6 +60,8 @@ export interface ServerConfig
   BB_TRANSCRIPTION: string;
   OPENAI_API_KEY: string;
   featureFlags: FeatureFlags;
+  /** Which build this server is: the public one or the working one. */
+  appMode: AppMode;
 }
 
 type LoadServerConfigArgs = LoadCommonConfigArgs;
@@ -184,6 +186,11 @@ export function loadServerConfig(
       env: loader.env,
     }),
     featureFlags: loadFeatureFlags({
+      env: loader.env,
+      homeDir: loader.context.homeDir,
+      mode: loader.mode,
+    }),
+    appMode: loadAppMode({
       env: loader.env,
       homeDir: loader.context.homeDir,
       mode: loader.mode,

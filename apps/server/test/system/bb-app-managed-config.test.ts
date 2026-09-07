@@ -68,6 +68,7 @@ function createRuntimeConfig(): ServerRuntimeConfig {
     dataDir: "/tmp/bb-test",
     marketplaceUrl: "https://marketplace.invalid/marketplace.json",
     featureFlags: defaultFeatureFlags,
+    appMode: "staging",
     hostDaemonPort: 38887,
     inheritedSkillsRootPaths: [],
     inferenceFallbackModel: "openai/gpt-4o-mini-fallback",
