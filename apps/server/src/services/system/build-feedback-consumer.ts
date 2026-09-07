@@ -29,9 +29,24 @@ function resolveTargetProjectId(
 }
 
 /**
- * Turns reports filed from the public build into threads here, so the fix can
- * start with a "чини" rather than an interview. Runs only in the working
- * build: the public build is where reports are filed, never where they land.
+ * A thread started from someone else's text, not a live conversation, has no
+ * standing to edit code on its first move: it has to earn that by showing the
+ * report is real first. Reproduce and diagnose before touching anything.
+ */
+function formatFirstTurnPrompt(reportBody: string): string {
+  return [
+    "A report arrived from the public build. Before changing any code: reproduce it if you can, and find the root cause. Only propose or make a fix once you have.",
+    "",
+    reportBody,
+  ].join("\n");
+}
+
+/**
+ * Turns reports filed from the public build into threads here, running
+ * immediately: the point of the channel is that the working build finds out
+ * about the bug and starts on it itself, not that it waits for a person to
+ * say go. Runs only in the working build: the public build is where reports
+ * are filed, never where they land.
  */
 export async function runBuildFeedbackConsumerSweep(
   deps: BuildFeedbackConsumerDeps,
@@ -50,7 +65,13 @@ export async function runBuildFeedbackConsumerSweep(
     try {
       await createThreadFromRequest(deps, {
         environment: { type: "project-default" },
-        input: [{ type: "text", text: item.body, mentions: [] }],
+        input: [
+          {
+            type: "text",
+            text: formatFirstTurnPrompt(item.body),
+            mentions: [],
+          },
+        ],
         origin: "app",
         originKind: null,
         projectId,
