@@ -8,6 +8,7 @@ import {
 import { useIsCompactViewport } from "@bb/shared-ui/hooks/use-compact-viewport";
 import type {
   PluginSidebarProject,
+  PluginSidebarSection,
   PluginSidebarThread,
   PluginSidebarThreadActions,
   PluginSidebarThreadPullRequestState,
@@ -19,7 +20,10 @@ import {
   useEnvironmentPullRequest,
 } from "@/hooks/queries/environment-queries";
 import { useHosts } from "@/hooks/queries/host-queries";
-import { useSidebarNavigation } from "@/hooks/queries/sidebar-navigation-query";
+import {
+  useSidebarNavigation,
+  useSidebarNavigationSections,
+} from "@/hooks/queries/sidebar-navigation-query";
 import { useUpdateThread } from "@/hooks/mutations/thread-state-mutations";
 import { useRouteNavigate } from "@/components/ui/app-route-anchor";
 import { toPluginSidebarThread } from "./plugin-sidebar-threads";
@@ -33,6 +37,7 @@ import {
 
 const EMPTY_THREADS: readonly PluginSidebarThread[] = [];
 const EMPTY_PROJECTS: readonly PluginSidebarProject[] = [];
+const EMPTY_SECTIONS: readonly PluginSidebarSection[] = [];
 const EMPTY_ENTRIES: ReadonlyMap<string, ThreadListEntry> = new Map();
 const EMPTY_HOST_NAMES: ReadonlyMap<string, string> = new Map();
 
@@ -97,6 +102,9 @@ function toPluginSidebarThreadCached(
 export function useSidebarThreads(): PluginSidebarThreadsState {
   const query = useSidebarNavigation();
   const data = query.data;
+  // The bootstrap cache already holds the user's sections; this observer adds
+  // no request of its own.
+  const sections = useSidebarNavigationSections();
   // The sidebar already subscribes to host updates; this reads the same
   // cached list so a row can print a machine name instead of a host id.
   const { data: hosts } = useHosts();
@@ -108,6 +116,7 @@ export function useSidebarThreads(): PluginSidebarThreadsState {
         status: query.isError ? "error" : "loading",
         threads: EMPTY_THREADS,
         projects: EMPTY_PROJECTS,
+        sections: EMPTY_SECTIONS,
       };
     }
     // The personal project is a real project to a plugin list; the host just
@@ -125,8 +134,12 @@ export function useSidebarThreads(): PluginSidebarThreadsState {
         name: project.name,
         isPersonal: project.id === PERSONAL_PROJECT_ID,
       })),
+      sections: sections.map((section) => ({
+        id: section.id,
+        name: section.name,
+      })),
     };
-  }, [data, hostNamesById, query.isError]);
+  }, [data, hostNamesById, query.isError, sections]);
 }
 
 /** Thread id -> host entry, for O(1) lookups by id. */

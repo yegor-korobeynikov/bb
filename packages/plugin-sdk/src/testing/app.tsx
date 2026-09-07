@@ -1198,6 +1198,7 @@ export function renderSlot<
     status: options.sidebarThreads?.status ?? "ready",
     threads: options.sidebarThreads?.threads ?? [],
     projects: options.sidebarThreads?.projects ?? [],
+    sections: options.sidebarThreads?.sections ?? [],
   };
   const sidebarActions: PluginSidebarThreadActions = {
     open(threadId, openOptions) {

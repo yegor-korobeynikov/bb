@@ -726,10 +726,26 @@ export interface PluginSidebarProject {
   isPersonal: boolean;
 }
 
+/**
+ * One of the user's own thread sections — the manual grouping that cuts across
+ * projects. A sidebar that reads `PluginSidebarThread.sectionId` without these
+ * has no name to print, so it silently drops grouping the person built by hand.
+ */
+export interface PluginSidebarSection {
+  id: string;
+  name: string;
+}
+
 export interface PluginSidebarThreadsState {
   status: "loading" | "ready" | "error";
   threads: readonly PluginSidebarThread[];
   projects: readonly PluginSidebarProject[];
+  /**
+   * Sections in the host's own order; empty when the user has made none.
+   * A replacement thread list MUST render these — dropping them loses
+   * navigation the person relies on.
+   */
+  sections: readonly PluginSidebarSection[];
 }
 
 /**
