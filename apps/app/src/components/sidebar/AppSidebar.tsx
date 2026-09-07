@@ -21,6 +21,7 @@ import { PluginThreadList } from "./PluginThreadList";
 import { useThreadListReplacement } from "./threadListProvider";
 import { PluginNavSidebarItems } from "@/components/plugin/PluginNavSidebarItems";
 import { PluginSidebarFooterActions } from "@/components/plugin/PluginSidebarFooterActions";
+import { IncognitoToggle } from "./IncognitoToggle";
 import { SidebarPluginAttentionGlyph } from "./SidebarPluginAttentionGlyph";
 import { SidebarUpdatesBadge } from "./SidebarUpdatesBadge";
 import { SidebarHistoryNavigationControls } from "./SidebarHistoryNavigationControls";
@@ -397,6 +398,7 @@ export function AppSidebar({
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
+          <IncognitoToggle className={SIDEBAR_FOOTER_ACTION_CLASS} />
           <PluginSidebarFooterActions onNavigate={closeOnMobile} />
           <SidebarMenuItem className="min-w-0">
             <SidebarMenuButton

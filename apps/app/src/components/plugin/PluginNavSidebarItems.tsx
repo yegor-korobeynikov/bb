@@ -68,6 +68,7 @@ import {
   forceLeadingNavPanelKeys,
   showPluginNavPanel,
 } from "./pluginNavSidebarOrder";
+import { useSurfaceVisible } from "@/hooks/useAppMode";
 
 /**
  * Reserved plugin id for rows the host owns rather than a plugin. Real plugin
@@ -126,6 +127,10 @@ export function PluginNavSidebarItems({
   toolsRoutePath?: string;
 }) {
   const navPanels = usePluginNavPanelChrome();
+  // Plugin management is workshop furniture: the public build keeps the row
+  // out of the sidebar. Installed plugins keep working — only the door to
+  // installing and reloading them is hidden.
+  const extensionsVisible = useSurfaceVisible("extensions");
   const rows = useMemo<SidebarNavRow[]>(() => {
     const pluginRows = navPanels.map<SidebarNavRow>(({ chrome, panel }) => ({
       kind: "plugin",
@@ -135,7 +140,7 @@ export function PluginNavSidebarItems({
       chrome,
       panel,
     }));
-    if (toolsRoutePath === undefined) return pluginRows;
+    if (toolsRoutePath === undefined || !extensionsVisible) return pluginRows;
     // Tendo fork: Extensions is meta-chrome, not a product tab — it closes
     // the list instead of opening it (KOS anatomy: workspace tabs first).
     return [
@@ -148,7 +153,7 @@ export function PluginNavSidebarItems({
         routePath: toolsRoutePath,
       },
     ];
-  }, [navPanels, toolsRoutePath]);
+  }, [extensionsVisible, navPanels, toolsRoutePath]);
   // Router hooks live in the inner component so hosts without a Router
   // (isolated sidebar tests/stories) can render the empty state.
   if (rows.length === 0) return null;

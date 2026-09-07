@@ -11,6 +11,7 @@ import {
 } from "@/components/pickers/ModelReasoningPicker";
 import { type PickerOption } from "@/components/pickers/OptionPicker";
 import type { ModelPickerOption } from "@/components/pickers/model-picker-option";
+import { useSurfaceVisible } from "@/hooks/useAppMode";
 
 interface ExecutionProviderConfig {
   options?: readonly PickerOption<string>[];
@@ -88,13 +89,17 @@ export const ExecutionControls = memo(function ExecutionControls({
     provider.options &&
     provider.options.length > 1,
   );
+  // The public build does not name its engine: a model-and-reasoning picker is
+  // the single loudest "this is a tool for developers" signal in the composer.
+  const modelPickerAllowed = useSurfaceVisible("model-picker");
   const showModelPicker =
-    model.isLoading ||
+    modelPickerAllowed &&
+    (model.isLoading ||
     model.loadFailed ||
     model.options.length > 0 ||
     canSwitchProviders ||
     selectedProviderId.length > 0 ||
-    footerAction !== undefined;
+    footerAction !== undefined);
 
   return (
     <>

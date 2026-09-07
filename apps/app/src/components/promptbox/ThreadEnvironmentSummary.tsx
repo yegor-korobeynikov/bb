@@ -1,4 +1,5 @@
 import { memo } from "react";
+import { useSurfaceVisible } from "@/hooks/useAppMode";
 import { OptionDisplay } from "@bb/shared-ui/option-display";
 import { copyToClipboardWithToast } from "@/lib/clipboard";
 import { Icon, type IconName } from "@bb/shared-ui/icon";
@@ -51,6 +52,10 @@ export const ThreadEnvironmentSummary = memo(function ThreadEnvironmentSummary({
   environmentCheckout,
   onCreateNewThreadInWorktree,
 }: ThreadEnvironmentSummaryProps) {
+  const gitContextVisible = useSurfaceVisible("git-context");
+  // The whole strip is repository plumbing: project folder, worktree, branch.
+  // The public build says nothing about where the work is checked out.
+  if (!gitContextVisible) return null;
   if (!environmentLabel) {
     return null;
   }

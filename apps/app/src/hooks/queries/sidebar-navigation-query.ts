@@ -1,4 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
+import { useAtomValue } from "jotai";
+import {
+  incognitoReadAtom,
+  maskProjectName,
+  maskSectionName,
+  maskThreadTitle,
+} from "@/lib/incognito";
 import { useCallback } from "react";
 import { PERSONAL_PROJECT_ID, type ThreadListEntry } from "@bb/domain";
 import type {
@@ -30,8 +37,45 @@ function fetchSidebarNavigation(
   );
 }
 
+/**
+ * Demonstration mode masks at the DATA boundary, not at each render site: one
+ * transform here covers the native sidebar, plugin sidebars, mentions, and
+ * anything else reading this query, and no call site can forget to apply it.
+ */
+function maskSidebarBootstrap(
+  data: SidebarBootstrapResponse,
+  on: boolean,
+): SidebarBootstrapResponse {
+  if (!on) return data;
+  const maskProject = (
+    project: SidebarBootstrapResponse["personalProject"],
+  ): SidebarBootstrapResponse["personalProject"] => ({
+    ...project,
+    name: maskProjectName(project.id, project.name, true),
+    threads: project.threads.map((thread) => ({
+      ...thread,
+      title: maskThreadTitle({
+        id: thread.id,
+        projectId: project.id,
+        title: thread.title,
+        on: true,
+      }),
+    })),
+  });
+  return {
+    ...data,
+    projects: data.projects.map(maskProject),
+    personalProject: maskProject(data.personalProject),
+    sections: data.sections.map((section) => ({
+      ...section,
+      name: maskSectionName(section.id, section.name, true),
+    })),
+  };
+}
+
 export function useSidebarNavigation(options?: QueryOptions) {
   const enabled = options?.enabled ?? true;
+  const incognito = useAtomValue(incognitoReadAtom);
   useEnvironmentListRealtimeSubscription({ enabled });
   useHostListRealtimeSubscription({ enabled });
   useProjectListRealtimeSubscription({ enabled });
@@ -55,6 +99,9 @@ export function useSidebarNavigation(options?: QueryOptions) {
     // (navigation only), and a cold profile still shows the skeleton, so
     // first-run behavior is unchanged.
     placeholderData: () => readCachedSidebarBootstrap() ?? undefined,
+    // Masking rides on `select` so the cache keeps the real payload: leaving
+    // demonstration mode restores the true names without a refetch.
+    select: (data) => maskSidebarBootstrap(data, incognito),
   });
 }
 
