@@ -137,6 +137,9 @@ import type {
   RespondPluginInteractionRequest,
   SendMessageRequest,
   SetQueuedMessageGroupBoundaryRequest,
+  BuildFeedbackRequest,
+  BuildFeedbackResponse,
+  PendingBuildFeedbackResponse,
   SendQueuedMessageRequest,
   SendQueuedMessageResponse,
   SidebarBootstrapResponse,
@@ -215,6 +218,7 @@ import type {
   UpdateThreadTabsRequest,
 } from "./api/thread-tabs.js";
 import { updateThreadTabsRequestSchema } from "./api/thread-tabs.js";
+import { buildFeedbackRequestSchema } from "./api/system.js";
 import {
   closeTerminalRequestSchema,
   copyProjectAttachmentsRequestSchema,
@@ -1316,6 +1320,25 @@ export const publicApiRoutes = {
   },
 
   system: {
+    /**
+     * A report filed from the public build, on its way to the working build.
+     * POST writes it into the shared queue; GET is how the working build finds
+     * what is waiting for it.
+     */
+    buildFeedback: defineRoute({
+      path: "/system/build-feedback",
+      method: "post",
+      request: jsonRequest<EmptyInput, BuildFeedbackRequest>(
+        buildFeedbackRequestSchema,
+      ),
+      response: jsonResponse<BuildFeedbackResponse>(),
+    }),
+    pendingBuildFeedback: defineRoute({
+      path: "/system/build-feedback",
+      method: "get",
+      request: noRequest(),
+      response: jsonResponse<PendingBuildFeedbackResponse>(),
+    }),
     attention: defineRoute({
       path: "/system/attention",
       method: "get",

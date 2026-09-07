@@ -322,3 +322,40 @@ export type SystemInstallCliSkillsResponse = z.infer<
 export type SystemConfigReloadResponse = z.infer<
   typeof systemConfigReloadResponseSchema
 >;
+
+/**
+ * Filing a report from the public build. Everything except the note is
+ * gathered by the app: asking a person to describe which build and which route
+ * they were on is asking them to do the machine's job mid-demo.
+ */
+export const buildFeedbackRequestSchema = z
+  .object({
+    note: z.string().min(1),
+    route: z.string(),
+    threadId: z.string().nullable(),
+    incognito: z.boolean(),
+    recentErrors: z.array(z.string()).max(20),
+  })
+  .strict();
+export type BuildFeedbackRequest = z.infer<typeof buildFeedbackRequestSchema>;
+
+export interface BuildFeedbackResponse {
+  id: string;
+  /** Where it was written, so a person can find it without guessing. */
+  path: string;
+}
+
+export interface PendingBuildFeedbackItem {
+  id: string;
+  createdAt: number;
+  note: string;
+  fromMode: string;
+  fromBuildId: string;
+  route: string;
+  /** The whole report, rendered for a thread body. */
+  body: string;
+}
+
+export interface PendingBuildFeedbackResponse {
+  items: PendingBuildFeedbackItem[];
+}

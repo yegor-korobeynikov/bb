@@ -27,6 +27,10 @@ import {
   type PublicApiSchema,
 } from "@bb/server-contract";
 import type { Hono } from "hono";
+import {
+  readPendingBuildFeedback,
+  writeBuildFeedback,
+} from "./build-feedback.js";
 import type { ServerAppDeps, ServerRuntimeConfig } from "../types.js";
 import { resolveBuildId } from "../services/system/build-id.js";
 import type { PluginService } from "../services/plugins/plugin-service.js";
@@ -116,6 +120,21 @@ export function registerSystemRoutes(
   const routes = publicApiRoutes.system;
 
   const themeRoot = resolveThemeRootPath(deps.config.dataDir);
+
+  post(routes.buildFeedback, (context, payload) =>
+    context.json(
+      writeBuildFeedback({
+        request: payload,
+        fromMode: deps.config.appMode,
+        appVersion: deps.config.appVersion,
+        buildId: resolveBuildId(),
+      }),
+    ),
+  );
+
+  get(routes.pendingBuildFeedback, (context) =>
+    context.json({ items: readPendingBuildFeedback() }),
+  );
 
   get(routes.attention, (context) =>
     context.json({ hasAttention: hasActiveThreadAttention(deps.db) }),
