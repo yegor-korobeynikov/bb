@@ -777,6 +777,15 @@ export function createAgentRuntimeWithAdapters(
 
     const idleSinceMs = idleProviderSessionSinceMsByThreadId.get(args.threadId);
     if (idleSinceMs === undefined) {
+      // No turn-lifecycle event has set this thread's idle timestamp since
+      // the in-memory map was last reset (daemon restart, or a session that
+      // went idle before this process ever observed it). Treating "unknown"
+      // as "not idle" excludes such a thread from reaping forever, even when
+      // it has sat untouched for days — nothing will set the timestamp for
+      // it later since no further event is coming. Start the clock now: the
+      // thread is reachable again on the next reaper pass, worst case one
+      // more idleForMs later, instead of never.
+      idleProviderSessionSinceMsByThreadId.set(args.threadId, args.nowMs);
       return null;
     }
 
