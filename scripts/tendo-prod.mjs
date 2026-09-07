@@ -28,6 +28,14 @@ const HOME = process.env.HOME ?? "";
 const SOURCE_DIR = process.env.TENDO_PROD_SOURCE ?? path.join(HOME, ".bb");
 const PROD_DIR = process.env.TENDO_PROD_DATA ?? path.join(HOME, ".bb-prod");
 const PORT = process.env.TENDO_PROD_PORT ?? "39886";
+// Its own host daemon too: the daemon is per-instance infrastructure, and two
+// of them on one port is the collision that makes "run both" fail in a way
+// that looks like the app being broken rather than double-booked.
+const DAEMON_PORT = process.env.TENDO_PROD_DAEMON_PORT ?? "39887";
+// And the web app's own port. An instance owns EVERY port it needs: leaving one
+// to the shared default is what turns "run both" into a crash that reads like a
+// broken app instead of a booked port.
+const APP_PORT = process.env.TENDO_PROD_APP_PORT ?? "39888";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 /** Files that carry state the public build should inherit, beyond the database. */
@@ -72,7 +80,8 @@ if (args.has("--sync")) {
   process.exit(0);
 }
 
-log(`starting the public build on port ${PORT}, data ${PROD_DIR}`);
+log(`starting the public build — its own port set, data ${PROD_DIR}`);
+log(`the URL is printed by the dev launcher below`);
 const child = spawn("pnpm", ["dev"], {
   cwd: ROOT,
   stdio: "inherit",
@@ -80,7 +89,9 @@ const child = spawn("pnpm", ["dev"], {
     ...process.env,
     BB_MODE: "prod",
     BB_DATA_DIR: PROD_DIR,
-    BB_SERVER_PORT: PORT,
+    // Names this instance so the dev launcher derives a port set of its own
+    // instead of colliding with the working instance from the same checkout.
+    BB_DEV_INSTANCE: "prod",
   },
 });
 child.on("exit", (code) => process.exit(code ?? 0));

@@ -127,14 +127,41 @@ function resolveRepoRootLabel(args: ResolveDevInstanceConfigArgs): string {
   return args.repoRoot;
 }
 
-function resolveInstanceId(args: ResolveDevInstanceConfigArgs): string {
-  const hash = createRepoRootHash(args.repoRoot);
-  const label = resolveRepoRootLabel(args);
-  return `${sanitizeInstanceLabel(label)}-${hash.slice(0, DEV_HASH_LENGTH)}`;
+/**
+ * A second instance of the SAME checkout, named by `BB_DEV_INSTANCE`. Empty for
+ * the ordinary single-instance case, so nothing changes for anyone not asking
+ * for a second one.
+ */
+function devInstanceName(): string {
+  return (process.env.BB_DEV_INSTANCE ?? "").trim();
 }
 
+function resolveInstanceId(args: ResolveDevInstanceConfigArgs): string {
+  const instance = devInstanceName();
+  // The instance name joins BOTH the hash and the readable label: the hash so
+  // the data directory cannot collide, the label so a person can tell the two
+  // directories apart without decoding a hash.
+  const key = instance.length > 0 ? `${args.repoRoot}#${instance}` : args.repoRoot;
+  const hash = createRepoRootHash(key);
+  const label = resolveRepoRootLabel(args);
+  const suffix = instance.length > 0 ? `-${sanitizeInstanceLabel(instance)}` : "";
+  return `${sanitizeInstanceLabel(label)}${suffix}-${hash.slice(0, DEV_HASH_LENGTH)}`;
+}
+
+/**
+ * A dev instance is identified by its checkout, so two `pnpm dev` runs from one
+ * repository land on the same ports and the second one dies with EADDRINUSE.
+ * That is right for the common case and wrong for the one this fork needs:
+ * running the public build beside the working build from a single checkout.
+ *
+ * `BB_DEV_INSTANCE` names a second instance of the same checkout. It joins the
+ * repository path in the hash rather than replacing it, so two checkouts that
+ * both set "prod" still get different ports.
+ */
 function resolvePortOffset(repoRootPath: string): number {
-  const hash = createRepoRootHash(repoRootPath);
+  const instance = devInstanceName();
+  const key = instance.length > 0 ? `${repoRootPath}#${instance}` : repoRootPath;
+  const hash = createRepoRootHash(key);
   return Number.parseInt(hash.slice(0, 8), 16) % DEV_PORT_BUCKETS;
 }
 

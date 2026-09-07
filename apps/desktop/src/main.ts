@@ -1982,7 +1982,18 @@ async function runDesktopApp(): Promise<void> {
     platform: process.platform,
   });
 
-  app.setName(app.isPackaged ? DESKTOP_RELEASE_INFO.applicationName : "bb-dev");
+  // Electron keys both the single-instance lock and the userData directory on
+  // the application name. The public build and the working build must run side
+  // by side — one to demo from, one to keep working in — so they cannot share
+  // an identity: without this, launching the second one just focuses the first
+  // window and exits, and they would fight over the same window state.
+  const PUBLIC_BUILD_NAME_SUFFIX = " Prod";
+  const isPublicBuild =
+    (process.env.BB_MODE ?? "").trim().toLowerCase() === "prod";
+  app.setName(
+    (app.isPackaged ? DESKTOP_RELEASE_INFO.applicationName : "bb-dev") +
+      (isPublicBuild ? PUBLIC_BUILD_NAME_SUFFIX : ""),
+  );
 
   if (!app.requestSingleInstanceLock()) {
     app.quit();
