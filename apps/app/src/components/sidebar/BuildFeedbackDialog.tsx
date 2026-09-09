@@ -37,12 +37,16 @@ export function BuildFeedbackButton({ className }: { className?: string }) {
       <SidebarMenuItem className="min-w-0">
         <SidebarMenuButton
           className={className}
-          aria-label="Report"
-          tooltip={{ children: "Report", hidden: false, side: "top" }}
+          aria-label="Send report to the working build"
+          tooltip={{
+            children: "Send report to the working build",
+            hidden: false,
+            side: "top",
+          }}
           onClick={() => setOpen(true)}
         >
-          <Icon name="MessageSquare" />
-          <span className="sr-only">Report</span>
+          <Icon name="Sent" />
+          <span className="sr-only">Send report to the working build</span>
         </SidebarMenuButton>
       </SidebarMenuItem>
       <BuildFeedbackDialog open={open} onOpenChange={setOpen} />
