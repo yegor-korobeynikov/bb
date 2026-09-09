@@ -234,6 +234,11 @@ interface TimelineEventRowSelection {
   sequenceWindowStart: TimelineSequenceWindowStart | null;
   /** See {@link paginateTimelineRows}. */
   knownHasOlderSegments: boolean | null;
+  /**
+   * First event sequence this window covers. See {@link paginateTimelineRows}:
+   * it is the cursor of last resort when the window yields no segment at all.
+   */
+  windowSequenceStart: number | null;
   paginationPage: ThreadTimelinePageRequest;
   responsePageKind: ThreadTimelinePageKind;
   oversizedEventPlaceholder: TimelineSystemRow | null;
@@ -638,6 +643,7 @@ function selectFullTimelineEventRows(
     contextOnlyToolCallIds: new Set(),
     sequenceWindowStart: null,
     knownHasOlderSegments: null,
+    windowSequenceStart: null,
     paginationPage: page,
     responsePageKind: page.kind,
     oversizedEventPlaceholder: null,
@@ -1433,6 +1439,7 @@ function selectStandardTimelineEventRows(
         : new Set(),
     sequenceWindowStart: window.sequenceWindowStart,
     knownHasOlderSegments: window.knownHasOlderSegments,
+    windowSequenceStart: window.sequenceStart,
     paginationPage:
       page.kind === "older"
         ? { ...page, segmentLimit: window.effectiveSegmentLimit }
@@ -1697,6 +1704,8 @@ function buildThreadTimelineInternal(
       paginateTimelineRows({
         sequenceWindowStart: eventSelection.sequenceWindowStart,
         knownHasOlderSegments: eventSelection.knownHasOlderSegments,
+        windowSequenceStart: eventSelection.windowSequenceStart,
+        threadId: thread.id,
         page: eventSelection.paginationPage,
         rows: projectedTimelineRows,
       }),

@@ -166,12 +166,28 @@ interface PaginateTimelineRowsArgs {
   knownHasOlderSegments: boolean | null;
   page: ThreadTimelinePageRequest;
   rows: readonly TimelineRow[];
+  /** Owning thread, for the sequence cursor built below. */
+  threadId: string;
+  /**
+   * First event sequence the window covered. Used only when the window yields
+   * no segment at all: the cursor has to name somewhere, and the window's own
+   * start is the one place guaranteed to be strictly older than the page that
+   * asked.
+   */
+  windowSequenceStart: number | null;
 }
 
 export function paginateTimelineRows(
   args: PaginateTimelineRowsArgs,
 ): PaginatedTimelineRowsResult {
-  const { knownHasOlderSegments, page, rows, sequenceWindowStart } = args;
+  const {
+    knownHasOlderSegments,
+    page,
+    rows,
+    sequenceWindowStart,
+    threadId,
+    windowSequenceStart,
+  } = args;
   const segments = buildTimelineLogicalSegments(rows);
   if (sequenceWindowStart !== null) {
     return {
@@ -193,11 +209,57 @@ export function paginateTimelineRows(
 
   return {
     hasOlderRows,
-    olderCursor:
-      hasOlderRows && oldestSelectedSegment
-        ? oldestSelectedSegment.cursor
-        : null,
+    olderCursor: resolveOlderCursor({
+      hasOlderRows,
+      oldestSelectedSegment,
+      threadId,
+      windowSequenceStart,
+    }),
     returnedSegmentCount: selectedSegments.length,
     rows: selectedSegments.flatMap((segment) => segment.rows),
+  };
+}
+
+interface ResolveOlderCursorArgs {
+  hasOlderRows: boolean;
+  oldestSelectedSegment: TimelineLogicalSegment | undefined;
+  threadId: string;
+  windowSequenceStart: number | null;
+}
+
+/**
+ * Where the next page up starts.
+ *
+ * Normally that is the oldest segment this page returned. A window can come
+ * back with no segment at all, though — the budget affords one segment, the
+ * rows inside it all project away, and segmentation sees nothing — and a page
+ * that says "there is more above" while naming nowhere to get it is a dead
+ * end: the feed stops at the last turn and no amount of scrolling recovers,
+ * because the client has no cursor left to ask with. Fall back to the window's
+ * own start, which is strictly older than the cursor that produced it, so
+ * paging up steps past the empty stretch instead of stalling on it.
+ */
+function resolveOlderCursor({
+  hasOlderRows,
+  oldestSelectedSegment,
+  threadId,
+  windowSequenceStart,
+}: ResolveOlderCursorArgs): TimelinePaginationCursor | null {
+  if (!hasOlderRows) {
+    return null;
+  }
+  if (oldestSelectedSegment) {
+    return oldestSelectedSegment.cursor;
+  }
+  if (windowSequenceStart === null) {
+    return null;
+  }
+  return {
+    anchorSeq: windowSequenceStart,
+    anchorId: buildSequenceCursorAnchorId({
+      kind: "event",
+      sequenceStart: windowSequenceStart,
+      threadId,
+    }),
   };
 }

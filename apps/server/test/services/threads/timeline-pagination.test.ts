@@ -59,6 +59,8 @@ describe("paginateTimelineRows", () => {
     const page = paginateTimelineRows({
       sequenceWindowStart: null,
       knownHasOlderSegments: null,
+      threadId: "thread-1",
+      windowSequenceStart: null,
       page: { kind: "latest", segmentLimit: 2 },
       rows,
     });
@@ -72,5 +74,49 @@ describe("paginateTimelineRows", () => {
       anchorId: "thread-1:user-seed:2",
       anchorSeq: 2,
     });
+  });
+  // Seen on a 8,500-event thread: the page above the last turn came back with
+  // no rows at all, said there were older rows, and named no cursor. The feed
+  // then showed one answer and nothing else, and scrolling up could not
+  // recover — there was nothing left to ask with.
+  it("still names where to continue when the window yields no segment", () => {
+    const page = paginateTimelineRows({
+      sequenceWindowStart: null,
+      knownHasOlderSegments: true,
+      threadId: "thread-1",
+      windowSequenceStart: 4200,
+      page: {
+        kind: "older",
+        segmentLimit: 20,
+        beforeCursor: { anchorSeq: 8493, anchorId: "thread-1:user-seed:8493" },
+      },
+      rows: [],
+    });
+
+    expect(page.rows).toEqual([]);
+    expect(page.returnedSegmentCount).toBe(0);
+    expect(page.hasOlderRows).toBe(true);
+    expect(page.olderCursor).not.toBeNull();
+    // Strictly older than the cursor that produced it, so paging up advances
+    // rather than asking the same question again.
+    expect(page.olderCursor?.anchorSeq).toBeLessThan(8493);
+  });
+
+  it("names no cursor once there is genuinely nothing older", () => {
+    const page = paginateTimelineRows({
+      sequenceWindowStart: null,
+      knownHasOlderSegments: false,
+      threadId: "thread-1",
+      windowSequenceStart: 4200,
+      page: {
+        kind: "older",
+        segmentLimit: 20,
+        beforeCursor: { anchorSeq: 8493, anchorId: "thread-1:user-seed:8493" },
+      },
+      rows: [],
+    });
+
+    expect(page.hasOlderRows).toBe(false);
+    expect(page.olderCursor).toBeNull();
   });
 });
