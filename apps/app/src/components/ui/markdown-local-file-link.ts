@@ -39,15 +39,13 @@ export type MarkdownAbsoluteLocalFileLinkRouting =
 
 export interface MarkdownRelativeLocalFileLinkRouting {
   /**
-   * Absolute directory of the previewed markdown file. Relative links resolve
-   * against this directory before root containment is checked.
+   * Absolute directory the relative link resolves against.
+   *
+   * There is deliberately no root of its own here. The containing root comes
+   * from `absoluteLinks`, so the two spellings of one path cannot disagree —
+   * see `relativeLinkRootPath`.
    */
   baseDir: string;
-  /**
-   * Absolute containing root for preview-relative links. Targets outside this
-   * root are left as ordinary markdown links.
-   */
-  rootPath: string;
 }
 
 interface LocalFileHrefParts {
@@ -66,6 +64,11 @@ interface ParseLineRangeArgs {
 }
 
 interface ResolveRelativeLocalFileHrefArgs extends MarkdownRelativeLocalFileLinkRouting {
+  /**
+   * How the same surface treats absolute paths. The relative form is held to
+   * exactly that boundary and no other.
+   */
+  absoluteLinks: MarkdownAbsoluteLocalFileLinkRouting;
   href: string | undefined;
 }
 
@@ -282,6 +285,25 @@ function isHomeRelativePath(path: string): boolean {
 }
 
 /**
+ * The root a relative link must land inside of, taken from how the same
+ * surface treats absolute paths.
+ *
+ * This is derived rather than configured on purpose. A surface that trusts an
+ * absolute host path has no boundary left to enforce, so holding the relative
+ * spelling of that same path to the working directory only means one file
+ * opens in the panel and the identical file, written the other way escapes to
+ * the browser. Of the four surfaces that used to state the two separately, two
+ * stated them so as to contradict each other — the chat timeline and the
+ * plugin markdown panel — and a third was only corrected after links inside a
+ * host-file preview were reported going to the browser.
+ */
+function relativeLinkRootPath(
+  absoluteLinks: MarkdownAbsoluteLocalFileLinkRouting,
+): string {
+  return absoluteLinks.kind === "contained" ? absoluteLinks.rootPath : "/";
+}
+
+/**
  * Resolves a relative markdown link against the previewed file's directory so
  * links authored relative to a file on disk become absolute paths the local
  * file link machinery understands. Returns `null` for links that are not
@@ -289,13 +311,15 @@ function isHomeRelativePath(path: string): boolean {
  * queries), leaving them to default anchor handling.
  */
 export function resolveRelativeLocalFileHref({
+  absoluteLinks,
   baseDir,
   href,
-  rootPath,
 }: ResolveRelativeLocalFileHrefArgs): string | null {
   if (!href) {
     return null;
   }
+
+  const rootPath = relativeLinkRootPath(absoluteLinks);
 
   const decodedHref = safeDecodeURIComponent(href);
   const parsedHref = parseLineSuffix(decodedHref);

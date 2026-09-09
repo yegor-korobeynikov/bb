@@ -106,10 +106,7 @@ function PluginMarkdown({ content, className }: MarkdownProps) {
       onOpenLink: onOpenLocalFileLink,
     };
     if (workspaceRootPath !== undefined) {
-      localFile.relativeLinks = {
-        baseDir: workspaceRootPath,
-        rootPath: workspaceRootPath,
-      };
+      localFile.relativeLinks = { baseDir: workspaceRootPath };
     }
     return { localFile, onOpenLink };
   }, [onOpenLink, onOpenLocalFileLink, workspaceRootPath]);

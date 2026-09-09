@@ -249,7 +249,7 @@ describe("resolveRelativeLocalFileHref", () => {
       resolveRelativeLocalFileHref({
         baseDir: "/storage/thr_1/current/docs",
         href: "../summary.md#L7",
-        rootPath: "/storage/thr_1",
+        absoluteLinks: { kind: "contained", rootPath: "/storage/thr_1" },
       }),
     ).toBe("/storage/thr_1/current/summary.md#L7");
   });
@@ -259,21 +259,21 @@ describe("resolveRelativeLocalFileHref", () => {
       resolveRelativeLocalFileHref({
         baseDir: "/workspace",
         href: "Cargo.lock:14:33",
-        rootPath: "/workspace",
+        absoluteLinks: { kind: "contained", rootPath: "/workspace" },
       }),
     ).toBe("/workspace/Cargo.lock:14:33");
     expect(
       resolveRelativeLocalFileHref({
         baseDir: "/workspace",
         href: "foo.md:5",
-        rootPath: "/workspace",
+        absoluteLinks: { kind: "contained", rootPath: "/workspace" },
       }),
     ).toBe("/workspace/foo.md:5");
     expect(
       resolveRelativeLocalFileHref({
         baseDir: "/workspace",
         href: "foo:5",
-        rootPath: "/workspace",
+        absoluteLinks: { kind: "contained", rootPath: "/workspace" },
       }),
     ).toBe("/workspace/foo:5");
   });
@@ -283,7 +283,7 @@ describe("resolveRelativeLocalFileHref", () => {
       resolveRelativeLocalFileHref({
         baseDir: "/workspace",
         href: "git+ssh://example.test/repo.git",
-        rootPath: "/workspace",
+        absoluteLinks: { kind: "contained", rootPath: "/workspace" },
       }),
     ).toBeNull();
   });
@@ -293,7 +293,7 @@ describe("resolveRelativeLocalFileHref", () => {
       resolveRelativeLocalFileHref({
         baseDir: "/storage/thr_1/current/docs",
         href: "../../../secret.md",
-        rootPath: "/storage/thr_1",
+        absoluteLinks: { kind: "contained", rootPath: "/storage/thr_1" },
       }),
     ).toBeNull();
   });
@@ -310,7 +310,7 @@ describe("resolveRelativeLocalFileHref", () => {
       resolveRelativeLocalFileHref({
         baseDir: "/workspace",
         href,
-        rootPath: "/workspace",
+        absoluteLinks: { kind: "contained", rootPath: "/workspace" },
       }),
     ).toBeNull();
   });
@@ -325,7 +325,7 @@ describe("resolveRelativeLocalFileHref", () => {
       resolveRelativeLocalFileHref({
         baseDir: "/workspace",
         href,
-        rootPath: "/workspace",
+        absoluteLinks: { kind: "contained", rootPath: "/workspace" },
       }),
     ).toBe(expected);
   });
@@ -335,7 +335,7 @@ describe("resolveRelativeLocalFileHref", () => {
       resolveRelativeLocalFileHref({
         baseDir: "/storage/thr_1/current/docs",
         href: "%2e%2e/%2e%2e/%2e%2e/secret.md",
-        rootPath: "/storage/thr_1",
+        absoluteLinks: { kind: "contained", rootPath: "/storage/thr_1" },
       }),
     ).toBeNull();
   });

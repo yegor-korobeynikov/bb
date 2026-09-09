@@ -599,10 +599,7 @@ function AssistantConversationMessage({
       localImage,
     };
     if (workspaceRootPath !== undefined) {
-      localImage.relativePaths = {
-        baseDir: workspaceRootPath,
-        rootPath: workspaceRootPath,
-      };
+      localImage.relativePaths = { baseDir: workspaceRootPath };
     }
     if (onOpenLink) {
       routing.onOpenLink = onOpenLink;
@@ -615,10 +612,11 @@ function AssistantConversationMessage({
         onOpenLink: onOpenLocalFileLink,
       };
       if (workspaceRootPath !== undefined) {
-        routing.localFile.relativeLinks = {
-          baseDir: workspaceRootPath,
-          rootPath: workspaceRootPath,
-        };
+        // No root of its own: absolute host paths are trusted here, so a
+        // path written relative to the environment is trusted the same way —
+        // including one that climbs out of it, which is how an agent cites a
+        // journal or a note kept in another project.
+        routing.localFile.relativeLinks = { baseDir: workspaceRootPath };
       }
     }
     return routing;
@@ -635,10 +633,12 @@ function AssistantConversationMessage({
     }
 
     return (path) => {
+      // A directive names a workspace file, so here the workspace really is
+      // the boundary — unlike a link the agent wrote in prose.
       const href = resolveRelativeLocalFileHref({
+        absoluteLinks: { kind: "contained", rootPath: workspaceRootPath },
         baseDir: workspaceRootPath,
         href: path,
-        rootPath: workspaceRootPath,
       });
       if (href === null) {
         return false;

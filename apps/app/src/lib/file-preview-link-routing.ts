@@ -48,10 +48,7 @@ export function buildContainedFilePreviewLinkRouting({
     onOpenLink: onOpenLocalFileLink,
   };
   if (baseDir !== undefined) {
-    localFile.relativeLinks = {
-      baseDir,
-      rootPath,
-    };
+    localFile.relativeLinks = { baseDir };
   }
 
   return {
@@ -96,12 +93,7 @@ export function buildHostFilePreviewLinkRouting({
     onOpenLink: onOpenLocalFileLink,
   };
   if (baseDir !== undefined) {
-    localFile.relativeLinks = {
-      baseDir,
-      // The host filesystem is the containing root: the preview reached this
-      // file by absolute host path, so its siblings are equally reachable.
-      rootPath: "/",
-    };
+    localFile.relativeLinks = { baseDir };
   }
 
   return {

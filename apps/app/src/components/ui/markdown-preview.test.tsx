@@ -20,10 +20,7 @@ const workspaceLinkRouting = {
     absoluteLinks: {
       kind: "trusted-host",
     },
-    relativeLinks: {
-      baseDir: "/workspace",
-      rootPath: "/workspace",
-    },
+    relativeLinks: { baseDir: "/workspace" },
     onOpenLink: vi.fn(() => true),
   },
 } satisfies MarkdownLinkRouting;
@@ -385,10 +382,7 @@ describe("MarkdownPreview", () => {
         linkRouting={{
           localImage: {
             absolutePaths: { kind: "trusted-host" },
-            relativePaths: {
-              baseDir: "/workspace",
-              rootPath: "/workspace",
-            },
+            relativePaths: { baseDir: "/workspace" },
             resolveSrc,
           },
         }}

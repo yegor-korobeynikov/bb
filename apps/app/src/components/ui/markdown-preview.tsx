@@ -365,9 +365,7 @@ function areMarkdownRelativeLocalFileLinkRoutingsEqual({
 }: AreMarkdownRelativeLocalFileLinkRoutingsEqualArgs): boolean {
   if (previous === next) return true;
   if (previous === undefined || next === undefined) return false;
-  return (
-    previous.baseDir === next.baseDir && previous.rootPath === next.rootPath
-  );
+  return previous.baseDir === next.baseDir;
 }
 
 function areMarkdownLocalFileLinkRoutingsEqual({
@@ -523,6 +521,7 @@ function resolveMarkdownLocalPath(
   }
 
   const resolvedHref = resolveRelativeLocalFileHref({
+    absoluteLinks: absolutePaths,
     href: value,
     ...relativePaths,
   });
@@ -552,6 +551,7 @@ function buildLocalAwareUrlTransform({
 
       if (localFileRouting.relativeLinks !== undefined) {
         const resolvedHref = resolveRelativeLocalFileHref({
+          absoluteLinks: localFileRouting.absoluteLinks,
           href: value,
           ...localFileRouting.relativeLinks,
         });
@@ -616,6 +616,7 @@ function resolveInlineCodeMarkdownFileHref({
   }
 
   const resolvedHref = resolveRelativeLocalFileHref({
+    absoluteLinks: localFileRouting.absoluteLinks,
     href: codeText,
     ...localFileRouting.relativeLinks,
   });
