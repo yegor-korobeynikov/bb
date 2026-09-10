@@ -2,13 +2,14 @@ import {
   areTimelinePaginationCursorsEqual,
   buildLoadedTimelineState,
   mergeLoadedTimelineWithLatest,
+  mergeLoadedTimelineWithLatestBridgingGap,
   prependOlderTimelineRows,
   recoverLoadedTimelineAfterStaleCursor,
   type LoadedTimelineState,
 } from "@bb/client-core";
 import { BbHttpError } from "@bb/sdk/browser";
 import type { ThreadTimelineResponse, TimelineRow } from "@bb/server-contract";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useProfileClient } from "@/app-shell/ProfilesProvider";
 import { useThreadTimeline } from "./thread-detail-queries";
 
@@ -86,6 +87,11 @@ export function useThreadTimelineController({
     useState(false);
   const latestTimeline = latestTimelineQuery.data;
 
+  const loadedTimelineRef = useRef(loadedTimeline);
+  useEffect(() => {
+    loadedTimelineRef.current = loadedTimeline;
+  }, [loadedTimeline]);
+
   useEffect(() => {
     if (!latestTimeline) {
       setLoadedTimeline((current) =>
@@ -95,10 +101,47 @@ export function useThreadTimelineController({
       );
       return;
     }
-    setLoadedTimeline((current) =>
-      mergeLoadedTimelineWithLatest({ current, latestTimeline, surfaceKey }),
-    );
-  }, [latestTimeline, surfaceKey]);
+
+    // A discontiguous "latest" window whose gap would drop rows still on
+    // screen — the shape a finished, budget-oversized turn takes the instant
+    // a further turn starts — gets bridged with an older-page fetch instead
+    // of truncating and waiting on scroll-triggered auto-load to refill it.
+    let cancelled = false;
+    const baseline = loadedTimelineRef.current;
+    void (async () => {
+      let merged: LoadedTimelineState;
+      try {
+        merged = await mergeLoadedTimelineWithLatestBridgingGap({
+          current: baseline,
+          fetchOlderPage: (cursor) =>
+            sdk.threads.timeline({
+              beforeAnchorId: cursor.anchorId,
+              beforeAnchorSeq: String(cursor.anchorSeq),
+              threadId,
+            }),
+          latestTimeline,
+          surfaceKey,
+        });
+      } catch {
+        merged = mergeLoadedTimelineWithLatest({
+          current: baseline,
+          latestTimeline,
+          surfaceKey,
+        });
+      }
+      if (cancelled) {
+        return;
+      }
+      setLoadedTimeline((current) =>
+        current === baseline
+          ? merged
+          : mergeLoadedTimelineWithLatest({ current, latestTimeline, surfaceKey }),
+      );
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [latestTimeline, sdk, surfaceKey, threadId]);
 
   const refetchLatestTimeline = latestTimelineQuery.refetch;
   const nextOlderCursor =

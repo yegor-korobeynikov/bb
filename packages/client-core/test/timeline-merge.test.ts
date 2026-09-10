@@ -9,6 +9,7 @@ import type {
 } from "@bb/server-contract";
 import {
   mergeLoadedTimelineWithLatest,
+  mergeLoadedTimelineWithLatestBridgingGap,
   mergeLatestTimelineRows,
   prependOlderTimelineRows,
   recoverLoadedTimelineAfterStaleCursor,
@@ -606,5 +607,113 @@ describe("timeline page row merging", () => {
     expect(next.rows.map((row) => row.id)).toEqual(["older-user", "live-tail"]);
     expect(next.rows[1]).toMatchObject({ text: "updated tail" });
     expect(next.olderCursor).toEqual(freshCursor);
+  });
+});
+
+describe("mergeLoadedTimelineWithLatestBridgingGap", () => {
+  it("pages older windows to close the gap instead of dropping a loaded row that is still on screen", () => {
+    // The shape a finished oversized turn takes the instant a further (small)
+    // turn starts: the budgeted "latest" window jumps straight to the new
+    // turn, leaving the just-finished turn's final message — already
+    // rendered — outside it. `mergeLoadedTimelineWithLatest` alone would drop
+    // it (see "rebuilds when latest advances past the loaded rows with a gap
+    // between" above); the bridging variant should page backward instead and
+    // keep it.
+    const verdict = commandRow({ id: "verdict", sequence: 50 });
+    const current = makeLoadedTimelineState(
+      [verdict],
+      timelineCursor({ id: "verdict-older", sequence: 1 }),
+      50,
+    );
+    const bridgeCursor = timelineCursor({ id: "bridge-page", sequence: 60 });
+    const latestTimeline = makeTimelineResponse(
+      [userRow({ id: "small-turn", sequence: 100 })],
+      bridgeCursor,
+      100,
+    );
+    const bridgeRow = commandRow({ id: "bridge-row", sequence: 55 });
+    const bridgeResponse = makeTimelineResponse(
+      [bridgeRow],
+      timelineCursor({ id: "bridge-boundary", sequence: 51 }),
+      60,
+    );
+    const fetchedCursors: TimelinePaginationCursor[] = [];
+
+    return mergeLoadedTimelineWithLatestBridgingGap({
+      current,
+      fetchOlderPage: async (cursor) => {
+        fetchedCursors.push(cursor);
+        return bridgeResponse;
+      },
+      latestTimeline,
+      surfaceKey: "thread-1:default",
+    }).then((next) => {
+      expect(fetchedCursors).toEqual([bridgeCursor]);
+      expect(next.rows.map((row) => row.id)).toEqual([
+        "verdict",
+        "bridge-row",
+        "small-turn",
+      ]);
+      // Nothing older than the loaded rows moved: paging further back still
+      // goes through the same boundary it always did.
+      expect(next.olderCursor).toEqual(current.olderCursor);
+    });
+  });
+
+  it("falls back to the plain merge when the gap does not close within the page cap", () => {
+    const verdict = commandRow({ id: "verdict", sequence: 50 });
+    const current = makeLoadedTimelineState(
+      [verdict],
+      timelineCursor({ id: "verdict-older", sequence: 1 }),
+      50,
+    );
+    const bridgeCursor = timelineCursor({ id: "bridge-page", sequence: 60 });
+    const latestTimeline = makeTimelineResponse(
+      [userRow({ id: "small-turn", sequence: 100 })],
+      bridgeCursor,
+      100,
+    );
+    // Every fetch reports more history above the target boundary, so the walk
+    // never reaches sequence 51 within the cap.
+    let nextSequence = 59;
+    const staleResponse = () => {
+      const response = makeTimelineResponse(
+        [commandRow({ id: `bridge-${nextSequence}`, sequence: nextSequence })],
+        timelineCursor({ id: `bridge-${nextSequence - 1}`, sequence: nextSequence - 1 }),
+        nextSequence,
+      );
+      nextSequence -= 1;
+      return response;
+    };
+
+    return mergeLoadedTimelineWithLatestBridgingGap({
+      current,
+      fetchOlderPage: async () => staleResponse(),
+      latestTimeline,
+      maxBridgePages: 3,
+      surfaceKey: "thread-1:default",
+    }).then((next) => {
+      expect(next.rows.map((row) => row.id)).toEqual(["small-turn"]);
+      expect(next.olderCursor).toEqual(bridgeCursor);
+    });
+  });
+
+  it("skips straight to the plain merge when nothing is loaded yet", () => {
+    const latestTimeline = makeTimelineResponse(
+      [userRow({ id: "first", sequence: 1 })],
+      null,
+    );
+    const current = makeLoadedTimelineState([], null, 0);
+
+    return mergeLoadedTimelineWithLatestBridgingGap({
+      current: { ...current, latestWindowEndSequence: null },
+      fetchOlderPage: async () => {
+        throw new Error("should not fetch when nothing is loaded");
+      },
+      latestTimeline,
+      surfaceKey: "thread-1:default",
+    }).then((next) => {
+      expect(next.rows.map((row) => row.id)).toEqual(["first"]);
+    });
   });
 });

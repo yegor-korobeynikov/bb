@@ -366,6 +366,95 @@ export function mergeLoadedTimelineWithLatest({
   };
 }
 
+interface MergeLoadedTimelineWithLatestBridgingGapArgs {
+  current: LoadedTimelineState;
+  fetchOlderPage: (
+    cursor: TimelinePaginationCursor,
+  ) => Promise<ThreadTimelineResponse>;
+  latestTimeline: ThreadTimelineResponse;
+  maxBridgePages?: number;
+  surfaceKey: string;
+}
+
+const DEFAULT_MAX_BRIDGE_PAGES = 20;
+
+/**
+ * Same outcome as `mergeLoadedTimelineWithLatest`, but when the fresh window
+ * is not contiguous with what is loaded, and rows are already on screen,
+ * pages older windows first to close the gap instead of truncating to the
+ * fresh window and relying on scroll-triggered auto-load to refill it.
+ *
+ * A turn finishing is the routine way to land here: the "latest" window is
+ * cut by an event budget, so the instant a further turn starts, its own tiny
+ * window can leave the whole turn that just finished — final message
+ * included — outside the window `mergeLoadedTimelineWithLatest` would keep.
+ * Auto-load only fires once the loaded window's top scrolls into view, which
+ * is the opposite end of the thread from where a turn finishing is read, so
+ * nothing brings that content back until the user happens to scroll up.
+ *
+ * Falls back to the plain (truncating) merge when there is nothing loaded to
+ * protect, the windows are already contiguous, the gap does not close within
+ * `maxBridgePages`, or a bridged page's rows disagree with the loaded ones
+ * about ordering.
+ */
+export async function mergeLoadedTimelineWithLatestBridgingGap({
+  current,
+  fetchOlderPage,
+  latestTimeline,
+  maxBridgePages = DEFAULT_MAX_BRIDGE_PAGES,
+  surfaceKey,
+}: MergeLoadedTimelineWithLatestBridgingGapArgs): Promise<LoadedTimelineState> {
+  const plainMerge = (): LoadedTimelineState =>
+    mergeLoadedTimelineWithLatest({ current, latestTimeline, surfaceKey });
+
+  const { latestWindowEndSequence } = current;
+  if (
+    current.surfaceKey !== surfaceKey ||
+    current.rows.length === 0 ||
+    latestWindowEndSequence === null ||
+    timelineWindowsAreContiguous(current, latestTimeline)
+  ) {
+    return plainMerge();
+  }
+
+  let bridgeRows: TimelineRow[] = [];
+  let cursor = latestTimeline.timelinePage.olderCursor;
+  let bridgeWindowStartSequence = timelineWindowStartSequence(latestTimeline);
+
+  for (let page = 0; page < maxBridgePages && cursor !== null; page += 1) {
+    const response = await fetchOlderPage(cursor);
+    bridgeRows = [...response.rows, ...bridgeRows];
+    bridgeWindowStartSequence = timelineWindowStartSequence(response);
+    cursor = response.timelinePage.olderCursor;
+    if (bridgeWindowStartSequence <= latestWindowEndSequence + 1) {
+      break;
+    }
+  }
+
+  if (bridgeWindowStartSequence > latestWindowEndSequence + 1) {
+    // Ran out of older pages, or hit the cap, before the gap closed.
+    return plainMerge();
+  }
+
+  const bridgedMerge = mergeLatestTimelineRows({
+    latestRows: [...bridgeRows, ...latestTimeline.rows],
+    latestWindowStartSequence: bridgeWindowStartSequence,
+    loadedRows: current.rows,
+  });
+  if (!bridgedMerge.canMerge) {
+    return plainMerge();
+  }
+
+  return {
+    // Bridging only ever adds rows newer than what was already loaded, so the
+    // boundary for paging older than that stays exactly where it was.
+    latestWindowEndSequence: latestTimeline.maxSeq,
+    olderCursor: current.olderCursor,
+    rows: bridgedMerge.rows,
+    surfaceKey,
+  };
+}
+
 export function recoverLoadedTimelineAfterStaleCursor({
   current,
   latestTimeline,
