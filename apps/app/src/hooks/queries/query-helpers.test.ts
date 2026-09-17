@@ -38,7 +38,11 @@ import {
 import { createQueryClientTestHarness } from "@/test/queryClientTestHarness";
 import { HttpError } from "@/lib/api";
 import { BbHttpError } from "@/lib/sdk";
-import { isTransientReadError, requireEnabledQueryArg } from "./query-helpers";
+import {
+  isTransientReadError,
+  requireEnabledQueryArg,
+  transientReadRetryDelay,
+} from "./query-helpers";
 
 describe("requireEnabledQueryArg", () => {
   it("returns the value when present", () => {
@@ -95,6 +99,18 @@ describe("isTransientReadError", () => {
     expect(isTransientReadError(new Error("Unexpected parse error"))).toBe(
       false,
     );
+  });
+});
+
+describe("transientReadRetryDelay", () => {
+  it("backs off exponentially from a 300ms base, capped at 5000ms", () => {
+    expect(transientReadRetryDelay(0)).toBe(300);
+    expect(transientReadRetryDelay(1)).toBe(600);
+    expect(transientReadRetryDelay(2)).toBe(1200);
+    expect(transientReadRetryDelay(3)).toBe(2400);
+    expect(transientReadRetryDelay(4)).toBe(4800);
+    expect(transientReadRetryDelay(5)).toBe(5000);
+    expect(transientReadRetryDelay(9)).toBe(5000);
   });
 });
 
