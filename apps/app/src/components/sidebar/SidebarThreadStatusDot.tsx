@@ -83,7 +83,6 @@ export function SidebarThreadStatusDot({
       className={status === "working" ? "tendo-status-dot-working" : undefined}
       role="img"
       aria-label={STATUS_LABEL[status]}
-      title={STATUS_LABEL[status]}
       style={{
         // A decorative marker must never intercept the row's click target: the
         // invisible full-row <a> sits behind it, and every other glyph in this
