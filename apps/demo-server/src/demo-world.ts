@@ -7,6 +7,7 @@
 // client's WebSockets.
 
 import {
+  DEFAULT_APP_MODE,
   defaultAppSettings,
   defaultAppTheme,
   defaultExperiments,
@@ -63,6 +64,7 @@ import {
 // take the default, so they cannot drift at all.
 const SYSTEM_CONFIG = systemConfigResponseSchema.parse({
   ...configFixture,
+  appMode: DEFAULT_APP_MODE,
   generalSettings: defaultAppSettings,
   // The mobile experiment gates the app's own settings surfaces.
   experiments: { ...defaultExperiments, mobileApp: true },
