@@ -1,4 +1,7 @@
 import { spawnSync } from "node:child_process";
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import {
   ensureNativeModules,
@@ -321,5 +324,24 @@ describe("ensure-native-modules", () => {
     expect(`${result.stdout}${result.stderr}`).toContain(
       "better-sqlite3 still failed to load after rebuild",
     );
+  });
+
+  it("refuses a Node major that differs from .nvmrc, except under CI", () => {
+    const repoRoot = mkdtempSync(join(tmpdir(), "ensure-native-modules-"));
+    const runningMajor = Number(process.versions.node.split(".")[0]);
+    writeFileSync(join(repoRoot, ".nvmrc"), `${runningMajor + 1}.0.0\n`);
+    const fake = createBetterSqliteRequire(null);
+    const options = {
+      ...createEnsureOptions(fake.requireModule, vi.fn()),
+      repoRoot,
+    };
+
+    expect(() => ensureNativeModules({ ...options, env: {} })).toThrow(
+      "does not match the pinned",
+    );
+    expect(fake.state.constructorCalls).toBe(0);
+
+    ensureNativeModules({ ...options, env: { CI: "true" } });
+    expect(fake.state.constructorCalls).toBe(1);
   });
 });
