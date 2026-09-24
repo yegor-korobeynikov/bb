@@ -302,13 +302,13 @@ describe("useRouteStateHistoryNavigation", () => {
     await clickAndExpectPath("Open detail", detailPath);
     await clickAndExpectPath("Edit from detail", editPath);
     await clickAndExpectPath("Remount plugin", editPath);
-    await clickAndExpectPath("Redirect edit to compose", "/");
+    await clickAndExpectPath("Redirect edit to compose", "/compose");
     await clickAndExpectPath("Native back", detailPath);
     await clickAndExpectPath("Native back", getAutomationsRoutePath());
 
     await clickAndExpectPath("Open direct edit", editPath);
     await clickAndExpectPath("Remount plugin", editPath);
-    await clickAndExpectPath("Redirect edit to compose", "/");
+    await clickAndExpectPath("Redirect edit to compose", "/compose");
     await clickAndExpectPath("Native back", getAutomationsRoutePath());
   });
 

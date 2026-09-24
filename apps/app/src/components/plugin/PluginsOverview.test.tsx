@@ -375,7 +375,7 @@ describe("PluginsOverview", () => {
 
     // Creation is a navigation to the real new-thread page, not a bounce
     // through Browse's inline composer.
-    expect(screen.getByTestId("location-path").textContent).toBe("/");
+    expect(screen.getByTestId("location-path").textContent).toBe("/compose");
   });
 
   it("shows the Type filter on Installed instead of Category", async () => {

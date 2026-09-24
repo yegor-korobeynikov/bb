@@ -5,6 +5,16 @@ import { TooltipProvider } from "@bb/shared-ui/tooltip";
 import { describe, expect, it, vi } from "vitest";
 import { ThreadEnvironmentSummary } from "./ThreadEnvironmentSummary";
 
+// The strip asks the system config which build this is; these tests render
+// without a QueryClient, so answer as the working build (which shows the
+// git-context strip).
+vi.mock("@/hooks/useAppMode", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/hooks/useAppMode")>()),
+  useAppMode: () => "staging",
+  useIsProd: () => false,
+  useSurfaceVisible: () => true,
+}));
+
 describe("ThreadEnvironmentSummary", () => {
   it("uses a host-free environment label in compact prompt boxes", () => {
     render(

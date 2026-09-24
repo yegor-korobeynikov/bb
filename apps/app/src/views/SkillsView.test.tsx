@@ -932,7 +932,7 @@ describe("SkillsLibrary registry detail lifecycle", () => {
         <QueryClientWrapper>
           <Routes>
             <Route path="/extensions/skills" element={<SkillsLibrary />} />
-            <Route path="/" element={<LocationStateProbe />} />
+            <Route path="/compose" element={<LocationStateProbe />} />
           </Routes>
           <NavigateButton
             to="/extensions/skills?view=library"
