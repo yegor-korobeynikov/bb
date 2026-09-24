@@ -3011,33 +3011,9 @@ describe("PromptBoxInternal selection reveal", () => {
 
   it("reveals the moving selection head, not the anchor, when a selection extends upward", async () => {
     const lines = Array.from({ length: 40 }, (_, index) => `line ${index}`);
-    const { promptBoxRef } = renderPromptBox(lines.join("\n"));
-
-    await focusPromptEnd(promptBoxRef);
-    await nextAnimationFrame();
-
-    const scrollContainer = document.querySelector(
-      "[data-promptbox-editor-scroll]",
-    );
-    if (!(scrollContainer instanceof HTMLElement)) {
-      throw new Error("Prompt editor scroll container was not rendered");
-    }
-    // jsdom does not lay out, so emulate a 100px viewport scrolled to the
-    // middle of the document. The selection anchor sits below the viewport
-    // (where the drag started) and the head sits above it (where the pointer
-    // is now). The browser's own drag autoscroll has already moved the
-    // viewport up toward the head.
-    let scrollTop = 500;
-    Object.defineProperty(scrollContainer, "scrollTop", {
-      configurable: true,
-      get: () => scrollTop,
-      set: (next: number) => {
-        scrollTop = next;
-      },
-    });
-    const scrollRectSpy = vi
-      .spyOn(scrollContainer, "getBoundingClientRect")
-      .mockReturnValue(new DOMRect(0, 0, 320, 100));
+    // Install the spy before the editor mounts: the first focus captures
+    // `view`. Installed after focusing, a loaded machine could run the mount
+    // autofocus and the focusEnd reveal first and never capture it.
     let view: EditorView | null = null;
     const coordsAtPosSpy = vi
       .spyOn(EditorView.prototype, "coordsAtPos")
@@ -3049,12 +3025,40 @@ describe("PromptBoxInternal selection reveal", () => {
         }
         return { left: 0, right: 0, top: 160, bottom: 176 };
       });
+    let scrollRectSpy: { mockRestore: () => void } | null = null;
 
     try {
+      const { promptBoxRef } = renderPromptBox(lines.join("\n"));
+
+      await focusPromptEnd(promptBoxRef);
+      await nextAnimationFrame();
+
+      const scrollContainer = document.querySelector(
+        "[data-promptbox-editor-scroll]",
+      );
+      if (!(scrollContainer instanceof HTMLElement)) {
+        throw new Error("Prompt editor scroll container was not rendered");
+      }
+      // jsdom does not lay out, so emulate a 100px viewport scrolled to the
+      // middle of the document. The selection anchor sits below the viewport
+      // (where the drag started) and the head sits above it (where the pointer
+      // is now). The browser's own drag autoscroll has already moved the
+      // viewport up toward the head.
+      let scrollTop = 500;
+      Object.defineProperty(scrollContainer, "scrollTop", {
+        configurable: true,
+        get: () => scrollTop,
+        set: (next: number) => {
+          scrollTop = next;
+        },
+      });
+      scrollRectSpy = vi
+        .spyOn(scrollContainer, "getBoundingClientRect")
+        .mockReturnValue(new DOMRect(0, 0, 320, 100));
+
       await waitFor(() => expect(view).not.toBeNull());
       const liveView = view as unknown as EditorView;
       const { doc } = liveView.state;
-      // The focusEnd reveal above captured `view`; reset the baseline it set.
       scrollTop = 500;
       await act(async () => {
         liveView.dispatch(
@@ -3071,17 +3075,15 @@ describe("PromptBoxInternal selection reveal", () => {
       expect(scrollTop).toBeLessThan(500);
     } finally {
       coordsAtPosSpy.mockRestore();
-      scrollRectSpy.mockRestore();
+      scrollRectSpy?.mockRestore();
     }
   });
 });
 
 describe("PromptBoxInternal paste-a-link-over-a-selection", () => {
   it("links the selected word instead of replacing it with the pasted URL", async () => {
-    const { changes, promptBoxRef } = renderPromptBox("check word here");
-
-    await focusPromptEnd(promptBoxRef);
-
+    // Install the spy before the editor mounts so the first focus captures
+    // `view`; installed after focusing, it can miss every call under load.
     let view: EditorView | null = null;
     const coordsAtPosSpy = vi
       .spyOn(EditorView.prototype, "coordsAtPos")
@@ -3091,6 +3093,10 @@ describe("PromptBoxInternal paste-a-link-over-a-selection", () => {
       });
 
     try {
+      const { changes, promptBoxRef } = renderPromptBox("check word here");
+
+      await focusPromptEnd(promptBoxRef);
+
       await waitFor(() => expect(view).not.toBeNull());
       const liveView = view as unknown as EditorView;
       const { doc } = liveView.state;
@@ -3117,10 +3123,8 @@ describe("PromptBoxInternal paste-a-link-over-a-selection", () => {
   });
 
   it("still replaces the selection when the pasted text is not a bare URL", async () => {
-    const { changes, promptBoxRef } = renderPromptBox("check word here");
-
-    await focusPromptEnd(promptBoxRef);
-
+    // Install the spy before the editor mounts so the first focus captures
+    // `view`; installed after focusing, it can miss every call under load.
     let view: EditorView | null = null;
     const coordsAtPosSpy = vi
       .spyOn(EditorView.prototype, "coordsAtPos")
@@ -3130,6 +3134,10 @@ describe("PromptBoxInternal paste-a-link-over-a-selection", () => {
       });
 
     try {
+      const { changes, promptBoxRef } = renderPromptBox("check word here");
+
+      await focusPromptEnd(promptBoxRef);
+
       await waitFor(() => expect(view).not.toBeNull());
       const liveView = view as unknown as EditorView;
       const { doc } = liveView.state;

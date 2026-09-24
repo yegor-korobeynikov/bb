@@ -71,6 +71,15 @@ import { buildFileOpenerPanelTab } from "./file-opener-tabs";
 import { splitLayoutAtom } from "@/lib/split-layout/atoms";
 import type { PromptDraftState } from "@bb/client-core";
 
+// The sidebar asks the system config which build this is; these tests render
+// without a QueryClient, so answer as the working build (which shows every
+// surface, including Extensions).
+vi.mock("@/hooks/useAppMode", () => ({
+  useAppMode: () => "staging",
+  useIsProd: () => false,
+  useSurfaceVisible: () => true,
+}));
+
 function composerTextEffectValues(storageKey: string | null) {
   return getComposerTextEffects(storageKey).map(({ effect }) => effect);
 }

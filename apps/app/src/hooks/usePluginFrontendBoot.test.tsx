@@ -36,7 +36,9 @@ beforeEach(() => {
   vi.useFakeTimers();
   mocks.systemConfigData = { generalSettings: {} };
   resetRouteContentPaintForTest();
-  window.history.replaceState(null, "", "/");
+  // "/" is the Home space plugin pane and boots eagerly; the deferred-boot
+  // cases run on the composer route.
+  window.history.replaceState(null, "", "/compose");
 });
 
 afterEach(() => {

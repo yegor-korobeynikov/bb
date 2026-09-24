@@ -152,7 +152,7 @@ describe("useAppSettingsRouteMemory", () => {
 
     expect(
       screen.getByRole("link", { name: "App" }).getAttribute("href"),
-    ).toBe("/");
+    ).toBe("/compose");
     expect(
       screen.getByRole("link", { name: "Settings" }).getAttribute("href"),
     ).toBe("/settings");
@@ -161,7 +161,7 @@ describe("useAppSettingsRouteMemory", () => {
     ).toBe("/extensions/plugins");
     expect(
       screen.getByRole("link", { name: "Tools back" }).getAttribute("href"),
-    ).toBe("/");
+    ).toBe("/compose");
   });
 
   it("remembers a per-plugin settings page as a real Settings route", () => {
@@ -180,7 +180,7 @@ describe("useAppSettingsRouteMemory", () => {
     // Leaving for the app and coming back returns to the plugin's settings
     // page, exactly like any other remembered settings section.
     fireEvent.click(screen.getByRole("link", { name: "App" }));
-    expect(screen.getByTestId("location").textContent).toBe("/");
+    expect(screen.getByTestId("location").textContent).toBe("/compose");
     fireEvent.click(screen.getByRole("link", { name: "Settings" }));
     expect(screen.getByTestId("location").textContent).toBe(
       "/settings/plugins/ui-patterns",

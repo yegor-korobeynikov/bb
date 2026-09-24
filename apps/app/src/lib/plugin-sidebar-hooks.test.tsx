@@ -20,9 +20,14 @@ const state = vi.hoisted(() => ({
     | undefined,
 }));
 
-vi.mock("@/hooks/queries/sidebar-navigation-query", () => ({
-  useSidebarNavigation: () => ({ data: state.data, isError: false }),
-}));
+vi.mock("@/hooks/queries/sidebar-navigation-query", () => {
+  // Stable like the real selector result, so the DTO memo is not rebuilt.
+  const sections: never[] = [];
+  return {
+    useSidebarNavigation: () => ({ data: state.data, isError: false }),
+    useSidebarNavigationSections: () => sections,
+  };
+});
 
 vi.mock("@/hooks/queries/host-queries", () => {
   // Stable like the real query result; a fresh array per render would rebuild

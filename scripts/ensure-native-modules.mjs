@@ -27,8 +27,15 @@ const nativeModules = [
  *
  * So: compare against .nvmrc BEFORE any dlopen and fail with the one line
  * of instruction that would have saved the evening.
+ *
+ * CI is exempt: a CI job installs dependencies fresh under the Node it runs
+ * (the CI matrix is Node 22, which `engines` supports), so its native modules
+ * are built for the running ABI, not the pinned one, and there is no daemon
+ * to break. Enforcing the pin there failed every task that depends on this
+ * one before a single test ran.
  */
-function assertPinnedNodeMajor(repoRoot) {
+function assertPinnedNodeMajor(repoRoot, env) {
+  if (env.CI === "true") return;
   let pinned;
   try {
     pinned = readFileSync(resolve(repoRoot, ".nvmrc"), "utf8").trim();
@@ -131,8 +138,9 @@ export function ensureNativeModules({
   verifyRepairedNativeModule: verifyRepairedNativeModuleImpl =
     getRepairedNativeModuleError,
   log = console.log,
+  env = process.env,
 } = {}) {
-  assertPinnedNodeMajor(repoRoot);
+  assertPinnedNodeMajor(repoRoot, env);
   for (const { name, resolveFrom } of modules) {
     const requireModule = createRequireImpl(resolve(repoRoot, resolveFrom));
     try {

@@ -53,9 +53,16 @@ env:
 jobs:
   ios:
     name: iOS simulator flows
+    # Fork note: blacksmith-6vcpu-macos-15 is a Blacksmith-hosted runner that
+    # only exists where the Blacksmith app is installed (upstream get-bb/bb).
+    # On this fork no runner ever matches it, so every nightly run sat queued
+    # until GitHub cancelled it. Upstream-only until the fork has a macOS
+    # runner of its own.
     if: >-
-      github.event_name != 'pull_request' ||
-      contains(github.event.pull_request.labels.*.name, 'mobile-e2e')
+      github.repository == 'get-bb/bb' && (
+        github.event_name != 'pull_request' ||
+        contains(github.event.pull_request.labels.*.name, 'mobile-e2e')
+      )
     runs-on: blacksmith-6vcpu-macos-15
     timeout-minutes: 90
 

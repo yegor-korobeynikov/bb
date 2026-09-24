@@ -1223,7 +1223,7 @@ describe("ThreadRow", () => {
 
   it("renders an already-unread successful thread as a settled dot on initial load", () => {
     // The trailing plain-grey dot was removed (2026-08-21): it duplicated the
-    // leading SidebarThreadStatusDot's Teal Blue "unread" state at the other
+    // leading SidebarThreadStatusDot's Teal Blue "done" state at the other
     // end of the same row.
     const { container } = renderThreadRow({
       thread: createThread({
@@ -1234,7 +1234,7 @@ describe("ThreadRow", () => {
     });
 
     expect(
-      container.querySelector('[data-sidebar-thread-status-dot="unread"]'),
+      container.querySelector('[data-sidebar-thread-status-dot="done"]'),
     ).not.toBeNull();
     expect(container.querySelector('[data-icon="CircleCheck"]')).toBeNull();
     expect(screen.queryByLabelText("Unread thread succeeded")).toBeNull();
@@ -1266,7 +1266,7 @@ describe("ThreadRow", () => {
 
     expect(container.querySelector('[data-icon="CircleCheck"]')).toBeNull();
     expect(
-      container.querySelector('[data-sidebar-thread-status-dot="unread"]'),
+      container.querySelector('[data-sidebar-thread-status-dot="done"]'),
     ).not.toBeNull();
     expect(screen.queryByLabelText("Unread thread succeeded")).toBeNull();
   });
@@ -1360,7 +1360,7 @@ describe("ThreadRow chevron slot", () => {
     // dot and title land on the same x as a sibling that has one.
     expect(placeholder.className).toContain("size-5");
     expect(placeholder.style.marginRight).toBe(
-      "calc(var(--tendo-sidebar-chevron-to-dot) - 0.375rem)",
+      "calc(var(--tendo-sidebar-chevron-to-dot) - 1.25rem + 0.25rem - 0.375rem)",
     );
     expect(placeholder.getAttribute("aria-hidden")).toBe("true");
   });
@@ -1379,7 +1379,7 @@ describe("ThreadRow chevron slot", () => {
     );
     expect(placeholder).not.toBeNull();
     expect(placeholder?.style.marginRight).toBe(
-      "calc(var(--tendo-sidebar-chevron-to-dot) - 0.375rem)",
+      "calc(var(--tendo-sidebar-chevron-to-dot) - 1.25rem + 0.25rem - 0.375rem)",
     );
   });
 

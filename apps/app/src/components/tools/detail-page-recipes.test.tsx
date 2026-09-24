@@ -380,7 +380,7 @@ describe("Plugin detail recipe", () => {
     const destinations = [
       ["Settings", "/settings/plugins/github"],
       ["Issues", "/plugins/github/issues"],
-      ["GitHub dashboard", "/#plugin-homepage:github:dashboard"],
+      ["GitHub dashboard", "/compose#plugin-homepage:github:dashboard"],
       ["GitHub threads", "/settings/appearance"],
       ["Markdown viewer", "/settings/files"],
       ["GitHub Dark", "/settings/appearance"],

@@ -25,6 +25,15 @@ import {
 import { PluginNavSidebarItems } from "./PluginNavSidebarItems";
 import { pluginNavPanelOrderAtom } from "./pluginNavSidebarAtoms";
 
+// The sidebar asks the system config which build this is; these tests render
+// without a QueryClient, so answer as the working build (which shows every
+// surface, including Extensions).
+vi.mock("@/hooks/useAppMode", () => ({
+  useAppMode: () => "staging",
+  useIsProd: () => false,
+  useSurfaceVisible: () => true,
+}));
+
 function registrationSet(
   overrides: Partial<PluginRegistrationSet>,
 ): PluginRegistrationSet {
@@ -339,8 +348,8 @@ describe("PluginNavSidebarItems", () => {
 
     renderSidebarItems({ toolsRoutePath: "/extensions/skills" });
 
-    // Extensions leads the list, above the plugin rows.
-    expect(panelRowNames()).toEqual(["Extensions", "Docs"]);
+    // Extensions closes the list, below the plugin rows.
+    expect(panelRowNames()).toEqual(["Docs", "Extensions"]);
 
     fireEvent.pointerDown(
       screen.getByRole("button", { name: "Extensions panel options" }),
@@ -361,7 +370,7 @@ describe("PluginNavSidebarItems", () => {
     ).toContain("__builtin__/tools");
   });
 
-  it("keeps Extensions on top for users who already reordered their plugin rows", () => {
+  it("keeps Extensions last for users who already reordered their plugin rows", () => {
     registerPanel("docs", "Docs");
     registerPanel("github", "GitHub");
 
@@ -370,7 +379,7 @@ describe("PluginNavSidebarItems", () => {
       storedOrder: ["github/main", "docs/main"],
     });
 
-    expect(panelRowNames()).toEqual(["Extensions", "GitHub", "Docs"]);
+    expect(panelRowNames()).toEqual(["GitHub", "Docs", "Extensions"]);
   });
 
   it("keeps a saved order when plugin frontends register after the first render", async () => {
